@@ -1,3 +1,5 @@
+![Repo structure](diagram.svg)
+
 ![RepoName](https://img.shields.io/badge/CommonThread-8A2BE2)
 ![Stars](https://img.shields.io/github/stars/uchicago-capp-30320/CommonThread?&color=yellow)
 ![Files](https://img.shields.io/github/directory-file-count/uchicago-capp-30320/CommonThread) 
