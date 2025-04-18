@@ -1,4 +1,10 @@
+
+# Local Files / Venv
 .venv
+config.py
+__pycache__
+__pycache__/
+db.sqlite3
 
 test-results
 node_modules
@@ -24,3 +30,4 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
