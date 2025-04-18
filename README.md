@@ -1,8 +1,12 @@
+![RepoName](https://img.shields.io/badge/CommonThread-8A2BE2)
+![Stars](https://img.shields.io/github/stars/uchicago-capp-30320/CommonThread?&color=yellow)
+![Files](https://img.shields.io/github/directory-file-count/uchicago-capp-30320/CommonThread) 
+
 # 🧵CommonThread🧵
 
 CommonThread is an open-source collaborative tool that enables users to turn stories into insights. Community-based organizations, journalists, researchers, and community members alike can use the tool to efficiently gather stories, aggregate them, and understand common threads to draw insights for action.
 
-## Set Up
+## Set Up :hammer:
 
 To set up a local development environment, follow these steps:
 
@@ -12,7 +16,7 @@ To set up a local development environment, follow these steps:
 uv sync
 ```
 
-## Project Structure
+## Project Structure :card_index_dividers:
 - backend/
     - app/
         - auth/
@@ -29,5 +33,5 @@ uv sync
     - shared/
     - assets/
 
-## Issue Tracker
-https://github.com/orgs/uchicago-capp-30320/projects/10/views/1 
+## Issue Tracker :mag:
+Check our [issue tracker](https://github.com/orgs/uchicago-capp-30320/projects/10/views/1).
