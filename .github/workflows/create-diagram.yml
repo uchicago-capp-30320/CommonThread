@@ -1,18 +1,46 @@
 name: Create diagram
+
 on:
-  workflow_dispatch: {}
   push:
-    branches:
-      - main
-permissions:            
+    branches: [main]
+  workflow_dispatch:
+
+# give the workflow permission to push the updated README
+permissions:
   contents: write
+
 jobs:
-  get_data:
+  diagram:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@master
-      - name: Update diagram
-        uses: githubocto/repo-visualizer@main
+      # 1 ▸ check out the repo
+      - uses: actions/checkout@v3
+
+      # 2 ▸ generate the SVG
+      - name: Render repo diagram
+        id: viz
+        uses: githubocto/repo-visualizer@0.7.1   # pin a version
         with:
+          output_file: diagram.svg               # default location
           excluded_paths: "ignore,.github"
+
+      # 3 ▸ add the image link to the top of README.md (only once)
+      - name: Prepend diagram to README
+        shell: bash
+        run: |
+          img='![Repo structure](diagram.svg)'
+
+          # If the line isn't already present, prepend it.
+          if ! grep -qxF "$img" README.md; then
+            printf '%s\n\n%s\n' "$img" "$(cat README.md)" > README.tmp
+            mv README.tmp README.md
+
+            git config user.name  "github-actions"
+            git config user.email "actions@github.com"
+
+            git add README.md
+            git commit -m "docs: add repo diagram to README [skip ci]"
+            git push
+          else
+            echo "Diagram already referenced in README — skip commit."
+          fi
