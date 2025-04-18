@@ -1,0 +1,11 @@
+## Project Level Documentation
+
+For now, important things:
+
+### settings.py
+
+Basic Database configuration settings. Where we tell it we're using PostgreSQL, basically.
+
+### urls.py
+
+Where we tell the project what urls go ---> what view, aka what webpage/template to call.
