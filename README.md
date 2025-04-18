@@ -1,5 +1,7 @@
 # 🧵CommonThread🧵
 
+CommonThread is an open-source collaborative tool that enables users to turn stories into insights. Community-based organizations, journalists, researchers, and community members alike can use the tool to efficiently gather stories, aggregate them, and understand common threads to draw insights for action.
+
 ## Set Up
 
 To set up a local development environment, follow these steps:
@@ -9,3 +11,23 @@ To set up a local development environment, follow these steps:
 ```bash
 uv sync
 ```
+
+## Project Structure
+- backend/
+    - app/
+        - auth/
+        - public/
+        - org/
+        - preprocessor/
+        - ml/
+        - db/
+    - tests/
+    - run/
+- frontend/
+    - public/
+    - org/
+    - shared/
+    - assets/
+
+## Issue Tracker
+https://github.com/orgs/uchicago-capp-30320/projects/10/views/1 
