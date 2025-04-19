@@ -1,6 +1,4 @@
 from django.test import TestCase
-from django.urls import reverse
-from views import home_test
 
 #import backend.tests as bt
 #import frontend.tests as ft
@@ -12,10 +10,9 @@ class PageViewTests(TestCase):
     '''
     Class for testing status codes & outputs for templates/views for the frontend
     '''
-    def homepage_test(self, response):
-        
-        response = home_test(response)
-        assert response.status_code == 200
+    def math_test(self):
+        self.assertEqual(200, 200)
 
-sample_test = PageViewTests()
-sample_test.homepage_test()
+    def homepage_test(self):
+        response = self.client.get('')
+        self.assertEqual(response.status_code, 200)

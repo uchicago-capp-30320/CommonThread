@@ -26,4 +26,4 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
-        run: uv run pytest commonthread/ct_application/tests.py
+        run: uv run commonthread/manage.py test #Not functioning currently
