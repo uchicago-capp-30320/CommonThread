@@ -25,7 +25,7 @@ npm run dev -- --open
 
 ```bash
 npm run format
-``` 
+```
 
 ## Building
 
