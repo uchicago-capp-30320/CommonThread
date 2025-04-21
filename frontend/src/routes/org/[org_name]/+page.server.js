@@ -1,4 +1,6 @@
-export async function load() {
+export async function load({ params }) {
+	//const post = await getPostFromDatabase(params.slug);
+
 	const tests = [
 		{
 			name: 'Test',
@@ -10,5 +12,5 @@ export async function load() {
 		}
 	];
 
-	return { tests };
+	return { tests, params };
 }
