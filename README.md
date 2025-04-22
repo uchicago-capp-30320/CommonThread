@@ -20,29 +20,29 @@ uv sync
 
 CommonThread
 ├── commonthread    # Backend folder 
-│   ├── commonthread       
-│   ├── auth      
-│   ├── public    
-│   ├── ct_application      
+│   ├── commonthread       
+│   ├── auth      
+│   ├── public    
+│   ├── ct_application      
 │   │   ├── auth      
 │   │   ├── public    
 │   │   ├── org
-│   │   │   ├── migrations
-│   │   │   ├── static
-│   │   │   └── templates
+│   │   │   ├── migrations
+│   │   │   ├── static
+│   │   │   └── templates
 │   │   ├── preprocessor
 │   │   ├── ml
 │   │   ├── db
-│   ├── tests
-│   └── run  
+│   ├── tests
+│   └── run  
 └── frontend
-    ├── public
-    ├── org
-    │   ├── migrations
-    │   ├── static
-    │   └── templates
+    ├── public
+    ├── org
+    │   ├── migrations
+    │   ├── static
+    │   └── templates
     ├── shared
-    └── assets  
+    └── assets   
 
 ![Repo structure](diagram.svg)
 
