@@ -28,4 +28,4 @@ jobs:
       - name: Run tests
         run: | #Tests are internal to the application currently.
           cd commonthread
-          uv run manage.py test 
+          uv run pytest
