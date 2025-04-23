@@ -1,2 +1,2 @@
-<h1>Landing Page</h1>
+<h1>About Page</h1>
 <p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>

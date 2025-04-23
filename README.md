@@ -17,21 +17,32 @@ uv sync
 ```
 
 ## Project Structure :card_index_dividers:
-- backend/
-    - app/
-        - auth/
-        - public/
-        - org/
-        - preprocessor/
-        - ml/
-        - db/
-    - tests/
-    - run/
-- frontend/
-    - public/
-    - org/
-    - shared/
-    - assets/
+
+CommonThread
+├── commonthread    # Backend folder 
+│   ├── commonthread       
+│   ├── auth      
+│   ├── public    
+│   ├── ct_application      
+│   │   ├── auth      
+│   │   ├── public    
+│   │   ├── org
+│   │   │   ├── migrations
+│   │   │   ├── static
+│   │   │   └── templates
+│   │   ├── preprocessor
+│   │   ├── ml
+│   │   ├── db
+│   ├── tests
+│   └── run  
+└── frontend
+    ├── public
+    ├── org
+    │   ├── migrations
+    │   ├── static
+    │   └── templates
+    ├── shared
+    └── assets   
 
 ![Repo structure](diagram.svg)
 
