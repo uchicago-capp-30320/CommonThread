@@ -1,5 +1,8 @@
 <script>
+	import '../../node_modules/bulma/css/bulma.css';
+
 	let { children } = $props();
+
 </script>
 
 <nav>
