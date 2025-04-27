@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
+import environ
 #from CommonThread.commonthread.config import secret_key
 
 config_check = Path("config.py")
@@ -20,6 +21,9 @@ if config_check.is_file():
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+env = environ.Env(
+    DEBUG=(bool, False),
+)
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -28,10 +32,23 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = secret_key
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool("DEBUG", False)
+
+if DEBUG:
+    SECRET_KEY = env.str("SECRET_KEY", "needs-to-be-set-in-prod")
+    _DEFAULT_DB = env.db(
+        default="postgres://common_thread_dev:honeydew-39201-parrot-cosmology@localhost:5432/common_thread_dev"
+    )
+    EMAIL_CONFIG = env.email(default="consolemail://")
+else:
+    SECRET_KEY = env.str("SECRET_KEY")
+    _DEFAULT_DB = env.db()
+    EMAIL_CONFIG = env.email()
+
+DATABASES = {"default": _DEFAULT_DB}
+vars().update(EMAIL_CONFIG)
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -74,22 +91,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'commonthread.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': BASE_DIR / 'common_thread_dev',
-        "USER": "common_thread_dev",
-        "PASSWORD": "honeydew-39201-parrot-cosmology",
-        "HOST": "turing.unnamed.computer",
-        # "PORT": "5432",
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -107,6 +108,21 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+
+# Database
+# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': BASE_DIR / 'common_thread_dev',
+#         "USER": "common_thread_dev",
+#         "PASSWORD": "honeydew-39201-parrot-cosmology",
+#         "HOST": "turing.unnamed.computer",
+#         # "PORT": "5432",
+#     }
+# }
 
 
 # Internationalization
