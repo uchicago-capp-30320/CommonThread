@@ -32,6 +32,8 @@ class Project(models.Model):
     proj_id = models.AutoField(primary_key=True)
     org_id = models.ForeignKey(Organization, to_field = 'org_id', on_delete = models.CASCADE)
     name = models.CharField(max_length=100) 
+    curator = models.ForeignKey(User, models.SET_NULL, blank = True, null = True, to_field = 'user_id')
+    date = models.DateField()
 
 # story
 class Story(models.Model):
