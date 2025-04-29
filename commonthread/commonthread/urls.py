@@ -22,7 +22,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path("",home_test, name="home_test"),
     path("stories/",get_story, name="get_stories"),
-    path("stories/<int:story_id/",get_story, name="get_story"),
+    path("stories/<int:story_id>/",get_story, name="get_story"),
     path("stories/create/",create_story,name="create_story"), #this is for creating a single story, we need one for creating multiple
     path("org/<int:org_id>/<int:user_id>/", show_org_dashboard, name="show_org_dashboard"),
     path("org/<int:org_id>/<int:user_id>/project/<int:project_id>/", show_project_dashboard, name="show_project_dashboard"),
