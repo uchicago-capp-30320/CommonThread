@@ -15,6 +15,19 @@ To set up a local development environment, follow these steps:
 ```bash
 uv sync
 ```
+3. **To add a new package**: If you need to add a new package, you can do so by running:
+```bash
+uv add <package_name>
+``` 
+
+## Settin Up Your .env and SECRET_KEY :key:
+1. **See the .env.example file**: The `.env.example` file contains a template for the environment variables you need to set up. 
+2. **Copy this file and rename it to `.env`**: This will be your actual environment file where you will set your variables. You can do this by running:
+```bash
+cp .env.example .env
+```
+3. **Set the SECRET_KEY**: Open the `.env` file and set the `SECRET_KEY` variable. This key is sent to you privately.
+
 
 ## Project Structure :card_index_dividers:
 
