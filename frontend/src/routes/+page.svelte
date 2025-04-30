@@ -76,9 +76,9 @@
     .welcome-text {
         flex: 1;
         font-size: 4rem;
-        font-weight: bold;
         color: #fff;
         width: 500px;
+        line-height: normal;
     }
 
     .welcome-text p {
@@ -88,7 +88,10 @@
 
     .rotate {
         transition: transform 0.5s ease-in-out;
-        text-decoration: underline;
+        font-style: italic;
+        color: var(--green);
+        font-weight: bold;
+    
     }
     .welcome-image {
         flex: 1;
