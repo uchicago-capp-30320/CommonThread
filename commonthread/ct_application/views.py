@@ -62,3 +62,29 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         "story_count": story_count,
         "tag_count":   tag_count,
     }, status=200)
+
+def get_story(request,story_id = None):
+    if story_id:
+        try:
+            story = Story.objects.get(story_id = story_id)
+            return JsonResponse({
+                "story_id": story.story_id,
+                "story_teller": story.storyteller,
+                "curator":story.curator,
+                "date": story.date,
+                "content": story.content
+            })
+        except Story.DoesNotExist:
+            return HttpResponseNotFound(
+            "Could not find that story. It has been either deleted or misplaced",
+            status=404
+        )
+    else:
+        try:
+            stories = Story.objects.all()
+            return JsonResponse({
+                'stories': list(stories.values("story_id","story_teller","curator","date","content"))
+            })
+        except Exception as e:
+            return HttpResponse(str(e),status = 500)
+
