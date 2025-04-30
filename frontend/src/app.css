@@ -1,0 +1,13 @@
+@import url('https://fonts.googleapis.com/css2?family=Karla:ital,wght@0,200..800;1,200..800&display=swap');
+
+:root {
+	--dark-blue: #133335;
+	--light-blue: #56bcb3;
+	--green: #d0fdb9;
+	--black: #ff4081;
+	--white: #f2f1f0;
+}
+
+body {
+	font-family: 'Karla', sans-serif;
+}
