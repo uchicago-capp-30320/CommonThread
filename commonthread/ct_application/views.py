@@ -1,5 +1,6 @@
 import json
 from django.shortcuts import render, get_object_or_404
+from django.views.decorators.http import require_GET, require_POST
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
 from .models import User, Organization, OrgUser, Project, Story, ProjectTag # This is how we query data from the database 
 # the names of the models may change on a different branch.
@@ -64,7 +65,8 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         "tag_count":   tag_count,
     }, status=200)
 
-
+###############################################################################
+@require_GET
 def get_story(request,story_id = None):
     if story_id:
         try:
@@ -83,6 +85,7 @@ def get_story(request,story_id = None):
         )
     else:
         try:
+            #TODO Decide if all the details are needed if all stories are asked for
             stories = Story.objects.all()
             return JsonResponse({
                 'stories': list(stories.values("story_id","story_teller","curator","date","content"))
@@ -90,7 +93,8 @@ def get_story(request,story_id = None):
         except Exception as e:
             return JsonResponse({"success": False, "error":str(e)}, status = 500)
 
-
+###############################################################################
+@require_POST
 def create_story(request):
     try:
         story_data = json.loads(request.body)
@@ -110,3 +114,5 @@ def create_story(request):
             'success': False,
             'error': str(e)
         }, status=400)
+###############################################################################
+
