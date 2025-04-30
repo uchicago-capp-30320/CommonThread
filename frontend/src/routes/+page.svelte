@@ -75,7 +75,7 @@
    
     .welcome-text {
         flex: 1;
-        font-size: 2.5rem;
+        font-size: 4rem;
         font-weight: bold;
         color: #fff;
         width: 500px;
@@ -99,7 +99,7 @@
 
     .welcome-image img {
         height: 40%;
-        max-height: 250px;
+        max-height: 300px;
         width: auto;
         margin: 0 10px;
     }
