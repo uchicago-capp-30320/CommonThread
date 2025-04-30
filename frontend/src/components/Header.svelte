@@ -1,7 +1,7 @@
-// mobile
+<!-- ./ mobile
     // change logo
     // change nav items
-
+ -->
 <script>
 	import logo from '$lib/logos/logo_main.png';
 </script>
