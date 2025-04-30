@@ -11,42 +11,27 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-import environ
-#from CommonThread.commonthread.config import secret_key
+from dotenv import load_dotenv
+import os
 
-config_check = Path("config.py")
-if config_check.is_file():
-    from config import secret_key
-
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-env = environ.Env(
-    DEBUG=(bool, False),
-)
+load_dotenv(BASE_DIR / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = secret_key
+SECRET_KEY = os.getenv("SECRET_KEY")
+DATABASE_USER = os.getenv("DATABASE_USER")
+DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
+DATABASE_HOST = os.getenv("DATABASE_HOST")
+DATABASE_PORT = os.getenv("DATABASE_PORT")
+
+# if not SECRET_KEY:
+    # raise ImproperlyConfigured("Secret Key not set in .env! Please set SECRET_KEY in an .env file next to your manage.py")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool("DEBUG", False)
-
-if DEBUG:
-    SECRET_KEY = env.str("SECRET_KEY", "needs-to-be-set-in-prod")
-    _DEFAULT_DB = env.db(
-        default="postgres://common_thread_dev:honeydew-39201-parrot-cosmology@localhost:5432/common_thread_dev"
-    )
-    EMAIL_CONFIG = env.email(default="consolemail://")
-else:
-    SECRET_KEY = env.str("SECRET_KEY")
-    _DEFAULT_DB = env.db()
-    EMAIL_CONFIG = env.email()
-
-DATABASES = {"default": _DEFAULT_DB}
-vars().update(EMAIL_CONFIG)
+DEBUG = True
 
 ALLOWED_HOSTS = []
 
@@ -109,21 +94,22 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.postgresql',
-#         'NAME': BASE_DIR / 'common_thread_dev',
-#         "USER": "common_thread_dev",
-#         "PASSWORD": "honeydew-39201-parrot-cosmology",
-#         "HOST": "turing.unnamed.computer",
-#         # "PORT": "5432",
-#     }
-# }
-
+if DEBUG:
+    pass
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": DATABASE_USER,
+            "USER": DATABASE_USER,
+            "PASSWORD": DATABASE_PASSWORD,
+            "HOST": DATABASE_HOST,
+            "PORT": DATABASE_PORT,
+        }
+    }
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
