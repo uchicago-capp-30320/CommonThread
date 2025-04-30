@@ -1,14 +1,13 @@
 <script>
 	import '../../node_modules/bulma/css/bulma.css';
+	import '../app.css';
+	import Header from '../components/Header.svelte';
+ 
 
 	let { children } = $props();
 
 </script>
 
-<nav>
-	<a href="/">Home</a>
-	<a href="/about">About</a>
-	<a href="/settings">Settings</a>
-</nav>
+<Header />
 
 {@render children()}
