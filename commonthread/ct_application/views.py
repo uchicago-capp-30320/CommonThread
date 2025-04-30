@@ -2,7 +2,7 @@ import json
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
-from .models import User, Organization, OrgUser, Project, Story, ProjectTag # This is how we query data from the database 
+from .models import User, Organization, OrgUser, Project, Story,Tag, ProjectTag # This is how we query data from the database 
 # the names of the models may change on a different branch.
 
 
@@ -67,6 +67,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
 
 ###############################################################################
 @require_GET
+#TODO authentication and authorization check
 def get_story(request,story_id = None):
     if story_id:
         try:
@@ -95,6 +96,7 @@ def get_story(request,story_id = None):
 
 ###############################################################################
 @require_POST
+#TODO authentication and authorization check
 def create_story(request):
     try:
         story_data = json.loads(request.body)
@@ -111,8 +113,55 @@ def create_story(request):
     
     except Exception as e:
         return JsonResponse({
-            'success': False,
-            'error': str(e)
+            "success": False,
+            "error": str(e)
         }, status=400)
 ###############################################################################
+@require_POST
+#TODO authentication and authorization check
+def create_project(request):
 
+    project_data = json.loads(request)
+    if not project_data:
+        #second level validation
+        return JsonResponse({"success":False, "error":"No project input"}, status = 400)
+
+    org_id = project_data.get('org_id')
+    if not org_id:
+        return JsonResponse({
+            "success": False,
+            "error": 'Organization is required'
+        }, status=400)
+    
+    try:
+        project = Project.objects.create(
+            name=project_data['name'],
+            curator=project_data['curator'],
+            org_id=project_data['org_id'],
+        )
+    except KeyError as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            "success":False,
+            "error": f"internal service error{str(e)}"
+        }, status = 500)
+
+    #decide if atleast one tag is compulsory
+    tags = project_data.get('tags', [])
+    for tag_name in tags:
+
+        tag, _ = Tag.objects.create(name=tag_name)
+        ProjectTag.objects.create(
+            tag=tag,
+            proj=project
+        )
+
+    return JsonResponse({
+            'success': True,
+            'project_id': project.id,
+        }, status=201)
+    
