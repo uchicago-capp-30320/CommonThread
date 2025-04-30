@@ -3,11 +3,11 @@ export async function load({ params }) {
 
 	const tests = [
 		{
-			name: 'Test',
+			name: 'Organization1',
 			email: 'test@gmail.com'
 		},
 		{
-			name: 'Test2',
+			name: 'Organization2',
 			email: 'test2@gmail.com'
 		}
 	];
