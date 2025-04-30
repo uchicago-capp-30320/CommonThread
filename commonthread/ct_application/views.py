@@ -162,6 +162,6 @@ def create_project(request):
 
     return JsonResponse({
             'success': True,
-            'project_id': project.id,
+            'project_id': project.proj_id,
         }, status=201)
     
