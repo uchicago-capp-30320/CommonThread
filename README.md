@@ -31,6 +31,7 @@ cp .env.example .env
 
 ## Project Structure :card_index_dividers:
 
+```bash
 CommonThread
 ├── commonthread    # Backend folder 
 │   ├── commonthread       
@@ -55,7 +56,8 @@ CommonThread
     │   ├── static
     │   └── templates
     ├── shared
-    └── assets   
+    └── assets
+```
 
 ![Repo structure](diagram.svg)
 
