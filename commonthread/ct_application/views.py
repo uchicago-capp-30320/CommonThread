@@ -121,7 +121,7 @@ def create_story(request):
 #TODO authentication and authorization check
 def create_project(request):
 
-    project_data = json.loads(request)
+    project_data = json.loads(request.body)
     if not project_data:
         #second level validation
         return JsonResponse({"success":False, "error":"No project input"}, status = 400)
@@ -154,10 +154,10 @@ def create_project(request):
     tags = project_data.get('tags', [])
     for tag_name in tags:
 
-        tag, _ = Tag.objects.create(name=tag_name)
+        tag= Tag.objects.create(name=tag_name)
         ProjectTag.objects.create(
-            tag=tag,
-            proj=project
+            tag_id=tag.tag_id,
+            proj_id=project.proj_id
         )
 
     return JsonResponse({
