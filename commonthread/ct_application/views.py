@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
 from .models import User, Organization, OrgUser, Project, Story, ProjectTag # This is how we query data from the database 
@@ -63,6 +64,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         "tag_count":   tag_count,
     }, status=200)
 
+
 def get_story(request,story_id = None):
     if story_id:
         try:
@@ -73,7 +75,7 @@ def get_story(request,story_id = None):
                 "curator":story.curator,
                 "date": story.date,
                 "content": story.content
-            })
+            }, status = 200)
         except Story.DoesNotExist:
             return HttpResponseNotFound(
             "Could not find that story. It has been either deleted or misplaced",
@@ -84,7 +86,27 @@ def get_story(request,story_id = None):
             stories = Story.objects.all()
             return JsonResponse({
                 'stories': list(stories.values("story_id","story_teller","curator","date","content"))
-            })
+            },status = 200)
         except Exception as e:
-            return HttpResponse(str(e),status = 500)
+            return JsonResponse({"success": False, "error":str(e)}, status = 500)
 
+
+def create_story(request):
+    try:
+        story_data = json.loads(request.body)
+        _ = Story.objects.create(
+                story_id =  story_data.get("story_id"),
+                story_teller = story_data.get("storyteller"),
+                curator = story_data.get("curator"),
+                date =  story_data.get("date"),
+                content =  story_data.get("content")
+        )
+        return JsonResponse({
+            "story_id": story_data.get("story_id")
+        }, status = 200)
+    
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=400)
