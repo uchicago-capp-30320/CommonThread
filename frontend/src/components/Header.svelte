@@ -7,10 +7,10 @@
 </script>
 
 <header class="header">
-    <div class="logo">
-        <a href="/">
-            <img src="{logo}" alt="Common Thread Logo">
-        </a>
+	<div class="logo">
+		<a href="/">
+			<img src={logo} alt="Common Thread Logo" />
+		</a>
 	</div>
 	<div class="right-section">
 		<nav class="navigation">
@@ -27,32 +27,32 @@
 </header>
 
 <style>
-    a {
-        text-decoration: none;
-        color: inherit;
-        margin: 0;
-        padding: 0;
-    }
+	a {
+		text-decoration: none;
+		color: inherit;
+		margin: 0;
+		padding: 0;
+	}
 	h1 {
 		font-family: 'Unna', serif;
 		font-weight: 700;
 		margin: 0;
 	}
-    .logo {
-        width: 150px;
-        height: fit-content;
-        margin-right: 2rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .logo img {
-        max-width: 100%;
-        height: auto;
-        display: block;
-        margin: 0 auto;
-    }
+	.logo {
+		width: 150px;
+		height: fit-content;
+		margin-right: 2rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.logo img {
+		max-width: 100%;
+		height: auto;
+		display: block;
+		margin: 0 auto;
+	}
 
 	.header {
 		display: flex;
@@ -68,7 +68,6 @@
 		align-items: center;
 		gap: 1.5rem;
 	}
-
 
 	.navigation ul {
 		display: flex;
@@ -92,9 +91,9 @@
 	}
 
 	.login-btn {
-		background-color: #56BCB3;
+		background-color: #56bcb3;
 		color: white;
-        font-weight: 700;
+		font-weight: 700;
 		border: none;
 		border-radius: 4px;
 		padding: 0.5rem 1rem;
