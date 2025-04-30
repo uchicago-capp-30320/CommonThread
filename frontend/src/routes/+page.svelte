@@ -8,7 +8,7 @@
 
 
 
-    let greetings = ['Impact', 'Community', 'Stories', 'Connection', 'Growth'];
+    let greetings = ['Impact', 'Community', 'Connection', 'Growth'];
 	let index = $state(0);
 	let roller;
 
@@ -27,7 +27,7 @@
 <div id = "container">
     <div class="banner">
         <img src="{background_texture}" alt="">
-        <div class="content">
+        <div class="container-content">
             <div class="welcome-text">
                 
                     <p>Weaving Together <br>Your Stories for </p>
@@ -61,7 +61,7 @@
         object-fit: cover;
     }
 
-    .content {
+    .container-content {
         position: absolute;
         top: 0;
         left: 0;
