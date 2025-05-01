@@ -65,6 +65,42 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         "tag_count":   tag_count,
     }, status=200)
 
+def show_org_dashboard(request, user_id, org_id):
+    # check user org and project IDs are provided
+    if not all([user_id, org_id]):
+        return HttpResponseNotFound(
+            "User ID or Organization ID not provided.",
+            status=404
+        )
+    # load user and org or throw 404 if not found
+    user = get_object_or_404(User,   pk=user_id)
+    org  = get_object_or_404(Organization, pk=org_id)
+
+    # check if user is indeed a member of the org
+    try:
+        membership = OrgUser.objects.get(user=user, org=org)
+    except OrgUser.DoesNotExist:
+        return HttpResponseForbidden(
+            "You are not a member of this organization! Not authorized.",
+            status=403
+        )
+
+    # get all projects for the organization
+    projects = Project.objects.filter(organization=org) 
+    project_count = Project.objects.filter(organization=org).count()
+
+    data= {
+        "user": user,
+        "org": org,
+        "projects": projects,
+    }   
+
+    return JsonResponse({
+        "organization_id": org.id,
+        "organization_name": org.name,
+        "project_count": project_count,
+    }, status=200)
+
 ###############################################################################
 @require_GET
 #TODO authentication and authorization check
@@ -165,4 +201,30 @@ def create_project(request):
             'success': True,
             'project_id': project.proj_id,
         }, status=201)
+
+###############################################################################
+
+@require_POST
+#TODO authentication and authorization check
+def create_org(request):
+    org_data = json.loads(request.body)
+    try:
+        org = Organization.objects.create(
+            name=org_data['name'],
+            org_id=org_data['org_id'],
+        )
+    except KeyError as e:
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=400)
+    except Exception as e:
+        return JsonResponse({
+            "success":False,
+            "error": f"internal service error{str(e)}"
+        }, status = 500)
     
+    return JsonResponse({
+            'success': True,
+            'org_id': org.org_id,
+        }, status=201)
