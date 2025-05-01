@@ -99,6 +99,7 @@ def get_story(request,story_id = None):
 #TODO authentication and authorization check
 def create_story(request):
     try:
+        #TODO connect story to a project
         story_data = json.loads(request.body)
         _ = Story.objects.create(
                 story_id =  story_data.get("story_id"),

@@ -21,6 +21,7 @@ from ct_application.views import home_test, show_org_dashboard, show_project_das
 urlpatterns = [
     path('admin/', admin.site.urls),
     path("",home_test, name="home_test"),
+    path("project/create",create_project, name="create_project")
     path("stories/",get_story, name="get_stories"),
     path("stories/<int:story_id>/",get_story, name="get_story"),
     path("stories/create/",create_story,name="create_story"), #this is for creating a single story, we need one for creating multiple
