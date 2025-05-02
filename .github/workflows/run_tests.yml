@@ -1,0 +1,31 @@
+name: Run-Tests
+on:
+  push:
+    branches: [ main ] # add dev once it's set up
+  pull_request:
+    branches: [ main ] # add dev once it's set up
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [ '3.13' ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: 0.5.7
+
+      - name: Set up Python
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: Install the project
+        run: uv sync --all-extras
+
+      - name: Run tests
+        run: | #Tests are internal to the application currently.
+          cd commonthread
+          uv run pytest
