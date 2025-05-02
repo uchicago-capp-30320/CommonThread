@@ -3,7 +3,7 @@
     // change nav items
  -->
 <script>
-	import logo from '$lib/logos/logo_main.png';
+	import logo from '$lib/assets/logos/logo_main.png';
 </script>
 
 <header class="header">

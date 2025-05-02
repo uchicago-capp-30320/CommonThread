@@ -1,8 +1,8 @@
 <script>
-	import background_texture from '$lib/background_texture.png';
-	import thread1 from '$lib/illustrations/thread1.png';
-	import thread2 from '$lib/illustrations/thread2.png';
-	import thread3 from '$lib/illustrations/thread3.png';
+	import background_texture from '$lib/assets/background_texture.png';
+	import thread1 from '$lib/assets/illustrations/thread1.png';
+	import thread2 from '$lib/assets/illustrations/thread2.png';
+	import thread3 from '$lib/assets/illustrations/thread3.png';
 	import { slide } from 'svelte/transition';
 	import { onMount, onDestroy } from 'svelte';
 
