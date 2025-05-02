@@ -4,10 +4,10 @@ from django.contrib.auth.models import User
 
 ################################### User/Auth Tables ##########################################
 
-# user
-# autofields include username, first_name, last_name, email, password, groups, user_permissions, is_staff, is_active, date_joined
-# review methods here: https://docs.djangoproject.com/en/5.2/ref/contrib/auth/
-
+class User(models.Model):
+    user_id = models.AutoField(primary_key = True)
+    name = models.CharField("display name", max_length = 30)
+    
 # user-login
 class UserLogin(models.Model):
     user_id = models.OneToOneField(User, primary_key = True, on_delete = models.CASCADE)
