@@ -1,16 +1,17 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
+
 #consider use of uniqueconstraints
 
 ################################### User/Auth Tables ##########################################
 
-class User(models.Model):
+class CustomUser(AbstractUser):
     user_id = models.AutoField(primary_key = True)
     name = models.CharField("display name", max_length = 30)
     
 # user-login
 class UserLogin(models.Model):
-    user_id = models.OneToOneField(User, primary_key = True, on_delete = models.CASCADE)
+    user_id = models.OneToOneField(CustomUser, primary_key = True, on_delete = models.CASCADE)
     username = models.CharField(max_length = 255, unique = True)
     password = models.CharField(max_length = 255) # This probably changes based on PW storage method
 
@@ -26,7 +27,7 @@ class Project(models.Model):
     proj_id = models.AutoField(primary_key=True)
     org_id = models.ForeignKey(Organization, on_delete = models.CASCADE)
     name = models.CharField(max_length=100) 
-    curator = models.ForeignKey(User, models.SET_NULL, blank = True, null = True)
+    curator = models.ForeignKey(CustomUser, models.SET_NULL, blank = True, null = True)
     date = models.DateField()
 
 # story
@@ -35,7 +36,7 @@ class Story(models.Model):
     proj_id = models.ForeignKey(Project, on_delete = models.CASCADE)
     org_id = models.ForeignKey(Organization, on_delete = models.CASCADE)
     storyteller = models.CharField(max_length = 100)
-    curator = models.ForeignKey(User, models.SET_NULL, blank = True, null = True) #Just null curator if user is deleted
+    curator = models.ForeignKey(CustomUser, models.SET_NULL, blank = True, null = True) #Just null curator if user is deleted
     date = models.DateField()
     content = models.TextField()
 
@@ -64,6 +65,6 @@ class ProjectTag(models.Model):
 # org-user
 class OrgUser(models.Model):
     org_user_id = models.AutoField(primary_key = True)
-    user_id = models.ForeignKey(User, on_delete = models.CASCADE)
+    user_id = models.ForeignKey(CustomUser, on_delete = models.CASCADE)
     org_id = models.ForeignKey(Organization, on_delete = models.CASCADE)
     access = models.CharField(max_length = 20)
