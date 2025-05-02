@@ -1,17 +1,13 @@
-# Welcome to MkDocs
+# 🧵CommonThread🧵
 
-For full documentation visit [mkdocs.org](https://www.mkdocs.org).
+CommonThread is an open-source collaborative tool that enables users to turn stories into insights. Community-based organizations, journalists, researchers, and community members alike can use the tool to efficiently gather stories, aggregate them, and understand common threads to draw insights for action.
 
-## Commands
+## Set Up :hammer:
 
-* `mkdocs new [dir-name]` - Create a new project.
-* `mkdocs serve` - Start the live-reloading docs server.
-* `mkdocs build` - Build the documentation site.
-* `mkdocs -h` - Print help message and exit.
+To set up a local development environment, follow these steps:
 
-## Project layout
-
-    mkdocs.yml    # The configuration file.
-    docs/
-        index.md  # The documentation homepage.
-        ...       # Other markdown pages, images and other files.
+1. **Install UV**: If you haven't already, install UV
+2. **Sync the Environment**: After installing UV, you need to sync the environment. This will set up the necessary configurations and dependencies for your project. Run the following command:
+```bash
+uv sync
+```
