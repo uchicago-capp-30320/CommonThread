@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from ct_application.views import home_test, show_org_dashboard, show_project_dashboard, get_story,create_story,create_project 
+from ct_application.views import home_test, show_org_dashboard, show_project_dashboard, get_story, create_story, create_project, create_org 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,5 +26,6 @@ urlpatterns = [
     path("stories/<int:story_id>/",get_story, name="get_story"),
     path("stories/create/",create_story,name="create_story"), #this is for creating a single story, we need one for creating multiple
     path("org/<int:org_id>/<int:user_id>/", show_org_dashboard, name="show_org_dashboard"),
+    path("org/create/", create_org, name="create_org"),
     path("org/<int:org_id>/<int:user_id>/project/<int:project_id>/", show_project_dashboard, name="show_project_dashboard"),
 ]
