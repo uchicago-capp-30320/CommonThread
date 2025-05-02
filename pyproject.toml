@@ -8,6 +8,7 @@ dependencies = [
     "django>=5.2",
     "pytest>=8.3.5",
     "pytest-django>=4.11.1",
+    "python-dotenv>=1.1.0",
 ]
 
 [tool.pytest.ini_options]

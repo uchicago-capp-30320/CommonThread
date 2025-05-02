@@ -11,25 +11,24 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 from pathlib import Path
-#from CommonThread.commonthread.config import secret_key
-
-config_check = Path("config.py")
-if config_check.is_file():
-    from config import secret_key
+import os
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / ".env")
 
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = secret_key
+SECRET_KEY = os.getenv("SECRET_KEY")
+if not SECRET_KEY:
+    raise ImproperlyConfigured("Secret Key not set in .env! Please set SECRET_KEY in an .env file next to your manage.py")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
 ALLOWED_HOSTS = []
 
 
