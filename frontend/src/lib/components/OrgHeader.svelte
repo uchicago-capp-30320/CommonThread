@@ -32,7 +32,7 @@
 					</div>
 					<div class="level-item has-text-centered ml-5">
 						<div>
-							<p class="heading mb-1">Projects</p>
+							<p class="heading mb-1">Stories</p>
 							<p class="title is-4 mt-0">123</p>
 						</div>
 					</div>

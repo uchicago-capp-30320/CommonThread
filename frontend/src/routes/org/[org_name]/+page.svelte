@@ -1,11 +1,16 @@
 <script>
-	import OrgHeader from '../../../components/OrgHeader.svelte';
-	import ProjectCard from '../../../components/ProjectCard.svelte';
+	import OrgHeader from '$lib/components/OrgHeader.svelte';
+	import ProjectCard from '$lib/components/ProjectCard.svelte';
+	import StoryCard from '$lib/components/StoryCard.svelte';
 
 	let { data } = $props();
 	const { tests, params } = data;
 
 	let themeColor = $state('#133335');
+	let type = $state('project'); // or 'story', depending on your logic
+
+	let projectsTotal = $state(tests.length);
+	let storiesTotal = $state(tests.length);
 </script>
 
 <div class="content">
@@ -22,14 +27,25 @@
 			<div class="level-left">
 				<div class="level-item">
 					<div class="buttons has-addons">
-						<button class="button active">Project View</button>
-						<button class="button">Story View</button>
+						<button
+							class="button {type === 'project' ? 'active' : ''}"
+							onclick={() => (type = 'project')}>Project View</button
+						>
+						<button
+							class="button {type === 'story' ? 'active' : ''}"
+							onclick={() => (type = 'story')}>Story View</button
+						>
+						<button class="button {type === 'dash' ? 'active' : ''}" onclick={() => (type = 'dash')}
+							>Dashboard</button
+						>
 					</div>
 				</div>
 			</div>
 			<div class="level-right">
 				<div class="level-item">
-					<p class="subtitle is-5"><strong>123</strong> Projects</p>
+					<p class="subtitle is-5">
+						<strong>{type === 'story' ? storiesTotal : projectsTotal}</strong> Projects
+					</p>
 				</div>
 				<div class="level-item">
 					<div class="field has-addons">
@@ -46,13 +62,21 @@
 	</div>
 
 	<hr />
-	<div class="columns mt-4">
+	{#if type === 'project'}
+		<div class="columns mt-4">
+			{#each tests as test}
+				<div class="column is-one-third">
+					<ProjectCard name={test.name} email={test.email} />
+				</div>
+			{/each}
+		</div>
+	{:else}
 		{#each tests as test}
-			<div class="column is-one-third">
-				<ProjectCard name={test.name} email={test.email} />
+			<div class="">
+				<StoryCard name={test.name} email={test.email} text={test.text} />
 			</div>
 		{/each}
-	</div>
+	{/if}
 </div>
 
 <style>
