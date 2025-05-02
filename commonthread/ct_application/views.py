@@ -213,6 +213,12 @@ def create_org(request):
             name=org_data['name'],
             org_id=org_data['org_id'],
         )
+
+        orguser = OrgUser.objects.create(
+            name=org_data['name'],
+            org_id=org_data['org_id'],
+            user_id=org_data['user_id'],
+        )
     except KeyError as e:
         return JsonResponse({
             "success": False,
