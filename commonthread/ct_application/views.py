@@ -2,6 +2,7 @@ import json
 from datetime import date
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
 
 from django.contrib.auth import get_user_model
@@ -12,7 +13,8 @@ User = get_user_model()
 
 
 # Create your views here.
-
+@ensure_csrf_cookie # Need this for POSTMAN testing purposes. Otherwise
+# CSRF token is not received in a single GET and POST requests fail.
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
 
