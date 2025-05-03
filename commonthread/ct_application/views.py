@@ -12,7 +12,8 @@ User = get_user_model()
 
 
 # Create your views here.
-
+@ensure_csrf_cookie # Need this for POSTMAN testing purposes. Otherwise
+# CSRF token is not received in a single GET and POST requests fail.
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
 
