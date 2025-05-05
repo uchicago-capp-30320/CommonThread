@@ -16,7 +16,7 @@ jobs:
       - name: Run Ruff (lint + format)
         uses: astral-sh/ruff-action@v3
         with:
-          args: --fix --format  # Combines linting and formatting
+          args: check . --fix
           
       - name: Commit fixes
         uses: stefanzweifel/git-auto-commit-action@v5
