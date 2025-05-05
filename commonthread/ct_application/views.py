@@ -6,7 +6,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
 
 from django.contrib.auth import get_user_model
-from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag
+from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -17,6 +17,16 @@ User = get_user_model()
 # CSRF token is not received in a single GET and POST requests fail.
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
+
+def login(request): 
+    """
+    TODO: Incorporate JWT
+    """
+    authorized = True
+    if authorized: 
+        return HttpResponse("Login successful", status=200)
+    return HttpResponse("Login usuccesfful", status=403)
+
 
 def show_project_dashboard(request, user_id, org_id, project_id):
     # check user org and project IDs are provided
@@ -137,6 +147,87 @@ def get_story(request,story_id = None):
         except Exception as e:
             return JsonResponse({"success": False, "error":str(e)}, status = 500)
 
+
+###############################################################################
+
+@require_POST
+def create_user(request):
+    """ 
+    Receives a request with user_id, username and password values in its body 
+    and registers new user in the login table of the db. 
+    # TODO: Check that user is does not already exists 
+    # TODO: Send email confirmation 
+    # TODO: Update docstrings and specify exceptions 
+    """
+    try:
+        user_data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    
+    # Check that all required keys are in the request 
+    required_keys = ["user_id", "username", "password"]
+    missing_keys = [key for key in required_keys if key not in user_data]
+
+    if missing_keys: 
+        return JsonResponse(
+            {"success": False, 
+             "error":f"The following required keys are missing: {missing_keys}"})
+
+    # Update Django model  
+    try: 
+        UserLogin.objects.create(
+            user_id = user_data["user_id"], 
+            username = user_data["username"], 
+            password = user_data["password"]
+        )
+    except Exception as e: 
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=400)
+
+
+
+###############################################################################
+
+@require_POST
+def add_user_to_org(request):
+    """ 
+    Receives a request with user_id and org_id its body and registers new user 
+    user-org relationship in the login table of the db. 
+    # TODO: Update docstrings and specify exceptions 
+    """
+    try:
+        org_user_data = json.loads(request.body or '{}')
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    
+    # Check that all required keys are in the request 
+    required_keys = ["user_id", "org_id"]
+    missing_keys = [key for key in required_keys if key not in org_user_data]
+
+    if missing_keys: 
+        return JsonResponse(
+            {"success": False, 
+             "error":f"The following required keys are missing: {missing_keys}"})
+
+    if "access" in org_user_data: 
+        access = org_user_data["access"]
+    else: 
+        access = None
+    try: 
+        OrgUser.objects.create(
+            user_id = org_user_data["user_id"], 
+            org_id = org_user_data["org_id"],
+            access = org_user_data["access"]
+        )
+    except Exception as e: 
+        return JsonResponse({
+            "success": False,
+            "error": str(e)
+        }, status=400)
+
+
 ###############################################################################
 @require_POST
 #TODO authentication and authorization check
@@ -162,6 +253,7 @@ def create_story(request):
             "success": False,
             "error": str(e)
         }, status=400)
+    
 ###############################################################################
 @require_POST
 #TODO authentication and authorization check
@@ -245,3 +337,6 @@ def create_org(request):
             'success': True,
             'org_id': org.org_id,
         }, status=201)
+
+
+#### EOF. ####

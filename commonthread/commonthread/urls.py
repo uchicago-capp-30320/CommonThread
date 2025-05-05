@@ -17,7 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from ct_application.views import (
-    home_test, create_project,
+    home_test, create_user, create_project, add_user_to_project,
     get_story, create_story,
     show_org_dashboard, create_org,
     show_project_dashboard,
@@ -25,7 +25,10 @@ from ct_application.views import (
 
 urlpatterns = [
     path("", home_test, name="home"),          # GET /
-    path("project/create", create_project, name="project-create"),
+    path("login", login, name="login"), 
+    path("user/create",              create_user, name="user-create"), 
+    path("project/create",           create_project, name="project-create"),
+    path("project/add_user",         add_user_to_project, name="add-user-to-rpoject"),
     path("stories/",                 get_story,   name="story-list"),   # GET all
     path("stories/<int:story_id>/",  get_story,   name="story-detail"), # GET one
     path("stories/create/",          create_story, name="story-create"),# POST one
