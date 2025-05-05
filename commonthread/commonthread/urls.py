@@ -22,12 +22,14 @@ from ct_application.views import (
     show_org_dashboard, create_org,
     show_project_dashboard,
     show_user_dashboard,
-    show_org_admin_dashboard
+    show_org_admin_dashboard,
+    get_new_access_token
 )
 
 urlpatterns = [
     path("", home_test, name="home"),          # GET /
     path("login", login, name="login"), 
+    path("login/create_access",get_new_access_token, name="access-create")
     path("user/create",              create_user, name="user-create"), 
     path("project/create",           create_project, name="project-create"),
     path("project/add_user",         add_user_to_project, name="add-user-to-rpoject"),
