@@ -4,9 +4,11 @@ from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
-from .utils import generate_access_token, generate_refresh_token
+from .utils import generate_access_token, generate_refresh_token,decode_refresh_token
 from django.contrib.auth import get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin
+import jwt
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -430,5 +432,25 @@ def show_org_admin_dashboard(request, user_id, org_id):
             )
         except json.JSONDecodeError:
             return HttpResponseBadRequest("Invalid JSON.")
+        
+
+@require_POST
+def get_new_access_token(request):
+    #TODO change this if they will send it in as a cookie
+    data = json.loads(request.body)
+    refresh_token = data.get("refresh_token")
+    if not refresh_token:
+        return JsonResponse({"error": "Refresh token required"}, status=400)
+    try:
+        decoded_refresh = decode_refresh_token(refresh_token)
+        user_id = decoded_refresh.get("sub")
+        new_access_token = generate_access_token(user_id)
+        return JsonResponse({"access_token": new_access_token})
+    except ExpiredSignatureError:
+        # we need to redirect to login?
+        return JsonResponse({"error": "Refresh token expired"}, status=401)
+    except InvalidTokenError:
+        # we need to redirect to login?
+        return JsonResponse({"error": "Invalid refresh token"}, status=401)
 
 #### EOF. ####
