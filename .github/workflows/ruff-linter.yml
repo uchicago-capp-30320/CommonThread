@@ -19,7 +19,17 @@ jobs:
           args: check . --fix
           
       - name: Commit fixes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: "Fix linting issues with Ruff"
-          branch: ${{ github.head_ref }}  # Important for PRs
+        shell: bash
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git pull
+
+          if [[ -n $(git status -s) ]]; then
+            git add .
+            git commit -m 'RUFF LINTER auto'
+            git push
+          else
+            echo "No changes to commit"
+          fi
