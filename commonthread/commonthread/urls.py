@@ -29,7 +29,7 @@ from ct_application.views import (
 urlpatterns = [
     path("", home_test, name="home"),          # GET /
     path("login", login, name="login"), 
-    path("login/create_access",get_new_access_token, name="access-create")
+    path("login/create_access",get_new_access_token, name="access-create"),
     path("user/create",              create_user, name="user-create"), 
     path("project/create",           create_project, name="project-create"),
     path("project/add_user",         add_user_to_project, name="add-user-to-rpoject"),
