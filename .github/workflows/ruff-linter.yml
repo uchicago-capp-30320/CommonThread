@@ -5,6 +5,31 @@ on: [push, pull_request]
 jobs:
   lint:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3.2.2
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Apparently Required for proper commit history
+
+      - name: Run Ruff (lint + format)
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: check . --fix
+          
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+
+          git pull
+
+          if [[ -n $(git status -s) ]]; then
+            git add .
+            git commit -m 'RUFF LINTER auto'
+            git push
+          else
+            echo "No changes to commit"
+          fi
