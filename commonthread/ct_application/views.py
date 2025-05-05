@@ -1,6 +1,4 @@
-from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseNotFound
-from .models import Project, Story, OrgUser # This is how we query data from the database 
 # the names of the models may change on a different branch.
 
 

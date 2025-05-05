@@ -1,6 +1,5 @@
 from django.db import models
 from django.db.models import Model 
-from django.contrib.auth.models import User
 #Onur: I'm not sure how this User model works, but I'll learn
 # https://www.geeksforgeeks.org/how-to-use-user-model-in-django/ 
 
