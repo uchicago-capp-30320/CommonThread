@@ -37,4 +37,4 @@ urlpatterns = [
          show_project_dashboard, name="project-dashboard"),
     path("admin/", admin.site.urls),
 ]
-]
+
