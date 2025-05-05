@@ -12,7 +12,7 @@ User = get_user_model()
 
 
 # Create your views here.
-@ensure_csrf_cookie # Need this for POSTMAN testing purposes. Otherwise
+# @ensure_csrf_cookie # Need this for POSTMAN testing purposes. Otherwise
 # CSRF token is not received in a single GET and POST requests fail.
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
@@ -30,7 +30,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
 
     # check if user is indeed a member of the org
     try:
-        membership = OrgUser.objects.get(user_id=user, org_id=org)
+        _ = OrgUser.objects.get(user_id=user, org_id=org)
     except OrgUser.DoesNotExist:
         return HttpResponseForbidden(
             "You are not a member of this organization! Not authorized.",
@@ -58,12 +58,12 @@ def show_project_dashboard(request, user_id, org_id, project_id):
     # load whatever data you need for the dashboard and send to frontend
     story_count = Story.objects.filter(proj_id=project).count()
     tag_count   = ProjectTag.objects.filter(proj_id=project).count()
-    data= {
-        "user": user,
-        "org": org,
-        "project": project,
-        # Add any other data you need for the dashboard
-    }   
+    # data= {
+    #     "user": user,
+    #     "org": org,
+    #     "project": project,
+    #     # Add any other data you need for the dashboard
+    # }   
 
     return JsonResponse({
         "project_id":  project.proj_id,
@@ -84,7 +84,7 @@ def show_org_dashboard(request, user_id, org_id):
 
     # check if user is indeed a member of the org
     try:
-        membership = OrgUser.objects.get(user_id=user, org_id=org)
+        _ = OrgUser.objects.get(user_id=user, org_id=org)
     except OrgUser.DoesNotExist:
         return HttpResponseForbidden(
             "You are not a member of this organization! Not authorized.",
@@ -95,11 +95,11 @@ def show_org_dashboard(request, user_id, org_id):
     projects = Project.objects.filter(org_id=org)
     project_count = projects.count()
 
-    data= {
-        "user": user,
-        "org": org,
-        "projects": projects,
-    }   
+    # data= {
+    #     "user": user,
+    #     "org": org,
+    #     "projects": projects,
+    # }   
 
     return JsonResponse({
         "organization_id": org.org_id,
