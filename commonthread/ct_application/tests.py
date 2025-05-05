@@ -2,12 +2,11 @@
 
 import json
 from django.test import TestCase, RequestFactory
-from django.shortcuts import reverse
 from django.contrib.auth import get_user_model
 
 from ct_application import views
 from ct_application.models import (
-    CustomUser, Organization, OrgUser, Project, Story,
+    Organization, OrgUser, Project, Story,
     Tag, StoryTag, ProjectTag, UserLogin
 )
 

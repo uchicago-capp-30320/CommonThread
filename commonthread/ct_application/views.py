@@ -1,6 +1,6 @@
 import json
 from datetime import date
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST
 from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
 
