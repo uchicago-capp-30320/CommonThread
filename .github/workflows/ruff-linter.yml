@@ -8,13 +8,18 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/ruff-action@v3.2.2
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          args: check . --fix && ruff format .
+          fetch-depth: 0  # Apparently Required for proper commit history
+
+      - name: Run Ruff (lint + format)
+        uses: astral-sh/ruff-action@v3
+        with:
+          args: --fix --format  # Combines linting and formatting
+          
       - name: Commit fixes
-        if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "Fix linting issues with Ruff"
-          file_pattern: "*.py"
+          branch: ${{ github.head_ref }}  # Important for PRs
