@@ -1,9 +1,9 @@
 import json
 from datetime import date
 from django.shortcuts import render, get_object_or_404
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden
+from django.http import HttpResponse, JsonResponse, HttpResponseNotFound, HttpResponseForbidden, HttpResponseBadRequest
 
 from django.contrib.auth import get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin
@@ -338,5 +338,97 @@ def create_org(request):
             'org_id': org.org_id,
         }, status=201)
 
+###############################################################################
+@require_GET
+# TODO authentication and authorization check
+def show_user_dashboard(request, user_id):
+    try:
+        user = User.objects.get(pk=user_id)
+
+        org_memberships = OrgUser.objects.filter(user_id=user_id).select_related(
+            "org_id"
+        )
+
+        orgs_data = [
+            {
+                "org_id": membership.org_id.org_id,
+                "org_name": membership.org_id.name,
+                "access": membership.access,
+            }
+            for membership in org_memberships
+        ]
+
+        return JsonResponse(
+            {
+                "user_id": user.user_id,
+                "user_name": user.name,
+                "organizations": orgs_data,
+            },
+            status=200,
+        )
+
+    except User.DoesNotExist:
+        return HttpResponseNotFound("User not found.")
+
+
+###############################################################################
+@require_http_methods(["GET", "POST"])
+def show_org_admin_dashboard(request, user_id, org_id):
+    try:
+        requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
+    except OrgUser.DoesNotExist:
+        return HttpResponseForbidden("User is not a member of the organization.")
+
+    # get method for seeing users in org
+    if request.method == "GET":
+        org_members = OrgUser.objects.filter(org_id=org_id).select_related("user_id")
+
+        data = [
+            {
+                "user_id": member.user_id.user_id,
+                "user_name": member.user_id.name,
+                "access": member.access,
+            }
+            for member in org_members
+        ]
+
+        return JsonResponse(
+            {"org_id": org_id, "requested_by": user_id, "organization_users": data}
+        )
+
+    # post method for updating access level
+    elif request.method == "POST":
+        if requester_membership.access != "admin":
+            return HttpResponseForbidden("Only admins can change access levels.")
+
+        try:
+            body = json.loads(request.body)
+            target_user_id = body.get("target_user_id")
+            new_access = body.get("new_access")
+
+            if not target_user_id or not new_access:
+                return HttpResponseBadRequest("Missing target_user_id or new_access.")
+
+            target_membership = OrgUser.objects.get(
+                user_id=target_user_id, org_id=org_id
+            )
+            target_membership.access = new_access
+            target_membership.save()
+
+            return JsonResponse(
+                {
+                    "message": "Access level updated.",
+                    "user_id": target_user_id,
+                    "new_access": new_access,
+                },
+                status=200,
+            )
+
+        except OrgUser.DoesNotExist:
+            return HttpResponseNotFound(
+                "Target user is not a member of this organization."
+            )
+        except json.JSONDecodeError:
+            return HttpResponseBadRequest("Invalid JSON.")
 
 #### EOF. ####

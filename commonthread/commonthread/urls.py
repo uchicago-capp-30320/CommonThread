@@ -21,6 +21,8 @@ from ct_application.views import (
     get_story, create_story,
     show_org_dashboard, create_org,
     show_project_dashboard,
+    show_user_dashboard,
+    show_org_admin_dashboard
 )
 
 urlpatterns = [
@@ -39,5 +41,9 @@ urlpatterns = [
     path("org/<int:user_id>/<int:org_id>/project/<int:project_id>/",
          show_project_dashboard, name="project-dashboard"),
     path("admin/", admin.site.urls),
+    path("user/<int:user_id>/dashboard/", show_user_dashboard, name="user_dashboard"),
+    path("org/<int:org_id>/admin/<int:user_id>/", show_org_admin_dashboard, name="org_admin_dashboard"),
+    
+
 ]
 
