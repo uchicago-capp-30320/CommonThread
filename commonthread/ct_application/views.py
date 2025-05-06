@@ -64,10 +64,15 @@ def login(request): #need not pass username and password as query params
 @require_POST
 def get_new_access_token(request):
     # TODO change this if they will send it in as a cookie
-    data = json.loads(request.body)
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+
     refresh_token = data.get("refresh_token")
     if not refresh_token:
         return JsonResponse({"success": False,"error": "Refresh token required"}, status=400)
+    
     try:
         decoded_refresh = decode_refresh_token(refresh_token)
         user_id = decoded_refresh.get("sub")
@@ -79,7 +84,12 @@ def get_new_access_token(request):
     except InvalidTokenError:
         # we need to redirect to login?
         return JsonResponse({"success": False,"error": "Invalid refresh token"}, status=401)
-
+    except Exception as e:
+        # catch anything else (e.g. wrong payload shape)
+        return JsonResponse(
+            {"success": False, "error": "Unable to refresh token"}, 
+            status=400
+        )
 def show_project_dashboard(request, user_id, org_id, project_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id, project_id]):
