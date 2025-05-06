@@ -1,5 +1,3 @@
-import { text } from '@sveltejs/kit';
-
 export async function load({ params }) {
 	//const post = await getPostFromDatabase(params.slug);
 
