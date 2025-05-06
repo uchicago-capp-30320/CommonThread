@@ -17,7 +17,7 @@
 	}
 
 	function handleSubmit() {
-        console.log(storyData);
+		console.log(storyData);
 		submitted = true;
 	}
 </script>
