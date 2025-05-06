@@ -30,12 +30,13 @@ def home_test(request):
 @require_POST
 def login(request): #need not pass username and password as query params
     """
-    TODO: Incorporate JWT
+    Authenticate user and return JWT access & refresh tokens.
+    Falls back to request.POST if body isnt valid JSON.
     """
     try:
         data = json.loads(request.body)
     except (ValueError, TypeError):
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        data = request.POST
 
     username = data.get("username")
     password = data.get("password") 
@@ -79,10 +80,10 @@ def get_new_access_token(request):
         new_access_token = generate_access_token(user_id)
         return JsonResponse({"success":True,"access_token": new_access_token})
     except ExpiredSignatureError:
-        # we need to redirect to login?
+        # we need to redirect to login? Onur says we can't do this, frontend should handle it
         return JsonResponse({"success": False,"error": "Refresh token expired"}, status=401)
     except InvalidTokenError:
-        # we need to redirect to login?
+        # we need to redirect to login? Onur says we can't do this, frontend should handle it
         return JsonResponse({"success": False,"error": "Invalid refresh token"}, status=401)
     except Exception:
         # catch anything else (e.g. wrong payload shape)
@@ -243,44 +244,43 @@ def create_user(request):
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    # Check that all required keys are in the request
-    required_keys = ["username", "password"]
-    missing_keys = [key for key in required_keys if key not in user_data]
-
-    if missing_keys:
+    username = user_data.get("username")
+    password = user_data.get("password")
+    if not username or not password:
         return JsonResponse(
-            {
-                "success": False,
-                "error": f"The following required keys are missing: {missing_keys}",
-            }
+            {"success": False, "error": "Username and password are required"},
+            status=400,
         )
 
+    #  check for existing user
+    if User.objects.filter(username=username).exists():
+        return JsonResponse(
+            {"success": False, "error": "Username already exists"}, status=400
+        )
+    
     try:
-        user = UserLogin.objects.create_user(
-            username=user_data["username"],
-            password=user_data["password"],
+        django_user = User.objects.create_user(
+            username=username,
+            password=password,
+            first_name=user_data.get("first_name", ""),
+            last_name=user_data.get("last_name", ""),
+            email=user_data.get("email", ""),
+            name=user_data.get("name", ""),
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    # Add optional fields if provided
-    if "name" in user_data:
-        user.name = user_data["name"]
-    if "email" in user_data:
-        user.email = user_data["email"]
-    if "last_name" in user_data:
-        user.last_name = user_data["last_name"]
-    if "first_name" in user_data:
-        user.first_name = user_data["first_name"]
+    try:
+        UserLogin.objects.create(
+            user_id=django_user,
+            username=username,
+            password=password,  # or better: store a hash
+        )
+    except Exception as e:
+        # if this fails you might want to roll back the django_user you just made
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    user.save()
-
-    return JsonResponse(
-        {
-            "success": True,
-        },
-        status=201,
-    )
+    return JsonResponse({"success": True}, status=201)
 
 
 ###############################################################################
