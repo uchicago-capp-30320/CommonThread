@@ -1,6 +1,6 @@
 import json
 from datetime import date
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.http import (
@@ -10,10 +10,9 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseBadRequest,
 )
-from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
+from .utils import generate_access_token, decode_refresh_token
 from django.contrib.auth import authenticate, get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin
-import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 
 User = get_user_model()
