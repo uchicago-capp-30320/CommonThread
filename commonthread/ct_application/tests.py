@@ -105,18 +105,43 @@ class ViewTests(TestCase):
 
     def test_login_success(self):
         payload = {"username": self.alice.username, "password": self.alice.password}
-        request = self.factory.post("/login", payload)
+        body    = json.dumps(payload)
+        request = self.factory.post(
+            "/login",
+            data=body,
+            content_type="application/json"
+        )
         response = views.login(request)
-        self.assertAlmostEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
 
     def test_login_forbiden(self):
         payload = {
             "username": self.alice.username,
             "password": self.alice.password + "additional_chars",
         }
-        request = self.factory.post("/login", payload)
+        body    = json.dumps(payload)
+        request = self.factory.post(
+            "/login",
+            data=body,
+            content_type="application/json"
+        )
         response = views.login(request)
-        self.assertAlmostEqual(response.status_code, 403)
+        self.assertEqual(response.status_code, 403)
+    
+    def test_refresh_success(self):
+        body = json.dumps({"username": self.alice.username, "password": "pass123"})
+        req  = self.factory.post("/login", data=body, content_type="application/json")
+        login_resp = views.login(req)
+        refresh_t  = json.loads(login_resp.content)["refresh_token"]
+
+        body = json.dumps({"refresh_token": refresh_t})
+        req  = self.factory.post("/login/create_access", data=body, content_type="application/json")
+        resp = views.get_new_access_token(req)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertTrue(data["success"])
+        self.assertIn("access_token", data)
+
 
     def test_show_project_dashboard_success(self):
         req = self.factory.get("/")
