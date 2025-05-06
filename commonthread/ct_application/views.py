@@ -84,7 +84,7 @@ def get_new_access_token(request):
     except InvalidTokenError:
         # we need to redirect to login?
         return JsonResponse({"success": False,"error": "Invalid refresh token"}, status=401)
-    except Exception as e:
+    except Exception:
         # catch anything else (e.g. wrong payload shape)
         return JsonResponse(
             {"success": False, "error": "Unable to refresh token"}, 
