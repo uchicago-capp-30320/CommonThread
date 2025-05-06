@@ -268,6 +268,7 @@ def add_user_to_org(request):
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+    return JsonResponse({"success": True}, status=201)
 
 
 ###############################################################################
