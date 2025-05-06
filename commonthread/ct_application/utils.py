@@ -19,4 +19,4 @@ def generate_refresh_token(user_id):
     return jwt.encode(payload,JWT_REFRESH_SECRET_KEY,algorithm ='HS256')
 
 def decode_refresh_token(token):
-    return jwt.decode(token,JWT_REFRESH_SECRET_KEY,algorithm ='HS256')
+    return jwt.decode(token,JWT_REFRESH_SECRET_KEY,algorithms ='HS256')
