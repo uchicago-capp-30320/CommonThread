@@ -168,4 +168,29 @@
 		flex-direction: column;
 		gap: 1.5rem;
 	}
+
+	@media (max-width: 900px) {
+		.dashboard {
+			grid-template-columns: 1fr;
+		}
+
+		.sidebar-container,
+		.charts-container {
+			grid-column: 1;
+		}
+
+		.charts-container {
+			grid-template-columns: 1fr;
+		}
+
+		.chart-column,
+		.text-column {
+			gap: 1rem;
+		}
+
+		.response-count {
+			top: 0.8rem;
+			left: 2rem;
+		}
+	}
 </style>
