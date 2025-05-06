@@ -42,7 +42,7 @@ urlpatterns = [
     path("login/create_access", get_new_access_token, name="access-create"),
     path("user/create", create_user, name="user-create"),
     path("project/create", create_project, name="project-create"),
-    path("project/add_user", add_user_to_org, name="add-user-to-rpoject"),
+    path("project/add_user", add_user_to_org, name="add-user-to-org"),
     path("stories/", get_story, name="story-list"),  # GET all
     path("stories/<int:story_id>/", get_story, name="story-detail"),  # GET one
     path("stories/create/", create_story, name="story-create"),  # POST one
@@ -58,7 +58,7 @@ urlpatterns = [
     path("accounts/", include("django.contrib.auth.urls")),  # new
     path("user/<int:user_id>/dashboard/", show_user_dashboard, name="user_dashboard"),
     path(
-        "org/<int:org_id>/admin/<int:user_id>/",
+        "org/<int:user_id>/admin/<int:org_id>/",
         show_org_admin_dashboard,
         name="org_admin_dashboard",
     ),
