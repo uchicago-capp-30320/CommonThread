@@ -25,7 +25,7 @@ from ct_application.views import (
     login,
     create_user,
     create_project,
-    add_user_to_project,
+    add_user_to_org,
     get_story,
     create_story,
     show_org_dashboard,
@@ -42,7 +42,7 @@ urlpatterns = [
     path("login/create_access", get_new_access_token, name="access-create"),
     path("user/create", create_user, name="user-create"),
     path("project/create", create_project, name="project-create"),
-    path("project/add_user", add_user_to_project, name="add-user-to-rpoject"),
+    path("project/add_user", add_user_to_org, name="add-user-to-rpoject"),
     path("stories/", get_story, name="story-list"),  # GET all
     path("stories/<int:story_id>/", get_story, name="story-detail"),  # GET one
     path("stories/create/", create_story, name="story-create"),  # POST one
