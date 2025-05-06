@@ -2,7 +2,7 @@ import json
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
-from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.http import (
     HttpResponse,
     JsonResponse,
@@ -10,7 +10,7 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseBadRequest,
 )
-from .utils import generate_access_token, decode_refresh_token
+from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
 from django.contrib.auth import authenticate, get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
@@ -22,23 +22,63 @@ User = get_user_model()
 # Create your views here.
 @ensure_csrf_cookie  # Need this for POSTMAN testing purposes. Otherwise
 # CSRF token is not received in a single GET and POST requests fail.
+
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
 
-
-def login(request, username, password):
+@csrf_exempt
+@require_POST
+def login(request): #need not pass username and password as query params
     """
     TODO: Incorporate JWT
     """
+    try:
+        data = json.loads(request.body)
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+
+    username = data.get("username")
+    password = data.get("password") 
+    if not username or not password:
+        return JsonResponse(
+            {"success": False, "error": "Username and password are not provided"},
+            status=400,
+        )
     authenticated_user = authenticate(username=username, password=password)
 
-    if authenticated_user is not None:
-        # A backend authenticated the credentials
-        return HttpResponse("Login successful", status=200)
-    else:
-        # No backend authenticated the credentials
-        return HttpResponse("Login usuccesfful", status=403)
+    if authenticated_user is None:
+        return JsonResponse(
+            {"success": False, "error": "Invalid username or password"}, status=403
+        )
+    access_token= generate_access_token(authenticated_user.user_id)
+    refresh_token = generate_refresh_token(authenticated_user.user_id)
 
+    return JsonResponse(
+        {"success": True, 
+         "access_token": access_token, 
+         "refresh_token": refresh_token
+         }, 
+         status=200
+    )
+
+@require_POST
+def get_new_access_token(request):
+    # TODO change this if they will send it in as a cookie
+    data = json.loads(request.body)
+    refresh_token = data.get("refresh_token")
+    if not refresh_token:
+        return JsonResponse({"success": False,"error": "Refresh token required"}, status=400)
+    try:
+        decoded_refresh = decode_refresh_token(refresh_token)
+        user_id = decoded_refresh.get("sub")
+        new_access_token = generate_access_token(user_id)
+        return JsonResponse({"success":True,"access_token": new_access_token})
+    except ExpiredSignatureError:
+        # we need to redirect to login?
+        return JsonResponse({"success": False,"error": "Refresh token expired"}, status=401)
+    except InvalidTokenError:
+        # we need to redirect to login?
+        return JsonResponse({"success": False,"error": "Invalid refresh token"}, status=401)
 
 def show_project_dashboard(request, user_id, org_id, project_id):
     # check user org and project IDs are provided
@@ -472,25 +512,6 @@ def show_org_admin_dashboard(request, user_id, org_id):
         except json.JSONDecodeError:
             return HttpResponseBadRequest("Invalid JSON.")
 
-
-@require_POST
-def get_new_access_token(request):
-    # TODO change this if they will send it in as a cookie
-    data = json.loads(request.body)
-    refresh_token = data.get("refresh_token")
-    if not refresh_token:
-        return JsonResponse({"error": "Refresh token required"}, status=400)
-    try:
-        decoded_refresh = decode_refresh_token(refresh_token)
-        user_id = decoded_refresh.get("sub")
-        new_access_token = generate_access_token(user_id)
-        return JsonResponse({"access_token": new_access_token})
-    except ExpiredSignatureError:
-        # we need to redirect to login?
-        return JsonResponse({"error": "Refresh token expired"}, status=401)
-    except InvalidTokenError:
-        # we need to redirect to login?
-        return JsonResponse({"error": "Invalid refresh token"}, status=401)
 
 
 #### EOF. ####
