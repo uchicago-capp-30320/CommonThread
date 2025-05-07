@@ -4,7 +4,7 @@
 
 <div id="container">
 	<div class="container is-max-tablet">
-		<div class="notification is-primary" S>
+		<div class="notification" S>
 			<div class="title has-text-centered">LOGIN</div>
 
 			<div class="field">
@@ -47,10 +47,10 @@
 
 			<div class="field is-grouped">
 				<div class="control">
-					<button class="button is-link">Login</button>
+					<button class="button is-link" id="login-button">Login</button>
 				</div>
 				<div class="control">
-					<button class="button is-link is-light">Cancel</button>
+					<button class="button is-light">Cancel</button>
 				</div>
 			</div>
 
@@ -70,6 +70,9 @@
 </div>
 
 <style>
+	.notification {
+		background-color: var(--light-blue);
+	}
 	.banner {
 		height: 600px;
 		z-index: -1;
@@ -83,9 +86,9 @@
 		object-fit: cover;
 	}
 
-	h1 {
-		text-align: center;
-		font-size: 2rem;
+	#login-button {
+		background-color: var(--dark-blue);
+		color: white;
 	}
 
 	/* Ref: https://stackoverflow.com/questions/14402038/how-to-position-a-container-in-the-middle-of-the-screen */
