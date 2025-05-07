@@ -43,36 +43,36 @@
 	<!-- Progress navigation -->
 	<div class="columns is-centered mb-6">
 		<div class="column is-8">
-			<nav class="level">
+						<nav class="level">
 				<div class="level-item has-text-centered">
-					<a
+					<button
 						class="step-box has-text-white"
 						class:is-active={currentStep === 1}
-						href={() => handleStepClick(1)}
+						onclick={() => handleStepClick(1)}
 					>
 						<p class="heading has-text-white has-text-weight-bold">Step 1</p>
 						<p class="title is-5 has-text-white has-text-weight-bold">Basic Info</p>
-					</a>
+					</button>
 				</div>
 				<div class="level-item has-text-centered">
-					<a
+					<button
 						class="step-box has-text-white"
 						class:is-active={currentStep === 2}
-						href={() => handleStepClick(2)}
+						onclick={() => handleStepClick(2)}
 					>
 						<p class="heading has-text-white has-text-weight-bold">Step 2</p>
 						<p class="title is-5 has-text-white has-text-weight-bold">Content</p>
-					</a>
+					</button>
 				</div>
 				<div class="level-item has-text-centered">
-					<a
+					<button
 						class="step-box has-text-white"
 						class:is-active={currentStep === 3}
-						href={() => handleStepClick(3)}
+						onclick={() => handleStepClick(3)}
 					>
 						<p class="heading has-text-white has-text-weight-bold">Step 3</p>
 						<p class="title is-5 has-text-white has-text-weight-bold">Media</p>
-					</a>
+					</button>
 				</div>
 			</nav>
 		</div>
