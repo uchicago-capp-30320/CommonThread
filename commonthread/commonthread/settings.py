@@ -44,6 +44,28 @@ ALLOWED_HOSTS = [
     "[::1]",
 ]
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,      # keep the default Django loggers
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
+        },
+    },
+    "formatters": {
+        "simple": {
+            "format": "[{levelname}] {name}: {message}",
+            "style": "{",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "DEBUG",                  # or INFO
+    },
+}
+
+
 # Application definition
 
 INSTALLED_APPS = [
