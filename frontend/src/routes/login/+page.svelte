@@ -73,19 +73,6 @@
 	.notification {
 		background-color: var(--light-blue);
 	}
-	.banner {
-		height: 600px;
-		z-index: -1;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.banner img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
 	#login-button {
 		background-color: var(--dark-blue);
 		color: white;

@@ -108,19 +108,6 @@
 </div>
 
 <style>
-	.banner {
-		height: 600px;
-		z-index: -1;
-		position: relative;
-		overflow: hidden;
-	}
-
-	.banner img {
-		width: 100%;
-		height: 100%;
-		object-fit: cover;
-	}
-
 	.notification {
 		background-color: var(--light-blue);
 	}
