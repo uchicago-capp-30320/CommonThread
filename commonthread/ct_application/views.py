@@ -22,9 +22,11 @@ User = get_user_model()
 # Create your views here.
 @ensure_csrf_cookie  # Need this for POSTMAN testing purposes. Otherwise
 # CSRF token is not received in a single GET and POST requests fail.
-
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
+
+import logging
+logger = logging.getLogger(__name__)
 
 @csrf_exempt
 @require_POST
@@ -33,24 +35,36 @@ def login(request): #need not pass username and password as query params
     Authenticate user and return JWT access & refresh tokens.
     Falls back to request.POST if body isnt valid JSON.
     """
-    try:
-        data = json.loads(request.body)
-    except (ValueError, TypeError):
+    logger.debug("LOGIN ➤ content-type=%r body=%r", request.content_type, request.body)
+    # parse JSON or form
+    if request.content_type == "application/json":
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            logger.debug("LOGIN ➤ JSON parse failed: %r", e)
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    else:
         data = request.POST
+        logger.debug("LOGIN ➤ form-data: %r", data)
 
     username = data.get("username")
-    password = data.get("password") 
+    password = data.get("password")
+    logger.debug("LOGIN ➤ extracted username=%r password=%r", username, password)
+
     if not username or not password:
         return JsonResponse(
             {"success": False, "error": "Username and password are not provided"},
             status=400,
         )
+    
     authenticated_user = authenticate(username=username, password=password)
+    logger.debug("LOGIN ➤ authenticate returned %r", authenticated_user)
 
     if authenticated_user is None:
         return JsonResponse(
             {"success": False, "error": "Invalid username or password"}, status=403
         )
+
     access_token= generate_access_token(authenticated_user.user_id)
     refresh_token = generate_refresh_token(authenticated_user.user_id)
 
@@ -64,26 +78,37 @@ def login(request): #need not pass username and password as query params
 
 @require_POST
 def get_new_access_token(request):
-    # TODO change this if they will send it in as a cookie
-    try:
-        data = json.loads(request.body)
-    except (ValueError, TypeError):
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    # TODO change this if they will send it in as a cookie 
+    logger.debug("REFRESH ➤ content-type=%r body=%r", request.content_type, request.body)
+
+    if request.content_type == "application/json":
+        try:
+            data = json.loads(request.body)
+        except Exception as e:
+            logger.debug("REFRESH ➤ JSON parse failed: %r", e)
+            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    else:
+        data = request.POST
+        logger.debug("REFRESH ➤ form-data: %r", data)
 
     refresh_token = data.get("refresh_token")
+    logger.debug("REFRESH ➤ got refresh_token=%r", refresh_token)
     if not refresh_token:
         return JsonResponse({"success": False,"error": "Refresh token required"}, status=400)
     
     try:
         decoded_refresh = decode_refresh_token(refresh_token)
+        logger.debug("REFRESH ➤ decoded payload: %r", decoded_refresh)
         user_id = decoded_refresh.get("sub")
         new_access_token = generate_access_token(user_id)
         return JsonResponse({"success":True,"access_token": new_access_token})
     except ExpiredSignatureError:
         # we need to redirect to login? Onur says we can't do this, frontend should handle it
+        logger.debug("REFRESH ➤ expired")
         return JsonResponse({"success": False,"error": "Refresh token expired"}, status=401)
     except InvalidTokenError:
         # we need to redirect to login? Onur says we can't do this, frontend should handle it
+        logger.debug("REFRESH ➤ invalid")
         return JsonResponse({"success": False,"error": "Invalid refresh token"}, status=401)
     except Exception:
         # catch anything else (e.g. wrong payload shape)
