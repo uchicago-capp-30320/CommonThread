@@ -1,5 +1,5 @@
 <script>
-	import StoryInput from '../../../components/story/StoryHolder.svelte';
+	import StoryInput from '$lib/components/story/StoryHolder.svelte';
 </script>
 
 <div class="page-container is-flex is-flex-direction-column is-align-items-center p-5 is-fullwidth">
