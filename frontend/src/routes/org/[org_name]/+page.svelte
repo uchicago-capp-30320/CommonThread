@@ -40,6 +40,14 @@
 						>
 					</div>
 				</div>
+				<div class="level-item pl-6">
+					<a href="/stories/new?org_id={encodeURIComponent(params.org_name)}" class="button">
+						<span class="icon">
+							<i class="fa fa-plus"></i>
+						</span>
+						<span>Add Story</span>
+					</a>
+				</div>
 			</div>
 			<div class="level-right">
 				<div class="level-item">
@@ -47,6 +55,7 @@
 						<strong>{type === 'story' ? storiesTotal : projectsTotal}</strong> Projects
 					</p>
 				</div>
+
 				<div class="level-item">
 					<div class="field has-addons">
 						<p class="control">
