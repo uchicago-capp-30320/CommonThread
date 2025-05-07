@@ -108,7 +108,6 @@
 </div>
 
 <style>
-	@import 'https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css';
 	.banner {
 		height: 600px;
 		z-index: -1;
