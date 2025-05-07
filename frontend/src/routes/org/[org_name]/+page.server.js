@@ -3,18 +3,28 @@ import { text } from '@sveltejs/kit';
 export async function load({ params }) {
 	//const post = await getPostFromDatabase(params.slug);
 
-	const tests = [
+	const stories = [
 		{
-			name: 'Organization1',
-			email: 'test@gmail.com',
-			text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ac ligula nec felis facilisis aliquet. Integer a nunc ut est efficitur fringilla. Sed at erat in nulla accumsan convallis. Donec id leo sed enim auctor aliquet. Nulla facilisi. Sed at nunc et nisi tincidunt sodales. Sed ac ligula ac enim efficitur commodo.'
+			story_id: 1,
+			proj_id: 321,
+			org_id: 213,
+			storyteller: 'Rebecca Sugar',
+			curator: 'Arthur Steiner',
+			date: 'May 5th, 2025',
+			content:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pharetra commodo rutrum. Curabitur vel odio in elit fringilla tincidunt. Nulla nisl sem, mattis at nisl quis, tempor porttitor neque. Integer dignissim mauris quis tellus efficitur bibendum. Donec odio leo,'
 		},
 		{
-			name: 'Organization2',
-			email: 'test2@gmail.com',
-			text: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec ac ligula nec felis facilisis aliquet. Integer a nunc ut est efficitur fringilla. Sed at erat in nulla accumsan convallis. Donec id leo sed enim auctor aliquet. Nulla facilisi. Sed at nunc et nisi tincidunt sodales. Sed ac ligula ac enim efficitur commodo.'
+			story_id: 2,
+			proj_id: 321,
+			org_id: 213,
+			storyteller: 'test2',
+			curator: 'Arthur Steiner',
+			date: 'May 10th, 2025',
+			content:
+				'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Donec pharetra commodo rutrum. Curabitur vel odio in elit fringilla tincidunt. Nulla nisl sem, mattis at nisl quis, tempor porttitor neque. Integer dignissim mauris quis tellus efficitur bibendum. Donec odio leo,'
 		}
 	];
 
-	return { tests, params };
+	return { stories, params };
 }
