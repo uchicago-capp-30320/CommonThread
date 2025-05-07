@@ -2,6 +2,7 @@
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import StoryCard from '$lib/components/StoryCard.svelte';
+	import StoryPreview from '$lib/components/StoryPreview.svelte';
 
 	let { data } = $props();
 	const { tests, params } = data;
@@ -82,7 +83,7 @@
 	{:else}
 		{#each tests as test}
 			<div class="">
-				<StoryCard name={test.name} email={test.email} text={test.text} />
+				<StoryPreview name={test.name} email={test.email} text={test.text} />
 			</div>
 		{/each}
 	{/if}
