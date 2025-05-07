@@ -5,13 +5,15 @@
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 
 	let { data } = $props();
-	const { tests, params } = data;
+	const { stories, params } = data;
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
 
-	let projectsTotal = $state(tests.length);
-	let storiesTotal = $state(tests.length);
+	// todo count the number of projects and stories
+
+	let projectsTotal = $state(stories.length);
+	let storiesTotal = $state(stories.length);
 </script>
 
 <div class="content">
@@ -72,18 +74,19 @@
 	</div>
 
 	<hr />
+
 	{#if type === 'project'}
 		<div class="columns mt-4">
-			{#each tests as test}
+			{#each stories as story}
 				<div class="column is-one-third">
-					<ProjectCard name={test.name} email={test.email} />
+					<ProjectCard {story} />
 				</div>
 			{/each}
 		</div>
 	{:else}
-		{#each tests as test}
+		{#each stories as story}
 			<div class="">
-				<StoryPreview name={test.name} email={test.email} text={test.text} />
+				<StoryPreview {story} />
 			</div>
 		{/each}
 	{/if}
