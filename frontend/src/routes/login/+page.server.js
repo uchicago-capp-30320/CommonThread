@@ -14,7 +14,7 @@ export const load = async ({ cookies }) => {
 };
 
 export const actions = {
-	default: async ({ cookies, request }) => {
+	default: async ({ cookies, request, fetch }) => {
 		let test = await request.formData();
 		console.log(test);
 		let data = {
