@@ -12,8 +12,9 @@ from django.http import (
 )
 from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
 from django.contrib.auth import authenticate, get_user_model
-from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin
+from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from django.utils import timezone
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -217,6 +218,15 @@ def get_story(request, story_id=None):
     if story_id:
         try:
             story = Story.objects.get(story_id=story_id)
+            
+            story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
+            tags = [{
+                'tag_id': st.tag_id.tag_id, 
+                'name': st.tag_id.name,
+                 #expecting storytag table to have a value field
+                # 'value': st.value
+            } for st in story_tags]
+            
             return JsonResponse(
                 {
                     "story_id": story.story_id,
@@ -224,6 +234,7 @@ def get_story(request, story_id=None):
                     "curator": story.curator.user_id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
+                    "tags": tags
                 },
                 status=200,
             )
@@ -234,15 +245,31 @@ def get_story(request, story_id=None):
             )
     else:
         try:
-            # TODO Decide if all the details are needed if all stories are asked for
+            # Get all stories with their tags
             stories = Story.objects.all()
+            stories_data = []
+            
+            for story in stories:
+                story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
+                tags = [{
+                    'tag_id': st.tag_id.tag_id, 
+                    'name': st.tag_id.name,
+                    #expecting storytag table to have a value field
+                    # 'value': st.value
+                } for st in story_tags]
+                
+                stories_data.append({
+                    "story_id": story.story_id,
+                    "storyteller": story.storyteller,
+                    "curator": story.curator.user_id if story.curator else None,
+                    "date": story.date,
+                    "content": story.content,
+                    "tags": tags
+                })
+            
             return JsonResponse(
                 {
-                    "stories": list(
-                        stories.values(
-                            "story_id", "storyteller", "curator", "date", "content"
-                        )
-                    )
+                    "stories": stories_data
                 },
                 status=200,
             )
@@ -284,6 +311,7 @@ def create_user(request):
         )
     
     try:
+        #this needs to be CustomUser
         django_user = User.objects.create_user(
             username=username,
             password=password,
@@ -352,18 +380,30 @@ def add_user_to_org(request):
 # TODO authentication and authorization check
 def create_story(request):
     try:
-        # TODO connect story to a project
         story_data = json.loads(request.body)
-        _ = Story.objects.create(
-            story_id=story_data["story_id"],
+        story = Story.objects.create(
             storyteller=story_data["storyteller"],
-            curator_id=story_data["curator"],
-            date=story_data["date"],
+            curator_id=story_data.get("curator"),
+            date=timezone.now(),
             content=story_data["content"],
-            proj_id_id=story_data["proj_id"],
-            org_id_id=story_data["org_id"],
+            proj_id=story_data["proj_id"],
+            org_id=story_data["org_id"],
         )
-        return JsonResponse({"story_id": story_data.get("story_id")}, status=200)
+
+        if "tags" in story_data:
+            for tag_data in story_data["tags"]:
+                # Get the (we need the tag to exist in Tag table)
+                tag, _ = Tag.objects.get_or_create(
+                    name=tag_data["name"]
+                )
+                
+                StoryTag.objects.create(
+                    story_id=story, 
+                    tag_id=tag,
+                    # value=tag_data["value"]  # Store the value in StoryTag table
+                )
+
+        return JsonResponse({"story_id": story.story_id}, status=200)
 
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
