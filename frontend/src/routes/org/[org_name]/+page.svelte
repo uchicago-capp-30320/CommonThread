@@ -3,9 +3,12 @@
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import StoryCard from '$lib/components/StoryCard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
+	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
 	let { data } = $props();
 	const { stories, params } = data;
+
+	$inspect(stories);
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
@@ -14,9 +17,37 @@
 
 	let projectsTotal = $state(stories.length);
 	let storiesTotal = $state(stories.length);
+
+	// create projects data with project name, description, and total stories
+	let projects = $state(
+		(() => {
+			// Group stories by project_id
+			const projectGroups = {};
+			stories.forEach((story) => {
+				const projectId = story.project_id || 'unknown';
+				if (!projectGroups[projectId]) {
+					projectGroups[projectId] = {
+						id: projectId,
+						name: story.project_name || 'Unnamed Project',
+						description: story.project_description || 'No description available',
+						stories: []
+					};
+				}
+				projectGroups[projectId].stories.push(story);
+			});
+
+			// Convert to array and add story count
+			return Object.values(projectGroups).map((project) => ({
+				id: project.id,
+				name: project.name,
+				description: project.description,
+				total_stories: project.stories.length
+			}));
+		})()
+	);
 </script>
 
-<div class="content">
+<div class="container">
 	<div class="p-5">
 		<OrgHeader
 			org_name={params.org_name}
@@ -55,14 +86,15 @@
 			<div class="level-right">
 				<div class="level-item">
 					<p class="subtitle is-5">
-						<strong>{type === 'story' ? storiesTotal : projectsTotal}</strong> Projects
+						<strong>{type === 'project' ? projectsTotal : storiesTotal}</strong>
+						{type === 'project' ? 'Projects' : 'Stories'}
 					</p>
 				</div>
 
 				<div class="level-item">
 					<div class="field has-addons">
 						<p class="control">
-							<input class="input" type="text" placeholder="Search for project" />
+							<input class="input" type="text" placeholder={`Search for ${type}`} />
 						</p>
 						<p class="control">
 							<button class="button">Search</button>
@@ -76,24 +108,28 @@
 	<hr />
 
 	{#if type === 'project'}
-		<div class="columns mt-4">
+		<div class="columns mt-4 is-multiline">
 			{#each stories as story}
 				<div class="column is-one-third">
 					<ProjectCard {story} />
 				</div>
 			{/each}
 		</div>
-	{:else}
+	{:else if type === 'story'}
 		{#each stories as story}
 			<div class="">
 				<StoryPreview {story} />
 			</div>
 		{/each}
+	{:else if type === 'dash'}
+		<DataDashboard {stories} />
+	{:else}
+		<p class="has-text-centered">No stories available</p>
 	{/if}
 </div>
 
 <style>
-	.content {
+	.container {
 		margin: 30px;
 	}
 
