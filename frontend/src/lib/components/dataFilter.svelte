@@ -3,25 +3,23 @@
 </script>
 
 <div class="sidebar">
-	<h3>Filter by</h3>
+	<h3>Group by</h3>
 	<hr />
 
 	<div class="filter-section">
-		<h4>TAG</h4>
+		<div class="label mb-0">TAG</div>
 		<div class="filter-options">
-			<select
-				bind:value={currentGroupBy}
-				class="filter-dropdown"
-				onchange={() => updateGroupBy(currentGroupBy)}
-			>
-				<option value="all">All</option>
-				{#each { uniqueTags } as tag}
-					<option value={tag.name}>{tag}</option>
-				{/each}
-				<option value="storyteller">Storyteller</option>
-				<option value="curator">Curator</option>
-				<option value="date">Date</option>
-			</select>
+			<div class="select is-fullwidth">
+				<select bind:value={currentGroupBy} on:change={() => updateGroupBy(currentGroupBy)}>
+					<option value="all">All</option>
+					{#each uniqueTags as tag}
+						<option value={tag.name}>{tag.name}</option>
+					{/each}
+					<option value="storyteller">Storyteller</option>
+					<option value="curator">Curator</option>
+					<option value="date">Date</option>
+				</select>
+			</div>
 		</div>
 	</div>
 </div>
@@ -43,30 +41,9 @@
 		color: black !important;
 	}
 
-	h4 {
-		margin: 1rem 0 0.5rem;
-		font-size: 0.8rem;
-		color: black !important;
-	}
-
 	.filter-options {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
-	}
-
-	.filter-btn {
-		background-color: #e0e0e0;
-		border: none;
-		padding: 0.5rem;
-		border-radius: 4px;
-		cursor: pointer;
-		text-align: left;
-		font-size: 0.9rem;
-	}
-
-	.filter-btn.active {
-		background-color: var(--dark-blue);
-		color: white;
 	}
 </style>
