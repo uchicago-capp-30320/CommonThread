@@ -22,10 +22,6 @@ export const actions = {
 			password: 'pass123'
 		};
 
-		ct_access_token = cookies.get('ct_access_token');
-
-		console.log('ct_access_token from cookie', ct_access_token);
-
 		//data['token'] = cookies.get('token')
 
 		const response = await fetch('http://127.0.0.1:8000/login', {
