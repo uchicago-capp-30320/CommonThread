@@ -5,7 +5,7 @@
 <footer class="footer">
 	<div class="content has-text-centered">
 		<p>
-			<strong>Common Thread</strong> is an
+			<strong>CommonThread</strong> is an
 			<a href="https://github.com/uchicago-capp-30320/CommonThread"> open source project</a>, part
 			of
 			<a href="https://github.com/uchicago-capp-30320">
