@@ -13,7 +13,7 @@ from django.http import (
 )
 from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
 from django.contrib.auth import authenticate, get_user_model
-from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag
+from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, StoryTag, CustomUser
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 
@@ -222,8 +222,7 @@ def get_story(request, story_id=None):
             story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
             tags = [{
                 'name': st.tag_id.name,
-                #expecting storytag table to have a value field
-                # 'value': st.value
+                'value': st.tag_id.value
             } for st in story_tags]
             
             return JsonResponse(
@@ -254,8 +253,7 @@ def get_story(request, story_id=None):
                 story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
                 tags = [{
                     'name': st.tag_id.name,
-                    #expecting storytag table to have a value field
-                    # 'value': st.value
+                    'value': st.tag_id.value
                 } for st in story_tags]
                 
                 stories_data.append({
@@ -314,7 +312,7 @@ def create_user(request):
     
     try:
         #this needs to be CustomUser
-        django_user = User.objects.create_user(
+        CustomUser.objects.create_user(
             username=username,
             password=password,
             first_name=user_data.get("first_name", ""),
@@ -325,17 +323,16 @@ def create_user(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    try:
-        UserLogin.objects.create(
-            user_id=django_user,
-            username=username,
-            # password=password,  # or better: store a hash
-            # THIS WAS BREAKING THE LOGIN FUNCTIONALITY, LET'S TRY
-            # TO REMOVE IT AND SEE IF IT WORKS
-        )
-    except Exception as e:
-        # if this fails you might want to roll back the django_user you just made
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    #try: #### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE #####
+    #    UserLogin.objects.create(
+    #        user_id=django_user,
+    #        username=username,
+    #        password=password,  # or better: store a hash
+    #    )
+    #except Exception as e:
+    #    # if this fails you might want to roll back the django_user you just made
+    #    return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"success": True}, status=201)
 
@@ -396,15 +393,15 @@ def create_story(request):
 
         if "tags" in story_data:
             for tag_data in story_data["tags"]:
-                # Get the (we need the tag to exist in Tag table)
+                # Get or create the tag with both name and value
                 tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"]
+                    name=tag_data["name"],
+                    value=tag_data["value"]
                 )
                 
                 StoryTag.objects.create(
                     story_id=story, 
-                    tag_id=tag,
-                    # value=tag_data["value"]  # Store the value in StoryTag table
+                    tag_id=tag
                 )
 
         return JsonResponse({"story_id": story.story_id}, status=200)
