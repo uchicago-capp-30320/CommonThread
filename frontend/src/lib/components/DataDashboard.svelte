@@ -89,9 +89,8 @@
 
 	<div class="charts-container">
 		<div class="response-count">{stories.length} Stories</div>
-		<div class="chart-column"></div>
-		<BarChart data={barData} xKey={'count'} yKey={currentGroupBy} />
-		<div class="text-column">
+		<div class="chart-column">
+			<BarChart data={barData} xKey={'count'} yKey={currentGroupBy} />
 			<LineAreaChart data={storiesRunningTotal} xKey={'date'} yKey={'total'} stroke={themeColor} />
 		</div>
 	</div>

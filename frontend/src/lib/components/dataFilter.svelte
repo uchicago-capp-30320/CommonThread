@@ -10,14 +10,13 @@
 		<div class="label mb-0">TAG</div>
 		<div class="filter-options">
 			<div class="select is-fullwidth">
-				<select bind:value={currentGroupBy} on:change={() => updateGroupBy(currentGroupBy)}>
-					<option value="all">All</option>
-					{#each uniqueTags as tag}
-						<option value={tag.name}>{tag.name}</option>
-					{/each}
+				<select bind:value={currentGroupBy} onchange={() => updateGroupBy(currentGroupBy)}>
 					<option value="storyteller">Storyteller</option>
 					<option value="curator">Curator</option>
 					<option value="date">Date</option>
+					{#each uniqueTags as tag}
+						<option value={tag.name}>{tag.name}</option>
+					{/each}
 				</select>
 			</div>
 		</div>
