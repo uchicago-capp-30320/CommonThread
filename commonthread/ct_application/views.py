@@ -327,7 +327,9 @@ def create_user(request):
         UserLogin.objects.create(
             user_id=django_user,
             username=username,
-            password=password,  # or better: store a hash
+            # password=password,  # or better: store a hash
+            # THIS WAS BREAKING THE LOGIN FUNCTIONALITY, LET'S TRY
+            # TO REMOVE IT AND SEE IF IT WORKS
         )
     except Exception as e:
         # if this fails you might want to roll back the django_user you just made
