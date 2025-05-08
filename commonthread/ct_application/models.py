@@ -8,18 +8,21 @@ from django.contrib.auth.models import AbstractUser
 
 class CustomUser(AbstractUser):
     user_id = models.AutoField(primary_key=True)
-    name = models.CharField("display name", max_length=30)
+    name = models.CharField("display name", max_length=50)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
+    email = models.EmailField(max_length=255, unique=True)
 
 
-# user-login
-class UserLogin(models.Model):
-    user_id = models.OneToOneField(
-        CustomUser, primary_key=True, on_delete=models.CASCADE
-    )
-    username = models.CharField(max_length=255, unique=True)
-    password = models.CharField(
-        max_length=255
-    )  # This probably changes based on PW storage method
+# user-login  ########### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE ###################
+#class UserLogin(models.Model):
+#    user_id = models.OneToOneField(
+#        CustomUser, primary_key=True, on_delete=models.CASCADE
+#    )
+#    username = models.CharField(max_length=255, unique=True)
+#    password = models.CharField(
+#        max_length=255
+#    )  # This probably changes based on PW storage method
 
 
 ###################################### Story Tables ##########################################
@@ -44,7 +47,7 @@ class Project(models.Model):
 class Story(models.Model):
     story_id = models.AutoField(primary_key=True)
     proj_id = models.ForeignKey(Project, on_delete=models.CASCADE)
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    #org_id = models.ForeignKey(Organization, on_delete=models.CASCADE) redundant, will be dropped/sunset
     storyteller = models.CharField(max_length=100)
     curator = models.ForeignKey(
         CustomUser, models.SET_NULL, blank=True, null=True
@@ -60,6 +63,7 @@ class Story(models.Model):
 class Tag(models.Model):
     tag_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
+    value = models.CharField(max_length=100, default=None)
 
 
 # story-tag
