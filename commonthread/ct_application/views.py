@@ -12,7 +12,7 @@ from django.http import (
 )
 from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
 from django.contrib.auth import authenticate, get_user_model
-from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag, CustomUser
+from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, StoryTag, CustomUser
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 
