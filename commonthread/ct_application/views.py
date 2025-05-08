@@ -12,7 +12,7 @@ from django.http import (
 )
 from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
 from django.contrib.auth import authenticate, get_user_model
-from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag
+from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag, CustomUser
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 
@@ -312,7 +312,7 @@ def create_user(request):
     
     try:
         #this needs to be CustomUser
-        django_user = User.objects.create_user(
+        CustomUser.objects.create_user(
             username=username,
             password=password,
             first_name=user_data.get("first_name", ""),
@@ -323,15 +323,15 @@ def create_user(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    try:
-        UserLogin.objects.create(
-            user_id=django_user,
-            username=username,
-            password=password,  # or better: store a hash
-        )
-    except Exception as e:
-        # if this fails you might want to roll back the django_user you just made
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    #try: #### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE #####
+    #    UserLogin.objects.create(
+    #        user_id=django_user,
+    #        username=username,
+    #        password=password,  # or better: store a hash
+    #    )
+    #except Exception as e:
+    #    # if this fails you might want to roll back the django_user you just made
+    #    return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"success": True}, status=201)
 

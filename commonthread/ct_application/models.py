@@ -9,8 +9,8 @@ from django.contrib.auth.models import AbstractUser
 class CustomUser(AbstractUser):
     user_id = models.AutoField(primary_key=True)
     name = models.CharField("display name", max_length=50)
-    first_name = models.CharField("display name", max_length=50)
-    last_name = models.CharField("display name", max_length=50)
+    first_name = models.CharField(max_length=50)
+    last_name = models.CharField(max_length=50)
     email = models.EmailField(max_length=255, unique=True)
 
 
