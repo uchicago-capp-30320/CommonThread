@@ -1,25 +1,31 @@
 // look into httpOnly: true for cookies
+// TODO figure out how to send promise for placeholder on page
 
-export async function load({ params, cookie, fetch }) {
-	const response = await fetch(`http://127.0.0.1:8000/stories/`);
+export async function load({ params, cookies, fetch }) {
+	// Return a promise that the page can handle
+	const getStoriesPromise = async () => {
+		// Use the provided fetch parameter which handles environment appropriately
+		const response = await fetch(`http://127.0.0.1:8000/stories/`);
+		const data = await response.json();
+		return data.stories;
+	};
 
-	const { stories } = await response.json();
-
-	return { stories, params };
+	// Return the promise directly
+	return {
+		storiesPromise: getStoriesPromise(),
+		params
+	};
 
 	// get cookies
-	const accessToken = cookie.get('ct_access_token');
-	const refreshToken = cookie.get('ct_refresh_token');
+	//const accessToken = cookies.get('ct_access_token');
+	//const refreshToken = cookie.get('ct_refresh_token');
 
 	// const response = await fetch(`http://127.0.0.1:8000/stories/`, {
 	// 	method: 'GET',
 	// 	headers: {
 	// 		'Content-Type': 'application/json',
 	// 		Authorization: `Bearer ${accessToken}`
-	// 	},
-	// 	body: JSON.stringify({
-	// 		refresh_token: refreshToken
-	// 	})
+	// 	}
 	// });
 
 	// if (!response.ok) {

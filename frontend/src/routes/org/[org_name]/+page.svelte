@@ -6,45 +6,52 @@
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
 	let { data } = $props();
-	const { stories, params } = data;
+	const { storiesPromise: getStoriesPromise, params } = data;
+	let stories = $state([]);
+	let projectsTotal = $state('...');
+	let storiesTotal = $state('...');
+	let projects = $state([]);
 
-	$inspect(stories);
+	$inspect(getStoriesPromise);
+	$effect(() => {
+		getStoriesPromise
+			.then((loadedStories) => {
+				stories = loadedStories;
+				projectsTotal = new Set(loadedStories.map((story) => story.project_id)).size;
+				storiesTotal = loadedStories.length;
+
+				// Group stories by project_id
+				const projectGroups = {};
+				stories.forEach((story) => {
+					const projectId = story.project_id || 'unknown';
+					if (!projectGroups[projectId]) {
+						projectGroups[projectId] = {
+							id: projectId,
+							name: story.project_name || 'Unnamed Project',
+							description: story.project_description || 'No description available',
+							stories: []
+						};
+					}
+					projectGroups[projectId].stories.push(story);
+				});
+
+				// Convert to array and add story count
+				projects = Object.values(projectGroups).map((project) => ({
+					id: project.id,
+					name: project.name,
+					description: project.description,
+					total_stories: project.stories.length
+				}));
+			})
+			.catch((error) => {
+				console.error('Error loading stories:', error);
+			});
+	});
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
 
-	// todo count the number of projects and stories
-
-	let projectsTotal = $state(new Set(stories.map((story) => story.project_id)).size);
-	let storiesTotal = $state(stories.length);
-
 	//create projects data with project name, description, and total stories
-	let projects = $state(
-		(() => {
-			// Group stories by project_id
-			const projectGroups = {};
-			stories.forEach((story) => {
-				const projectId = story.project_id || 'unknown';
-				if (!projectGroups[projectId]) {
-					projectGroups[projectId] = {
-						id: projectId,
-						name: story.project_name || 'Unnamed Project',
-						description: story.project_description || 'No description available',
-						stories: []
-					};
-				}
-				projectGroups[projectId].stories.push(story);
-			});
-
-			// Convert to array and add story count
-			return Object.values(projectGroups).map((project) => ({
-				id: project.id,
-				name: project.name,
-				description: project.description,
-				total_stories: project.stories.length
-			}));
-		})()
-	);
 
 	$inspect(projects);
 </script>
@@ -111,7 +118,9 @@
 
 	<hr />
 
-	{#if type === 'project'}
+	{#if stories.length === 0}
+		<p class="has-text-centered">Loading Stories...</p>
+	{:else if type === 'project'}
 		<div class="columns mt-4 is-multiline">
 			{#each projects as project}
 				<div class="column is-one-third">
