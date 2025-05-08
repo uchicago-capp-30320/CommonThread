@@ -217,19 +217,20 @@ def show_org_dashboard(request, user_id, org_id):
 def get_story(request, story_id=None):
     if story_id:
         try:
-            story = Story.objects.get(story_id=story_id)
+            story = Story.objects.select_related('proj_id').get(story_id=story_id)
             
             story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
             tags = [{
-                'tag_id': st.tag_id.tag_id, 
                 'name': st.tag_id.name,
-                 #expecting storytag table to have a value field
+                #expecting storytag table to have a value field
                 # 'value': st.value
             } for st in story_tags]
             
             return JsonResponse(
                 {
                     "story_id": story.story_id,
+                    "project_id": story.proj_id.proj_id,
+                    "project_name": story.proj_id.name,
                     "storyteller": story.storyteller,
                     "curator": story.curator.user_id if story.curator else None,
                     "date": story.date,
@@ -245,14 +246,13 @@ def get_story(request, story_id=None):
             )
     else:
         try:
-            # Get all stories with their tags
-            stories = Story.objects.all()
+            # Get all stories with their tags and projects
+            stories = Story.objects.select_related('proj_id').all()
             stories_data = []
             
             for story in stories:
                 story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
                 tags = [{
-                    'tag_id': st.tag_id.tag_id, 
                     'name': st.tag_id.name,
                     #expecting storytag table to have a value field
                     # 'value': st.value
@@ -261,6 +261,8 @@ def get_story(request, story_id=None):
                 stories_data.append({
                     "story_id": story.story_id,
                     "storyteller": story.storyteller,
+                    "project_id": story.proj_id.proj_id,
+                    "project_name": story.proj_id.name,
                     "curator": story.curator.user_id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
@@ -327,7 +329,9 @@ def create_user(request):
         UserLogin.objects.create(
             user_id=django_user,
             username=username,
-            password=password,  # or better: store a hash
+            # password=password,  # or better: store a hash
+            # THIS WAS BREAKING THE LOGIN FUNCTIONALITY, LET'S TRY
+            # TO REMOVE IT AND SEE IF IT WORKS
         )
     except Exception as e:
         # if this fails you might want to roll back the django_user you just made
