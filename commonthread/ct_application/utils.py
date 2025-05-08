@@ -1,6 +1,6 @@
 from commonthread.settings import JWT_SECRET_KEY,JWT_REFRESH_SECRET_KEY
 import datetime
-import jwt
+import pyjwt as jwt
 
 def generate_access_token(user_id:int)-> str:
     payload = {
@@ -23,3 +23,13 @@ def decode_refresh_token(token):
                       algorithms =['HS256'],
                       options={"require_exp": True, "verify_exp": True}
                       )
+                      
+def decode_access_token(token):
+    return jwt.decode(token,JWT_SECRET_KEY,
+                      algorithms =['HS256'],
+                      options={"require_exp": True, "verify_exp": True}
+                      )
+
+
+                    
+

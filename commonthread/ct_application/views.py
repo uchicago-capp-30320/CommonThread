@@ -10,11 +10,12 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseBadRequest,
 )
-from .utils import generate_access_token, generate_refresh_token, decode_refresh_token
+from .utils import generate_access_token, generate_refresh_token, decode_refresh_token, decode_access_token
 from django.contrib.auth import authenticate, get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
+from jwt import ExpiredSignatureError
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -28,6 +29,22 @@ def home_test(request):
 
 import logging
 logger = logging.getLogger(__name__)
+
+########## Authentication and Authorization ##############
+
+def verify_user(view_function, access_token) -> str:
+    def wrapper():
+        try:
+            #Decode Given Access Token
+            access_detail = decode_access_token(access_token)
+            view_function()
+        except ExpiredSignatureError:
+            #Token was expired
+            return JsonResponse({"success": False, "error": "Access Expired"}, status=299)           
+        except:
+            # Something broke in the process
+            return JsonResponse({"success": False,"error": "Login Failed"}, status= 401)
+    return wrapper
 
 @csrf_exempt
 @require_POST
@@ -72,7 +89,7 @@ def login(request): #need not pass username and password as query params
     return JsonResponse(
         {"success": True, 
          "access_token": access_token, 
-         "refresh_token": refresh_token
+         #"refresh_token": refresh_token
          }, 
          status=200
     )
