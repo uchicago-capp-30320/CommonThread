@@ -2,7 +2,9 @@
 ![Stars](https://img.shields.io/github/stars/uchicago-capp-30320/CommonThread?&color=yellow)
 ![Files](https://img.shields.io/github/directory-file-count/uchicago-capp-30320/CommonThread) 
 
-# 🧵CommonThread🧵
+![CommonThread Banner with a logo of four hands forming a ball of yarn](CommonThread_Banner.png)
+
+--------------
 
 CommonThread is an open-source collaborative tool that enables users to turn stories into insights. Community-based organizations, journalists, researchers, and community members alike can use the tool to efficiently gather stories, aggregate them, and understand common threads to draw insights for action.
 
