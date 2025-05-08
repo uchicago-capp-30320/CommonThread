@@ -1,5 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+import json
 
 # consider use of uniqueconstraints
 
@@ -63,8 +67,7 @@ class Story(models.Model):
 class Tag(models.Model):
     tag_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    value = models.CharField(max_length=100, default=None)
-
+    value = models.CharField(max_length=100, null=True, blank=True)  # Allow null values
 
 # story-tag
 class StoryTag(models.Model):
@@ -89,3 +92,35 @@ class OrgUser(models.Model):
     user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     org_id = models.ForeignKey(Organization, on_delete=models.CASCADE)
     access = models.CharField(max_length=20)
+
+
+@require_POST
+def create_story(request):
+    try:
+        story_data = json.loads(request.body)
+        story = Story.objects.create(
+            storyteller=story_data["storyteller"],
+            curator_id=story_data.get("curator"),
+            date=timezone.now(),
+            content=story_data["content"],
+            proj_id=story_data["proj_id"],
+            org_id=story_data["org_id"],
+        )
+
+        if "tags" in story_data:
+            for tag_data in story_data["tags"]:
+                # Get or create the tag with both name and value
+                tag, _ = Tag.objects.get_or_create(
+                    name=tag_data["name"],
+                    value=tag_data["value"]
+                )
+                
+                StoryTag.objects.create(
+                    story_id=story, 
+                    tag_id=tag
+                )
+
+        return JsonResponse({"story_id": story.story_id}, status=200)
+
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=400)
