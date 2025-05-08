@@ -1,3 +1,4 @@
+import logging
 import json
 from datetime import date
 from django.shortcuts import get_object_or_404
@@ -26,7 +27,6 @@ User = get_user_model()
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
 
-import logging
 logger = logging.getLogger(__name__)
 
 @csrf_exempt
