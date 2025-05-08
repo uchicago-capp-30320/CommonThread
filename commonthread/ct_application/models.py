@@ -47,7 +47,7 @@ class Project(models.Model):
 class Story(models.Model):
     story_id = models.AutoField(primary_key=True)
     proj_id = models.ForeignKey(Project, on_delete=models.CASCADE)
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    #org_id = models.ForeignKey(Organization, on_delete=models.CASCADE) redundant, will be dropped/sunset
     storyteller = models.CharField(max_length=100)
     curator = models.ForeignKey(
         CustomUser, models.SET_NULL, blank=True, null=True
@@ -63,7 +63,7 @@ class Story(models.Model):
 class Tag(models.Model):
     tag_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
-    value = models.CharField(max_length=100)
+    value = models.CharField(max_length=100, default=None)
 
 
 # story-tag
