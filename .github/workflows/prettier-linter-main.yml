@@ -1,11 +1,12 @@
 name: Prettier-linter 
 
 # Ref: https://github.com/marketplace/actions/prettier-action
-# This action only runs on front-end changed files  
+# This action runs on all front-end files when pushed to main 
+
 on:
   push:
     branches:
-      - dev
+      - main
 
 jobs:
   prettier:
@@ -20,4 +21,3 @@ jobs:
         with:
           # This part is also where you can pass other options, for example:
           prettier_options: --write **/*.{js,md,svelte}
-          only_changed: True
