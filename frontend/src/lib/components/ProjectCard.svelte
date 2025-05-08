@@ -1,31 +1,29 @@
 <script>
+	// TODO update with project data
+	// project.name, project.description, project.total_stories
+
 	let { story } = $props();
 </script>
 
 <div class="card">
-	<div class="card-image">
-		<figure class="image is-4by3">
-			<img src="https://bulma.io/assets/images/placeholders/640x480.png" alt="Placeholder image" />
-		</figure>
-	</div>
 	<div class="card-content">
 		<div class="media">
-			<div class="media-left">
-				<figure class="image is-48x48">
-					<img src="https://bulma.io/assets/images/placeholders/96x96.png" alt="Placeholder " />
-				</figure>
-			</div>
 			<div class="media-content">
-				<p class="title is-4">{story.org_id}</p>
-				<p class="subtitle is-6">{story.storyteller}</p>
+				<p class="is-size-6 has-text-grey mb-1">Project</p>
+				<p class="title is-4">{story.storyteller}</p>
+			</div>
+			<div class="media-right">
+				<div class="has-text-right">
+					<p class="is-size-6 has-text-grey mb-0">Stories</p>
+					<p class="is-size-5 has-text-weight-bold mt-0">10</p>
+				</div>
 			</div>
 		</div>
+		<hr />
 
 		<div class="content">
-			{story.content} <a>@bulmaio</a>. <a href="#">#css</a>
-			<a href="#">#responsive</a>
-			<br />
-			<time datetime="2016-1-1">11:09 PM - 1 Jan 2016</time>
+			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
+			{story.content}
 		</div>
 	</div>
 </div>
