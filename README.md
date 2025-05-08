@@ -99,11 +99,11 @@ CommonThread
 Check our [issue tracker](https://github.com/orgs/uchicago-capp-30320/projects/10/views/1).
 
 ## Team :writing_hand:
-This project was built under the supervission of [James Turk](https://github.com/jamesturk) for the [Software Engineering for Civic Tech](https://github.com/uchicago-capp-30320) course, part of the MS in Computational Analysis and Public Policy at the University of Chicago. The developer team (presented in alphabetical order) includes: 
+This project was built under the supervision of [James Turk](https://github.com/jamesturk) for the [Software Engineering for Civic Tech](https://github.com/uchicago-capp-30320) course, part of the MS in Computational Analysis and Public Policy at the University of Chicago. The developer team (presented in alphabetical order) includes: 
 
 Contributor      | Roles |
 :------------:   | :-------------: |
-Austin Steinhart | Front-End Lead
+Austin Steinhart | Front-End Lead and Architect
 Fatima Irfan     | Data Engineering Lead and Back-end Engineer
 Jacob Trout      | Back-end Engineer and ML Specialist 
 Onur Büyükkalkan | Back-end Lead and Data Engineer
