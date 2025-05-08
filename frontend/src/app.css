@@ -6,9 +6,15 @@
 	--green: #d0fdb9;
 	--black: #000000;
 	--white: #f2f1f0;
-	--gray: #EDE8EB;
+	--gray: #ede8eb;
 }
 
 body {
 	font-family: 'Karla', sans-serif;
+}
+
+h1 {
+	font-family: 'Karla', sans-serif;
+	size: 10vw;
+	padding: 20px;
 }
