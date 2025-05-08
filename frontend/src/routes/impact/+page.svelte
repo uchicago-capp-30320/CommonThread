@@ -1,18 +1,17 @@
 <script>
 	import background_texture from '$lib/assets/background_texture.png';
-	import thread3 from '$lib/assets/illustrations/thread3.png';
+	import thread1 from '$lib/assets/illustrations/thread1.png';
 </script>
 
 <div class="content is-large">
-	<h1>Careers</h1>
+	<h1>Impact</h1>
 	<p>
-		<strong>CommonThread</strong> is an open-source (and academic) project without any funding, meaning
-		we don't have job openings (yet!).
+		<strong>CommonThread</strong> has greately improved the software engeneering skills of seven CAPPies!
 	</p>
 </div>
 
 <div class="container is-fluid">
-	<img src={thread3} class="is-centered" alt="Thread illustration 3" />
+	<img src={thread1} class="is-centered" alt="Thread illustration 1" />
 </div>
 
 <style>

@@ -1,6 +1,6 @@
 <script>
 	import background_texture from '$lib/assets/background_texture.png';
-	import thread1 from '$lib/assets/illustrations/thread1.png';
+	import thread2 from '$lib/assets/illustrations/thread2.png';
 </script>
 
 <div class="content is-large">
