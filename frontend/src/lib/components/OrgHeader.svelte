@@ -3,7 +3,9 @@
 		org_name,
 		description,
 		orgImage = 'https://bulma.io/assets/images/placeholders/96x96.png',
-		background_color = 'blue'
+		background_color = 'blue',
+		numProjects = 0,
+		numStories = 0
 	} = $props();
 </script>
 
@@ -27,13 +29,13 @@
 					<div class="level-item has-text-centered mr-5">
 						<div>
 							<p class="heading mb-1">Projects</p>
-							<p class="title is-4 mt-0">3,456</p>
+							<p class="title is-4 mt-0">{numProjects}</p>
 						</div>
 					</div>
 					<div class="level-item has-text-centered ml-5">
 						<div>
 							<p class="heading mb-1">Stories</p>
-							<p class="title is-4 mt-0">123</p>
+							<p class="title is-4 mt-0">{numStories}</p>
 						</div>
 					</div>
 				</nav>

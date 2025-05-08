@@ -15,36 +15,38 @@
 
 	// todo count the number of projects and stories
 
-	let projectsTotal = $state(stories.length);
+	let projectsTotal = $state(new Set(stories.map((story) => story.project_id)).size);
 	let storiesTotal = $state(stories.length);
 
-	// create projects data with project name, description, and total stories
-	// let projects = $state(
-	// 	(() => {
-	// 		// Group stories by project_id
-	// 		const projectGroups = {};
-	// 		stories.forEach((story) => {
-	// 			const projectId = story.project_id || 'unknown';
-	// 			if (!projectGroups[projectId]) {
-	// 				projectGroups[projectId] = {
-	// 					id: projectId,
-	// 					name: story.project_name || 'Unnamed Project',
-	// 					description: story.project_description || 'No description available',
-	// 					stories: []
-	// 				};
-	// 			}
-	// 			projectGroups[projectId].stories.push(story);
-	// 		});
+	//create projects data with project name, description, and total stories
+	let projects = $state(
+		(() => {
+			// Group stories by project_id
+			const projectGroups = {};
+			stories.forEach((story) => {
+				const projectId = story.project_id || 'unknown';
+				if (!projectGroups[projectId]) {
+					projectGroups[projectId] = {
+						id: projectId,
+						name: story.project_name || 'Unnamed Project',
+						description: story.project_description || 'No description available',
+						stories: []
+					};
+				}
+				projectGroups[projectId].stories.push(story);
+			});
 
-	// 		// Convert to array and add story count
-	// 		return Object.values(projectGroups).map((project) => ({
-	// 			id: project.id,
-	// 			name: project.name,
-	// 			description: project.description,
-	// 			total_stories: project.stories.length
-	// 		}));
-	// 	})()
-	// );
+			// Convert to array and add story count
+			return Object.values(projectGroups).map((project) => ({
+				id: project.id,
+				name: project.name,
+				description: project.description,
+				total_stories: project.stories.length
+			}));
+		})()
+	);
+
+	$inspect(projects);
 </script>
 
 <div class="container">
@@ -52,6 +54,8 @@
 		<OrgHeader
 			org_name={params.org_name}
 			description="This is a description of my organization"
+			numProjects={projectsTotal}
+			numStories={storiesTotal}
 			--card-color={themeColor}
 		/>
 	</div>
@@ -109,9 +113,9 @@
 
 	{#if type === 'project'}
 		<div class="columns mt-4 is-multiline">
-			{#each stories as story}
+			{#each projects as project}
 				<div class="column is-one-third">
-					<ProjectCard {story} />
+					<ProjectCard {project} />
 				</div>
 			{/each}
 		</div>
