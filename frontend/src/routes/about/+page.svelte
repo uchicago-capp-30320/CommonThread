@@ -1,8 +1,6 @@
 <script>
 	import background_texture from '$lib/assets/background_texture.png';
 	import thread1 from '$lib/assets/illustrations/thread1.png';
-	import thread2 from '$lib/assets/illustrations/thread2.png';
-	import thread3 from '$lib/assets/illustrations/thread3.png';
 </script>
 
 <div class="content is-large">
@@ -23,7 +21,7 @@
 </div>
 
 <div class="container is-fluid">
-	<img src={thread2} class="is-centered" alt="Thread illustration 1" />
+	<img src={thread2} class="is-centered" alt="Thread illustration 2" />
 </div>
 
 <style>
