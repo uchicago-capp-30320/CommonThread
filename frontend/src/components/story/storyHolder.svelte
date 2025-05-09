@@ -12,8 +12,6 @@
 		image: null
 	});
 
-
-
 	function handleStepClick(step) {
 		if (step < currentStep || canNavigateToStep(step)) {
 			currentStep = step;
@@ -30,7 +28,6 @@
 				return false;
 		}
 	}
-
 </script>
 
 <div class="container">
@@ -172,6 +169,4 @@
 	.step-box:not(.is-active):not(:hover) {
 		opacity: 0.7;
 	}
-
-
 </style>

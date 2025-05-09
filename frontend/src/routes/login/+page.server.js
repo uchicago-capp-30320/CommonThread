@@ -14,7 +14,6 @@ export const load = async ({ cookies }) => {
 	return {};
 };
 
-
 export const actions = {
 	default: async ({ cookies, request, fetch }) => {
 		// Request and wait form form data

@@ -1,5 +1,5 @@
 <script>
-    import { submitStory } from '$lib/components/story/StoryPoster.js';
+	import { submitStory } from '$lib/components/story/StoryPoster.js';
 	let { currentStep = $bindable(), storyData = $bindable() } = $props();
 	let imagePreview = $state(storyData.image ? URL.createObjectURL(storyData.image) : null);
 	let submitted = $state(false);
@@ -20,12 +20,12 @@
 
 	async function handleSubmit() {
 		try {
-            error = null;
-            const response = await submitStory(storyData);
-            submitted = true;
-        } catch (err) {
-            error = err.message;
-        }
+			error = null;
+			const response = await submitStory(storyData);
+			submitted = true;
+		} catch (err) {
+			error = err.message;
+		}
 	}
 
 	$inspect(storyData);
