@@ -4,6 +4,7 @@ from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
+from django.views.decorators.cache import cache_page
 from django.http import (
     HttpResponse,
     JsonResponse,
@@ -67,8 +68,8 @@ def login(request): #need not pass username and password as query params
             {"success": False, "error": "Invalid username or password"}, status=403
         )
 
-    access_token= generate_access_token(authenticated_user.user_id)
-    refresh_token = generate_refresh_token(authenticated_user.user_id)
+    access_token= generate_access_token(authenticated_user.id)
+    refresh_token = generate_refresh_token(authenticated_user.id)
 
     return JsonResponse(
         {"success": True, 
@@ -263,6 +264,7 @@ def show_org_dashboard(request, user_id, org_id):
 
 ###############################################################################
 @require_GET
+@cache_page(60 * 15)  # Cache for 15 minutes
 # TODO authentication and authorization check
 def get_story(request, story_id=None):
     if story_id:
@@ -281,7 +283,7 @@ def get_story(request, story_id=None):
                     "project_id": story.proj_id.id,
                     "project_name": story.proj_id.name,
                     "storyteller": story.storyteller,
-                    "curator": story.curator.user_id if story.curator else None,
+                    "curator": story.curator.id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
                     "tags": tags
@@ -296,22 +298,24 @@ def get_story(request, story_id=None):
     else:
         try:
             # Get all stories with their tags and projects
-            stories = Story.objects.select_related('proj_id').all()
+            stories = Story.objects.select_related('proj_id').prefetch_related(
+                        'storytag_set__tag_id'
+                    ).all()
             stories_data = []
             
             for story in stories:
                 story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
                 tags = [{
-                    'name': st.tag_id.name,
-                    'value': st.tag_id.value
-                } for st in story_tags]
+                        'name': st.tag_id.name,
+                        'value': st.tag_id.value
+                    } for st in story.storytag_set.all()]
                 
                 stories_data.append({
                     "story_id": story.id,
                     "storyteller": story.storyteller,
                     "project_id": story.proj_id.id,
                     "project_name": story.proj_id.name,
-                    "curator": story.curator.user_id if story.curator else None,
+                    "curator": story.curator.id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
                     "tags": tags
@@ -594,7 +598,7 @@ def show_user_dashboard(request, user_id):
 
         return JsonResponse(
             {
-                "user_id": user.user_id,
+                "user_id": user.id,
                 "user_name": user.name,
                 "organizations": orgs_data,
             },
@@ -619,7 +623,7 @@ def show_org_admin_dashboard(request, user_id, org_id):
 
         data = [
             {
-                "user_id": member.user_id.user_id,
+                "user_id": member.user_id.id,
                 "user_name": member.user_id.name,
                 "access": member.access,
             }
