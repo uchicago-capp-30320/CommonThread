@@ -1,3 +1,4 @@
+import logging
 import json
 from datetime import date
 from django.shortcuts import get_object_or_404
@@ -12,7 +13,7 @@ from django.http import (
 )
 from .utils import generate_access_token, generate_refresh_token, decode_refresh_token, decode_access_token
 from django.contrib.auth import authenticate, get_user_model
-from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, UserLogin, StoryTag
+from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, StoryTag, CustomUser
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from jwt import ExpiredSignatureError
@@ -27,7 +28,6 @@ User = get_user_model()
 def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
 
-import logging
 logger = logging.getLogger(__name__)
 
 ########## Authentication and Authorization ##############
@@ -256,13 +256,13 @@ def show_project_dashboard(request, user_id, org_id, project_id):
     # }
 
     return JsonResponse(
-        {
-            "project_id": project.proj_id,
-            "story_count": story_count,
-            "tag_count": tag_count,
-        },
-        status=200,
-    )
+    {
+        "project_id": project.id, 
+        "story_count": story_count,
+        "tag_count": tag_count,
+    },
+    status=200,
+)   
 
 @verify_user()
 #@authorize_user(check_type="org")
@@ -310,19 +310,19 @@ def show_org_dashboard(request, user_id, org_id):
 def get_story(request, story_id=None):
     if story_id:
         try:
-            story = Story.objects.get(story_id=story_id)
+            story = Story.objects.select_related('proj_id').get(id=story_id)
             
             story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
             tags = [{
-                'tag_id': st.tag_id.tag_id, 
                 'name': st.tag_id.name,
-                 #expecting storytag table to have a value field
-                # 'value': st.value
+                'value': st.tag_id.value
             } for st in story_tags]
             
             return JsonResponse(
                 {
-                    "story_id": story.story_id,
+                    "story_id": story.id,
+                    "project_id": story.proj_id.id,
+                    "project_name": story.proj_id.name,
                     "storyteller": story.storyteller,
                     "curator": story.curator.user_id if story.curator else None,
                     "date": story.date,
@@ -338,22 +338,22 @@ def get_story(request, story_id=None):
             )
     else:
         try:
-            # Get all stories with their tags
-            stories = Story.objects.all()
+            # Get all stories with their tags and projects
+            stories = Story.objects.select_related('proj_id').all()
             stories_data = []
             
             for story in stories:
                 story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
                 tags = [{
-                    'tag_id': st.tag_id.tag_id, 
                     'name': st.tag_id.name,
-                    #expecting storytag table to have a value field
-                    # 'value': st.value
+                    'value': st.tag_id.value
                 } for st in story_tags]
                 
                 stories_data.append({
-                    "story_id": story.story_id,
+                    "story_id": story.id,
                     "storyteller": story.storyteller,
+                    "project_id": story.proj_id.id,
+                    "project_name": story.proj_id.name,
                     "curator": story.curator.user_id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
@@ -405,7 +405,7 @@ def create_user(request):
     
     try:
         #this needs to be CustomUser
-        django_user = User.objects.create_user(
+        CustomUser.objects.create_user(
             username=username,
             password=password,
             first_name=user_data.get("first_name", ""),
@@ -416,15 +416,16 @@ def create_user(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    try:
-        UserLogin.objects.create(
-            user_id=django_user,
-            username=username,
-            password=password,  # or better: store a hash
-        )
-    except Exception as e:
-        # if this fails you might want to roll back the django_user you just made
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    #try: #### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE #####
+    #    UserLogin.objects.create(
+    #        user_id=django_user,
+    #        username=username,
+    #        password=password,  # or better: store a hash
+    #    )
+    #except Exception as e:
+    #    # if this fails you might want to roll back the django_user you just made
+    #    return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"success": True}, status=201)
 
@@ -469,37 +470,65 @@ def add_user_to_org(request):
 
 
 ###############################################################################
-@require_POST
-# TODO authentication and authorization check
+@csrf_exempt
+@require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
+    if request.method == "OPTIONS":
+        response = HttpResponse()
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
+
     try:
+        print("Received request body:", request.body)
         story_data = json.loads(request.body)
-        story = Story.objects.create(
-            storyteller=story_data["storyteller"],
-            curator_id=story_data.get("curator"),
-            date=timezone.now(),
-            content=story_data["content"],
-            proj_id=story_data["proj_id"],
-            org_id=story_data["org_id"],
-        )
+        print("Parsed story data:", story_data)
+        
+       
+        try:
+            project = Project.objects.get(id=story_data["proj_id"])
+            print("Found project:", project)
+        except Project.DoesNotExist:
+            print(f"Project with ID {story_data['proj_id']} does not exist")
+            return JsonResponse({"error": f"Project with ID {story_data['proj_id']} does not exist"}, status=400)
+        
+        
+       
+        print("Curator ID:", story_data.get("curator"))
+        
+        try:
+            story = Story.objects.create(
+                storyteller=story_data["storyteller"],
+                curator_id=story_data.get("curator"),
+                date=timezone.now(),
+                content=story_data["content"],
+                proj_id=project,
+            )
+            print("Created story:", story)
+        except Exception as e:
+            print("Error creating story:", str(e))
+            print("Error type:", type(e))
+            import traceback
+            print("Traceback:", traceback.format_exc())
+            raise
 
         if "tags" in story_data:
             for tag_data in story_data["tags"]:
-                # Get the (we need the tag to exist in Tag table)
                 tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"]
+                    name=tag_data["name"],
+                    value=tag_data["value"]
                 )
-                
-                StoryTag.objects.create(
-                    story_id=story, 
-                    tag_id=tag,
-                    # value=tag_data["value"]  # Store the value in StoryTag table
-                )
+                StoryTag.objects.create(story_id=story, tag_id=tag)
+                print("Created tag:", tag)
 
-        return JsonResponse({"story_id": story.story_id}, status=200)
-
+        return JsonResponse({"story_id": story.id}, status=200)
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+        print("Error creating story:", str(e))
+        print("Error type:", type(e))
+        import traceback
+        print("Traceback:", traceback.format_exc())
+        return JsonResponse({"error": str(e)}, status=400)
 
 
 ###############################################################################
@@ -546,7 +575,7 @@ def create_project(request):
         return JsonResponse(
             {
                 "success": True,
-                "project_id": project.proj_id,
+                "project_id": project.id,
             },
             status=201,
         )
