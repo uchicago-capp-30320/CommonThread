@@ -1,6 +1,5 @@
 <script>
-	// Ref: https://svelte.dev/docs/kit/form-actions
-	// Load design assets 
+	// Load design assets
 	import background_texture from '$lib/assets/background_texture.png';
 </script>
 
@@ -49,10 +48,7 @@
 
 				<div class="field is-grouped">
 					<div class="control">
-						<button 
-						type="submit" 
-						class="button is-link"
-						id="login-btn">Login</button>
+						<button type="submit" class="button is-link" id="login-btn">Login</button>
 					</div>
 					<div class="control">
 						<button type="reset" class="button is-light">Cancel</button>
@@ -94,6 +90,6 @@
 	}
 
 	#forgot {
-		padding-top: 15px; 
+		padding-top: 15px;
 	}
 </style>
