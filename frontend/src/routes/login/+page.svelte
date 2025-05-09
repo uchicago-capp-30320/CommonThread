@@ -1,4 +1,6 @@
 <script>
+	// Ref: https://svelte.dev/docs/kit/form-actions
+	// Load design assets 
 	import background_texture from '$lib/assets/background_texture.png';
 </script>
 
@@ -6,8 +8,7 @@
 	<div class="container is-max-tablet">
 		<div class="notification" S>
 			<div class="title has-text-centered">LOGIN</div>
-
-			<form method="post">
+			<form method="POST">
 				<div class="field">
 					<label class="label" for="username">Username</label>
 					<div class="control has-icons-left has-icons-right">
@@ -48,7 +49,10 @@
 
 				<div class="field is-grouped">
 					<div class="control">
-						<button type="submit" class="button is-link" id="login-button">Login</button>
+						<button 
+						type="submit" 
+						class="button is-link"
+						id="login-btn">Login</button>
 					</div>
 					<div class="control">
 						<button type="reset" class="button is-light">Cancel</button>
@@ -58,7 +62,7 @@
 
 			<div class="field">
 				<div class="control" id="forgot">
-					<a href="#">Did you forget your password?</a>
+					<a href="/">Did you forget your password?</a>
 				</div>
 			</div>
 
@@ -76,7 +80,7 @@
 		background-color: var(--light-blue);
 	}
 
-	#login-button {
+	#login-btn {
 		background-color: var(--dark-blue);
 		color: white;
 	}
