@@ -68,8 +68,8 @@ def login(request): #need not pass username and password as query params
             {"success": False, "error": "Invalid username or password"}, status=403
         )
 
-    access_token= generate_access_token(authenticated_user.user_id)
-    refresh_token = generate_refresh_token(authenticated_user.user_id)
+    access_token= generate_access_token(authenticated_user.id)
+    refresh_token = generate_refresh_token(authenticated_user.id)
 
     return JsonResponse(
         {"success": True, 
@@ -283,7 +283,7 @@ def get_story(request, story_id=None):
                     "project_id": story.proj_id.id,
                     "project_name": story.proj_id.name,
                     "storyteller": story.storyteller,
-                    "curator": story.curator.user_id if story.curator else None,
+                    "curator": story.curator.id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
                     "tags": tags
@@ -315,7 +315,7 @@ def get_story(request, story_id=None):
                     "storyteller": story.storyteller,
                     "project_id": story.proj_id.id,
                     "project_name": story.proj_id.name,
-                    "curator": story.curator.user_id if story.curator else None,
+                    "curator": story.curator.id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
                     "tags": tags
@@ -598,7 +598,7 @@ def show_user_dashboard(request, user_id):
 
         return JsonResponse(
             {
-                "user_id": user.user_id,
+                "user_id": user.id,
                 "user_name": user.name,
                 "organizations": orgs_data,
             },
@@ -623,7 +623,7 @@ def show_org_admin_dashboard(request, user_id, org_id):
 
         data = [
             {
-                "user_id": member.user_id.user_id,
+                "user_id": member.user_id.id,
                 "user_name": member.user_id.name,
                 "access": member.access,
             }
