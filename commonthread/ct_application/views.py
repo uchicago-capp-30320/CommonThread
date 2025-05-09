@@ -16,6 +16,7 @@ from django.contrib.auth import authenticate, get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, StoryTag, CustomUser
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
+import traceback
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -465,7 +466,6 @@ def create_story(request):
         except Exception as e:
             print("Error creating story:", str(e))
             print("Error type:", type(e))
-            import traceback
             print("Traceback:", traceback.format_exc())
             raise
 
@@ -482,7 +482,6 @@ def create_story(request):
     except Exception as e:
         print("Error creating story:", str(e))
         print("Error type:", type(e))
-        import traceback
         print("Traceback:", traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=400)
 
