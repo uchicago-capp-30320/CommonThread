@@ -4,17 +4,11 @@
 	import BarChart from '$lib/layer-cake/BarChart.svelte';
 	import LineAreaChart from '$lib/layer-cake/LineAreaChart.svelte';
 	import { timeParse } from 'd3-time-format';
+	import { is } from 'immutable';
 
 	const parseDate = timeParse('%Y-%m-%d');
 
 	let { stories } = $props();
-
-	let uniqueTags = new Set();
-	stories.forEach((story) => {
-		if (story.tags) {
-			story.tags.forEach((tag) => uniqueTags.add(tag));
-		}
-	});
 
 	// Function to group stories by a specified field
 	function groupStoriesByField(stories, field) {
@@ -34,8 +28,26 @@
 	}
 
 	let currentGroupBy = $state('storyteller');
+	let currentProject = $state(1);
 
-	let barData = $derived(groupStoriesByField(stories, currentGroupBy));
+	let uniqueProjects = new Set();
+	stories.forEach((story) => {
+		if (story.project_name) {
+			uniqueProjects.add(story.project_name);
+		}
+	});
+
+	let projectStories = $derived(stories.filter((story) => story.project_name === currentProject));
+
+	let uniqueTags = new Set();
+
+	projectStories.forEach((story) => {
+		if (story.tags) {
+			story.tags.forEach((tag) => uniqueTags.add(tag));
+		}
+	});
+
+	let barData = $derived(groupStoriesByField(projectStories, currentGroupBy));
 
 	// Function to create running totals data for stories by date
 	function createRunningTotalByDate(stories) {
@@ -72,19 +84,29 @@
 
 	let storiesRunningTotal = $derived(createRunningTotalByDate(stories));
 
-	$inspect(storiesRunningTotal);
-
 	let themeColor = $state('#133335');
 
 	function updateGroupBy(value) {
 		currentGroupBy = value;
 		//applyFilters(currentFilters);
 	}
+
+	function updateProject(value) {
+		currentProject = value;
+		//applyFilters(currentFilters);
+	}
 </script>
 
 <div class="dashboard p-5">
 	<div class="sidebar-container">
-		<DataFilter {currentGroupBy} {uniqueTags} {updateGroupBy} />
+		<DataFilter
+			{currentGroupBy}
+			{currentProject}
+			{uniqueTags}
+			{updateGroupBy}
+			{updateProject}
+			{uniqueProjects}
+		/>
 	</div>
 
 	<div class="charts-container">
