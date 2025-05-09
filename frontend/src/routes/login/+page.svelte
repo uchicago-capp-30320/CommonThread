@@ -23,9 +23,9 @@
 						<span class="icon is-small is-left">
 							<i class="fa fa-user"></i>
 						</span>
-						<span class="icon is-small is-right">
+						<!-- <span class="icon is-small is-right">
 							<i class="fa fa-check"></i>
-						</span>
+						</span> -->
 					</div>
 				</div>
 
@@ -41,7 +41,7 @@
 							required
 						/>
 						<span class="icon is-small is-left">
-							<i class="fas fa-lock"></i>
+							<i class="fa fa-lock"></i>
 						</span>
 					</div>
 				</div>
@@ -57,7 +57,7 @@
 			</form>
 
 			<div class="field">
-				<div class="control">
+				<div class="control" id="forgot">
 					<a href="#">Did you forget your password?</a>
 				</div>
 			</div>
@@ -75,6 +75,7 @@
 	.notification {
 		background-color: var(--light-blue);
 	}
+
 	#login-button {
 		background-color: var(--dark-blue);
 		color: white;
@@ -86,5 +87,9 @@
 		width: 400px;
 		margin-left: auto;
 		margin-right: auto;
+	}
+
+	#forgot {
+		padding-top: 15px; 
 	}
 </style>
