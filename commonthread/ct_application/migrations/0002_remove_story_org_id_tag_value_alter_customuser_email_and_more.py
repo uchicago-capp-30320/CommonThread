@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='tag',
             name='value',
-            field=models.CharField(default=None, max_length=100),
+            field=models.CharField(max_length=100, null=True, blank=True),
         ),
         migrations.AlterField(
             model_name='customuser',

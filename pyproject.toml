@@ -9,11 +9,12 @@ dependencies = [
     "psycopg2-binary>=2.9.10",
     "mkdocs-material>=9.6.12",
     "pyjwt>=2.10.1",
-
     "pytest>=8.3.5",
     "pytest-django>=4.11.1",
     "python-dotenv>=1.1.0",
-]
+    "pygments>=2.19.1",
+    "django-cors-headers>=4.7.0"
+   ]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "commonthread.settings"

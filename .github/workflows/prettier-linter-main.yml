@@ -1,0 +1,26 @@
+name: Prettier-linter 
+
+# Ref: https://github.com/marketplace/actions/prettier-action
+# This action runs on all front-end files when pushed to main 
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prettify code
+        uses: creyD/prettier_action@v4.5
+        with:
+          # This part is also where you can pass other options, for example:
+          prettier_options: --write **/*.{js,md,svelte}
