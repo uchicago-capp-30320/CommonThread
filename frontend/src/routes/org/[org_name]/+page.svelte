@@ -3,24 +3,71 @@
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import StoryCard from '$lib/components/StoryCard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
+	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
 	let { data } = $props();
-	const { stories, params } = data;
+	const { storiesPromise: getDataPromise, params } = data;
+
+	let stories = $state([]);
+	let projectsTotal = $state('...');
+	let storiesTotal = $state('...');
+	let projects = $state([]);
+	let orgName = $state('Loading...');
+
+	$inspect(getDataPromise);
+	$inspect(params);
+	$inspect(stories);
+	$inspect(projects);
+
+	$effect(() => {
+		getDataPromise
+			.then((loadedData) => {
+				stories = loadedData['stories'];
+				orgName = loadedData['org_name'];
+				projectsTotal = new Set(stories.map((story) => story.project_id)).size;
+				storiesTotal = stories.length;
+
+				// Group stories by project_id
+				const projectGroups = {};
+				stories.forEach((story) => {
+					const projectId = story.project_id || 'unknown';
+					if (!projectGroups[projectId]) {
+						projectGroups[projectId] = {
+							id: projectId,
+							name: story.project_name || 'Unnamed Project',
+							description: story.project_description || 'No description available',
+							stories: []
+						};
+					}
+					projectGroups[projectId].stories.push(story);
+				});
+
+				// Convert to array and add story count
+				projects = Object.values(projectGroups).map((project) => ({
+					id: project.id,
+					name: project.name,
+					description: project.description,
+					total_stories: project.stories.length
+				}));
+			})
+			.catch((error) => {
+				console.error('Error loading stories:', error);
+			});
+	});
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
 
-	// todo count the number of projects and stories
-
-	let projectsTotal = $state(stories.length);
-	let storiesTotal = $state(stories.length);
+	$inspect(projects);
 </script>
 
-<div class="content">
+<div class="container">
 	<div class="p-5">
 		<OrgHeader
-			org_name={params.org_name}
+			org_name={orgName}
 			description="This is a description of my organization"
+			numProjects={projectsTotal}
+			numStories={storiesTotal}
 			--card-color={themeColor}
 		/>
 	</div>
@@ -55,14 +102,15 @@
 			<div class="level-right">
 				<div class="level-item">
 					<p class="subtitle is-5">
-						<strong>{type === 'story' ? storiesTotal : projectsTotal}</strong> Projects
+						<strong>{type === 'project' ? projectsTotal : storiesTotal}</strong>
+						{type === 'project' ? 'Projects' : 'Stories'}
 					</p>
 				</div>
 
 				<div class="level-item">
 					<div class="field has-addons">
 						<p class="control">
-							<input class="input" type="text" placeholder="Search for project" />
+							<input class="input" type="text" placeholder={`Search for ${type}`} />
 						</p>
 						<p class="control">
 							<button class="button">Search</button>
@@ -75,25 +123,31 @@
 
 	<hr />
 
-	{#if type === 'project'}
-		<div class="columns mt-4">
-			{#each stories as story}
+	{#if stories.length === 0}
+		<p class="has-text-centered">Loading Stories...</p>
+	{:else if type === 'project'}
+		<div class="columns mt-4 is-multiline">
+			{#each projects as project}
 				<div class="column is-one-third">
-					<ProjectCard {story} />
+					<ProjectCard {project} />
 				</div>
 			{/each}
 		</div>
-	{:else}
+	{:else if type === 'story'}
 		{#each stories as story}
 			<div class="">
 				<StoryPreview {story} />
 			</div>
 		{/each}
+	{:else if type === 'dash'}
+		<DataDashboard {stories} />
+	{:else}
+		<p class="has-text-centered">No stories available</p>
 	{/if}
 </div>
 
 <style>
-	.content {
+	.container {
 		margin: 30px;
 	}
 

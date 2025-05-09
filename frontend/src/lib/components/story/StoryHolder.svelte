@@ -43,7 +43,7 @@
 	<!-- Progress navigation -->
 	<div class="columns is-centered mb-6">
 		<div class="column is-8">
-						<nav class="level">
+			<nav class="level">
 				<div class="level-item has-text-centered">
 					<button
 						class="step-box has-text-white"

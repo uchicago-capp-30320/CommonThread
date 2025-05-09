@@ -11,6 +11,9 @@
 				<label class="label" for="name">Name</label>
 				<div class="control has-icons-left has-icons-right">
 					<input class="input" type="text" id="name" placeholder="Your name" />
+					<span class="icon is-small is-left">
+						<i class="fa fa-user"></i>
+					</span>
 				</div>
 			</div>
 
@@ -49,11 +52,11 @@
 						class="input is-success"
 						type="password"
 						id="password"
-						placeholder="*****"
+						placeholder="********"
 						value=""
 					/>
 					<span class="icon is-small is-left">
-						<i class="fa fa-user"></i>
+						<i class="fa fa-lock"></i>
 					</span>
 					<span class="icon is-small is-right">
 						<i class="fa fa-check"></i>
@@ -68,11 +71,11 @@
 						class="input is-success"
 						type="password"
 						id="confirm-password"
-						placeholder="*****"
+						placeholder="********"
 						value=""
 					/>
 					<span class="icon is-small is-left">
-						<i class="fa fa-user"></i>
+						<i class="fa fa-lock"></i>
 					</span>
 					<span class="icon is-small is-right">
 						<i class="fa fa-check"></i>

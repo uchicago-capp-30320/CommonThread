@@ -23,3 +23,13 @@ def decode_refresh_token(token):
                       algorithms =['HS256'],
                       options={"require_exp": True, "verify_exp": True}
                       )
+                      
+def decode_access_token(token):
+    return jwt.decode(token,JWT_SECRET_KEY,
+                      algorithms =['HS256'],
+                      options={"require_exp": True, "verify_exp": True}
+                      )
+
+
+                    
+
