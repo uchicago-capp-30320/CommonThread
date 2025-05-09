@@ -6,7 +6,7 @@ export async function submitStory(storyData) {
             storyteller: storyData.storyteller,
             content: storyData.content,
             proj_id: 1,  // Hardcoded project ID
-            curator: storyData.author,   // Using author as curator
+            curator: 1,   
             tags: storyData.tags?.map(tag => ({
                 name: tag.category,
                 value: tag.value
@@ -28,7 +28,10 @@ export async function submitStory(storyData) {
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
 
-        return await response.json();
+        const cleared_response =  await response.json();
+        console.log(cleared_response);
+        return cleared_response;
+
     } catch (error) {
         console.error('Error submitting story:', error);
         throw error;
