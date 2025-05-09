@@ -37,7 +37,7 @@ def verify_user(*args):
     Decorator for ensuring the user is allowed to access the application, handling JWT tokens & issues
     '''
     def inner(view_function, *args, **kwargs): #kwargs has ids, but unused here. Do not remove.
-        request = args[0]
+        request = args
         try:
             #Decode Given Access Token
             access_token = request.header.get("Authorization")
@@ -68,7 +68,7 @@ def authorize_user(check_type: str):
     all id fields are optional, only need to include what is required.
     '''
     def inner(view_function, *args, **kwargs):
-        request = args[0]
+        request = args
         ids = kwargs
         # Get the user ID from the access token, for security reasons
         access_token = request.header.get("Authorization")
@@ -158,13 +158,13 @@ def login(request): #need not pass username and password as query params
             {"success": False, "error": "Invalid username or password"}, status=403
         )
 
-    access_token= generate_access_token(authenticated_user.user_id)
-    refresh_token = generate_refresh_token(authenticated_user.user_id)
+    access_token= generate_access_token(authenticated_user.id)
+    refresh_token = generate_refresh_token(authenticated_user.id)
 
     return JsonResponse(
         {"success": True, 
          "access_token": access_token, 
-         #"refresh_token": refresh_token
+         "refresh_token": refresh_token
          }, 
          status=200
     )
@@ -265,7 +265,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
 )   
 
 @verify_user
-@authorize_user(check_type="org")
+#@authorize_user(check_type="org")
 def show_org_dashboard(request, user_id, org_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id]):
