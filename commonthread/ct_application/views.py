@@ -17,6 +17,7 @@ from django.contrib.auth import authenticate, get_user_model
 from .models import Organization, OrgUser, Project, Story, Tag, ProjectTag, StoryTag, CustomUser
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
+import traceback
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -173,7 +174,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
     status=200,
 )   
 
-
+"""
 def show_org_dashboard(request, user_id, org_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id]):
@@ -210,7 +211,56 @@ def show_org_dashboard(request, user_id, org_id):
         },
         status=200,
     )
+"""
 
+def show_org_dashboard(request, user_id, org_id):
+    try:
+        if not all([user_id, org_id]):
+            return HttpResponseNotFound("User ID or Organization ID not provided.", status=404)
+
+        user = get_object_or_404(User, pk=user_id)
+        org = get_object_or_404(Organization, pk=org_id)
+
+        try:
+            _ = OrgUser.objects.get(user_id=user, org_id=org)
+        except OrgUser.DoesNotExist:
+            return HttpResponseForbidden("You are not a member of this organization! Not authorized.", status=403)
+
+        projects = Project.objects.filter(org_id=org)
+        stories = Story.objects.filter(proj_id__in=projects).select_related('proj_id')
+
+        story_list = []
+        for story in stories:
+
+            story_tags = StoryTag.objects.filter(story_id=story).select_related('tag_id')
+            tags = [{
+                'name': st.tag_id.name,
+                'value': st.tag_id.value
+            } for st in story_tags]
+
+
+            story_list.append({
+
+                "story_id": story.pk,
+                "storyteller": story.storyteller,
+                "project_id": story.proj_id.pk,
+                "project_name": story.proj_id.name,
+                "curator": story.curator.pk if story.curator else None,
+                "date": story.date.isoformat() if story.date else None,
+                "content": story.content,
+                "tags": tags,
+            })
+
+        return JsonResponse({
+            "org_id": org.pk,
+            "org_name": org.name,
+            "stories": story_list
+        })
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
 
 ###############################################################################
 @require_GET
@@ -420,7 +470,6 @@ def create_story(request):
         except Exception as e:
             print("Error creating story:", str(e))
             print("Error type:", type(e))
-            import traceback
             print("Traceback:", traceback.format_exc())
             raise
 
@@ -437,7 +486,6 @@ def create_story(request):
     except Exception as e:
         print("Error creating story:", str(e))
         print("Error type:", type(e))
-        import traceback
         print("Traceback:", traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=400)
 
