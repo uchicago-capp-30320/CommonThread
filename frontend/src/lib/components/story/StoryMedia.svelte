@@ -1,7 +1,9 @@
 <script>
+    import { submitStory } from '$lib/components/story/StoryPoster.js';
 	let { currentStep = $bindable(), storyData = $bindable() } = $props();
 	let imagePreview = $state(storyData.image ? URL.createObjectURL(storyData.image) : null);
 	let submitted = $state(false);
+	let error = $state(null);
 
 	function handleFileChange(event) {
 		const file = event.target.files[0];
@@ -16,8 +18,14 @@
 		imagePreview = null;
 	}
 
-	function handleSubmit() {
-		submitted = true;
+	async function handleSubmit() {
+		try {
+            error = null;
+            await submitStory(storyData);
+            submitted = true;
+        } catch (err) {
+            error = err.message;
+        }
 	}
 
 	$inspect(storyData);
@@ -47,6 +55,12 @@
 					<img src={imagePreview} alt="Story preview" />
 				</figure>
 				<button class="button is-danger is-small mt-2" onclick={removeImage}>Remove Image</button>
+			</div>
+		{/if}
+
+		{#if error}
+			<div class="notification is-danger">
+				{error}
 			</div>
 		{/if}
 
