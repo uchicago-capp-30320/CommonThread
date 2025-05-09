@@ -49,9 +49,6 @@ def setup_data():
     proj2 = Project.objects.create(
         org_id=org2, name="Memory Lane", curator=brenda, date="2025-03-15"
     )
-    proj3 = Project.objects.create(
-        org_id=org3, name="Windy City Whispers", curator=alice, date="2025-02-20"
-    )
 
     # Stories
     story1 = Story.objects.create(
@@ -73,7 +70,6 @@ def setup_data():
 
     # Tags & link tables
     tag1 = Tag.objects.create(name="Fun")
-    tag2 = Tag.objects.create(name="Sad")
     StoryTag.objects.create(story_id=story1, tag_id=tag1)
     ProjectTag.objects.create(proj_id=proj1, tag_id=tag1)
 
