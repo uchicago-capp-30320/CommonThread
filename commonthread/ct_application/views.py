@@ -43,6 +43,12 @@ def login(request): #need not pass username and password as query params
     if request.content_type == "application/json":
         try:
             data = json.loads(request.body)
+            logger.debug(f"LOGIN ➤ Received the following JSON { data }")
+
+            # Note: It turns out that Svelte sends the json data with the 
+            # name of the JS object that holds such data as key. So it needs
+            # an extra unpacking step. 
+            data = data.get("post_data")
         except Exception as e:
             logger.debug("LOGIN ➤ JSON parse failed: %r", e)
             return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
@@ -52,6 +58,7 @@ def login(request): #need not pass username and password as query params
 
     username = data.get("username")
     password = data.get("password")
+
     logger.debug("LOGIN ➤ extracted username=%r password=%r", username, password)
 
     if not username or not password:
