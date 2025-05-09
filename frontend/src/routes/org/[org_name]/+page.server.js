@@ -3,16 +3,16 @@
 
 export async function load({ params, cookies, fetch }) {
 	// Return a promise that the page can handle
-	const getStoriesPromise = async () => {
+	const getDataPromise = async () => {
 		// Use the provided fetch parameter which handles environment appropriately
-		const response = await fetch(`http://127.0.0.1:8000/stories/`);
+		const response = await fetch(`http://127.0.0.1:8000/org/1/1/`);
 		const data = await response.json();
-		return data.stories;
+		return data;
 	};
 
 	// Return the promise directly
 	return {
-		storiesPromise: getStoriesPromise(),
+		storiesPromise: getDataPromise(),
 		params
 	};
 

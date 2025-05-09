@@ -6,19 +6,26 @@
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
 	let { data } = $props();
-	const { storiesPromise: getStoriesPromise, params } = data;
+	const { storiesPromise: getDataPromise, params } = data;
+
 	let stories = $state([]);
 	let projectsTotal = $state('...');
 	let storiesTotal = $state('...');
 	let projects = $state([]);
+	let orgName = $state('Loading...');
 
-	$inspect(getStoriesPromise);
+	$inspect(getDataPromise);
+	$inspect(params);
+	$inspect(stories);
+	$inspect(projects);
+
 	$effect(() => {
-		getStoriesPromise
-			.then((loadedStories) => {
-				stories = loadedStories;
-				projectsTotal = new Set(loadedStories.map((story) => story.project_id)).size;
-				storiesTotal = loadedStories.length;
+		getDataPromise
+			.then((loadedData) => {
+				stories = loadedData['stories'];
+				orgName = loadedData['org_name'];
+				projectsTotal = new Set(stories.map((story) => story.project_id)).size;
+				storiesTotal = stories.length;
 
 				// Group stories by project_id
 				const projectGroups = {};
@@ -51,15 +58,13 @@
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
 
-	//create projects data with project name, description, and total stories
-
 	$inspect(projects);
 </script>
 
 <div class="container">
 	<div class="p-5">
 		<OrgHeader
-			org_name={params.org_name}
+			org_name={orgName}
 			description="This is a description of my organization"
 			numProjects={projectsTotal}
 			numStories={storiesTotal}
