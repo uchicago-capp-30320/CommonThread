@@ -32,11 +32,12 @@ logger = logging.getLogger(__name__)
 
 ########## Authentication and Authorization ##############
 
-def verify_user(request):
+def verify_user():
     '''
     Decorator for ensuring the user is allowed to access the application, handling JWT tokens & issues
     '''
-    def inner(view_function):
+    def inner(view_function, *args):
+        request = args[0]
         try:
             #Decode Given Access Token
             access_token = request.header.get("Authorization")
@@ -50,15 +51,15 @@ def verify_user(request):
         except:
             # Something broke in the process
             return JsonResponse({"success": False,"error": "Login Failed"}, status= 401)
-    
+    return inner
 
-def authorize_user(request, check_type: str, org_id = None, proj_id = None, story_id=None):
+def authorize_user(check_type: str):
     '''
     Decorator designed to provide interface that simplifies links & setup for views. The If statement allows for
     individual auth functions that take varieties of input, but a single wrapper for ease of use.
 
-    view_function -> Endpoint you want to call
-    request -> request object, for access token/user_id
+    view_function: function being called
+    request is pulled in via args, as it is the only 
     check_type -> information given to access: can also add level of access required through this as well later
         - story: story id provided
         - project: project id provided
@@ -66,7 +67,9 @@ def authorize_user(request, check_type: str, org_id = None, proj_id = None, stor
 
     all id fields are optional, only need to include what is required.
     '''
-    def inner(view_function):
+    def inner(view_function, *args, **kwargs):
+        request = args[0]
+        ids = kwargs
         # Get the user ID from the access token, for security reasons
         access_token = request.header.get("Authorization")
         access_detail = decode_access_token(access_token)
@@ -74,14 +77,14 @@ def authorize_user(request, check_type: str, org_id = None, proj_id = None, stor
 
         # Reach the necessary authentication table based on the information provided by the request
         if check_type == "story":
-            logger.debug("Auth using info: user_id=%r story_id=%r", user_id, story_id)
-            is_auth = check_story_auth(user_id, story_id)
+            logger.debug("Auth using info: user_id=%r story_id=%r", user_id, ids['story_id'])
+            is_auth = check_story_auth(user_id, ids['story_id'])
         elif check_type == "project":
-            logger.debug("Auth using info: user_id=%r proj_id=%r", user_id, proj_id)
-            is_auth = check_project_auth(user_id, proj_id)
+            logger.debug("Auth using info: user_id=%r proj_id=%r", user_id, ids['proj_id'])
+            is_auth = check_project_auth(user_id, ids['proj_id'])
         elif check_type == "org":
-            logger.debug("Auth using info: user_id=%r org_id=%r", user_id, org_id)
-            is_auth = check_org_auth(user_id, org_id)
+            logger.debug("Auth using info: user_id=%r org_id=%r", user_id, ids['org_id'])
+            is_auth = check_org_auth(user_id, ids['org_id'])
         else:
             logger.debug("Invalid Auth checktype with check_type=%r", check_type)
             is_auth = False
@@ -91,6 +94,7 @@ def authorize_user(request, check_type: str, org_id = None, proj_id = None, stor
             return wrapper
         else:
             return JsonResponse({"success": False,"error": "Not authorized to access page"}, status= 403)
+    return inner
 
 
 def check_org_auth(user_id: str, org_id: str):
@@ -260,7 +264,8 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         status=200,
     )
 
-
+@verify_user()
+#@authorize_user(check_type="org")
 def show_org_dashboard(request, user_id, org_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id]):
