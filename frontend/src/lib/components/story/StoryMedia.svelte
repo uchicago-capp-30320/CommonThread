@@ -21,7 +21,7 @@
 	async function handleSubmit() {
 		try {
             error = null;
-            await submitStory(storyData);
+            const response = await submitStory(storyData);
             submitted = true;
         } catch (err) {
             error = err.message;
