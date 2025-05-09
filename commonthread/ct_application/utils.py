@@ -1,6 +1,6 @@
 from commonthread.settings import JWT_SECRET_KEY,JWT_REFRESH_SECRET_KEY
 import datetime
-import pyjwt as jwt
+import jwt
 
 def generate_access_token(user_id:int)-> str:
     payload = {

@@ -32,11 +32,11 @@ logger = logging.getLogger(__name__)
 
 ########## Authentication and Authorization ##############
 
-def verify_user():
+def verify_user(*args):
     '''
     Decorator for ensuring the user is allowed to access the application, handling JWT tokens & issues
     '''
-    def inner(view_function, *args):
+    def inner(view_function, *args, **kwargs): #kwargs has ids, but unused here. Do not remove.
         request = args[0]
         try:
             #Decode Given Access Token
@@ -109,7 +109,7 @@ def check_project_auth(user_id: str, proj_id: str):
     # Checks if user has access through proj->org link, returns True if the link exists
     try:
         project = Project.objects.get(proj_id=proj_id)
-        return check_org_auth(user_id, project.org_id)
+        return check_org_auth(user_id, project.id)
     except:
         return JsonResponse({"Failed": False,"error": "Project not found"}, status= 404)
 
@@ -117,7 +117,7 @@ def check_story_auth(user_id: str, story_id: str):
     # Checks if user has access through story->proj->org link, returns True if the link exists
     try:
         story = Story.objects.get(story_id=story_id)
-        return check_project_auth(user_id, story.proj_id)
+        return check_project_auth(user_id, story.id)
     except:
         return JsonResponse({"Failed": False,"error": "Story not found"}, status= 404)
 
@@ -264,8 +264,8 @@ def show_project_dashboard(request, user_id, org_id, project_id):
     status=200,
 )   
 
-@verify_user()
-#@authorize_user(check_type="org")
+@verify_user
+@authorize_user(check_type="org")
 def show_org_dashboard(request, user_id, org_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id]):
