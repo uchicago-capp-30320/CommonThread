@@ -19,7 +19,7 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from jwt import ExpiredSignatureError
 import traceback
-
+from functools import wraps
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -35,26 +35,28 @@ logger = logging.getLogger(__name__)
 
 ########## Authentication and Authorization ##############
 
-def verify_user(*args):
+def verify_user(view_function):
     '''
     Decorator for ensuring the user is allowed to access the application, handling JWT tokens & issues
     '''
-    def inner(view_function, *args, **kwargs): #kwargs has ids, but unused here. Do not remove.
-        request = args
+    @wraps(view_function)
+    #def inner(view_function, *args, **kwargs): #kwargs has ids, but unused here. Do not remove.
+
+    #    request = args
+    def wrapper(request, *args, **kwargs):
         try:
             #Decode Given Access Token
-            access_token = request.header.get("Authorization")
-            _ = decode_access_token(access_token)
-            def wrapper():
-                view_function()
-            return wrapper
+            access_token = request.headers["Authorization"]
+            decoded = decode_access_token(access_token)
+            return view_function(request, *args, **kwargs)
+    
         except ExpiredSignatureError:
-            #Token was expired
+        #Token was expired
             return JsonResponse({"success": False, "error": "Access Expired"}, status=299)           
         except:
             # Something broke in the process
             return JsonResponse({"success": False,"error": "Login Failed"}, status= 401)
-    return inner
+    return wrapper
 
 def authorize_user(check_type: str):
     '''
@@ -305,7 +307,7 @@ def show_org_dashboard(request, user_id, org_id):
         },
         status=200,
     )
-"""
+
 
 def show_org_dashboard(request, user_id, org_id):
     try:
@@ -360,7 +362,9 @@ def show_org_dashboard(request, user_id, org_id):
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
 # TODO authentication and authorization check
+@verify_user
 def get_story(request, story_id=None):
+    print(request.headers)
     if story_id:
         try:
             story = Story.objects.select_related('proj_id').get(id=story_id)
@@ -377,7 +381,7 @@ def get_story(request, story_id=None):
                     "project_id": story.proj_id.id,
                     "project_name": story.proj_id.name,
                     "storyteller": story.storyteller,
-                    "curator": story.curator.user_id if story.curator else None,
+                    "curator": story.curator.id if story.curator else None,
                     "date": story.date,
                     "content": story.content,
                     "tags": tags
@@ -470,17 +474,6 @@ def create_user(request):
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
-
-
-    #try: #### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE #####
-    #    UserLogin.objects.create(
-    #        user_id=django_user,
-    #        username=username,
-    #        password=password,  # or better: store a hash
-    #    )
-    #except Exception as e:
-    #    # if this fails you might want to roll back the django_user you just made
-    #    return JsonResponse({"success": False, "error": str(e)}, status=400)
 
     return JsonResponse({"success": True}, status=201)
 

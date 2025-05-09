@@ -7,7 +7,6 @@ from django.contrib.auth.models import AbstractUser
 
 
 class CustomUser(AbstractUser):
-    user_id = models.AutoField(primary_key=True)
     name = models.CharField("display name", max_length=50)
     first_name = models.CharField(max_length=50)
     last_name = models.CharField(max_length=50)
@@ -30,7 +29,6 @@ class CustomUser(AbstractUser):
 
 # organization
 class Organization(models.Model):
-    org_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
 
 
@@ -45,7 +43,6 @@ class Project(models.Model):
 # story
 class Story(models.Model):
     proj_id = models.ForeignKey(Project, on_delete=models.CASCADE)
-    #org_id = models.ForeignKey(Organization, on_delete=models.CASCADE) redundant, will be dropped/sunset
     storyteller = models.CharField(max_length=100)
     curator = models.ForeignKey(
         CustomUser, models.SET_NULL, blank=True, null=True
@@ -70,7 +67,6 @@ class StoryTag(models.Model):
 
 # project-tag
 class ProjectTag(models.Model):
-    proj_tag_id = models.AutoField(primary_key=True)
     proj_id = models.ForeignKey(Project, on_delete=models.CASCADE)
     tag_id = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
@@ -80,7 +76,6 @@ class ProjectTag(models.Model):
 
 # org-user
 class OrgUser(models.Model):
-    org_user_id = models.AutoField(primary_key=True)
     user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
     org_id = models.ForeignKey(Organization, on_delete=models.CASCADE)
     access = models.CharField(max_length=20)
