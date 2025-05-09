@@ -14,22 +14,11 @@ export const load = async ({ cookies }) => {
 	return {};
 };
 
-// Praveen's solution
-// // Send user's info for login
-// const loginData = {
-
-// }
-
-// export async function attemptLogin(loginData) {
-// 	console.log("Hello")
-// }
 
 export const actions = {
 	default: async ({ cookies, request, fetch }) => {
 		// Request and wait form form data
 		let data = await request.formData();
-		console.log('LOGIN ➤ Received Login form data from user');
-		console.log(data);
 
 		// Parse information as expected by backend
 		// When using several input html components (as bulma's form do),
@@ -38,16 +27,10 @@ export const actions = {
 		// Ref: https://stackoverflow.com/questions/71769084/sveltekit-unable-to-read-data-from-post-formdata
 		let post_data = Object.fromEntries(data);
 
-		console.log('LOGIN ➤ Reformatted data from login form');
-		console.log(post_data);
-
 		// Check that user has token to register in DB
 		data['token'] = cookies.get('token');
 
 		// Send POST request to login endpoint
-		console.log('LOGIN ➤ Send POST request to login endpoint');
-		console.log(data);
-
 		const response = await fetch('http://127.0.0.1:8000/login', {
 			method: 'POST',
 			body: JSON.stringify({ post_data }),
@@ -61,8 +44,6 @@ export const actions = {
 		await response.json().then((d) => {
 			response_data = d;
 		});
-
-		console.log(response_data);
 
 		await cookies.set('ct_access_token', response_data.access_token, { path: '/' });
 		cookies.set('ct_refresh_token', response_data.refresh_token, { path: '/' });
