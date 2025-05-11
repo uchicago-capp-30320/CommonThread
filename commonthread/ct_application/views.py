@@ -123,10 +123,12 @@ def authorize_user(check_type: str):
                     )
                     is_auth = check_story_auth(user_id, ids["story_id"])
                 elif check_type == "project":
-                    logger.debug(
-                        "Auth using info: user_id=%r proj_id=%r", user_id, ids["proj_id"]
-                    )
-                    is_auth = check_project_auth(user_id, ids["proj_id"])
+                    # accept either project_id (new) or legacy proj_id
+                    proj_id = ids.get("project_id") or ids.get("proj_id")
+                    if proj_id is None:
+                        logger.debug("Missing project id in kwargs: %r", ids)
+                        return JsonResponse({"success": False, "error": "Missing project ID"}, status=400)
+                    is_auth = check_project_auth(user_id, proj_id)
                 elif check_type == "org":
                     logger.debug(
                         "Auth using info: user_id=%r org_id=%r", user_id, ids["org_id"]
