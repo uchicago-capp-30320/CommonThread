@@ -4,8 +4,6 @@ import { fail, redirect } from '@sveltejs/kit';
 export const load = async ({ cookies }) => {
 	// Check if the user is already logged in
 	const ct_access_token = cookies.get('ct_access_token');
-
-	console.log('ct_access_token from cookie', ct_access_token);
 	// if (ct_access_token) {
 	//     // If logged in, redirect to the dashboard or home page
 	//     throw redirect(302, '/org/org-austin');
@@ -44,7 +42,10 @@ export const actions = {
 			response_data = d;
 		});
 
-		await cookies.set('ct_access_token', response_data.access_token, { path: '/' });
+		cookies.set('ct_access_token', response_data.access_token, { path: '/' });
+
+		console.log('ct_access_token from cookie at log in', cookies.get('ct_access_token'));
+
 		cookies.set('ct_refresh_token', response_data.refresh_token, { path: '/' });
 
 		const ok = response_data.success;

@@ -6,7 +6,7 @@
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
 	let { data } = $props();
-	const { storiesPromise: getDataPromise, params } = data;
+	const { dataPromise: getDataPromise, params } = data;
 
 	let stories = $state([]);
 	let projectsTotal = $state('...');
@@ -14,10 +14,10 @@
 	let projects = $state([]);
 	let orgName = $state('Loading...');
 
-	$inspect(getDataPromise);
-	$inspect(params);
-	$inspect(stories);
-	$inspect(projects);
+	//$inspect(getDataPromise);
+	//$inspect(params);
+	// $inspect(stories);
+	// $inspect(projects);
 
 	$effect(() => {
 		getDataPromise
