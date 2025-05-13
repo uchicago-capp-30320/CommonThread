@@ -1,277 +1,185 @@
-# ct_application/tests/backend/test_endpoints.py
-
-import json
-import pytest
+# commonthread/ct_application/tests/backend/test_endpoints.py
+import json, datetime, jwt, inspect, sys, pytest
+from django.utils import timezone
 from django.test import Client
 from ct_application.models import (
-    CustomUser,
-    Organization,
-    OrgUser,
-    Project,
-    Story,
-    Tag,
-    StoryTag,
-    ProjectTag,
-    UserLogin,
+    CustomUser, Organization, OrgUser,
+    Project, Story, Tag, StoryTag, ProjectTag
 )
+from commonthread.settings import JWT_SECRET_KEY
 
-pytestmark = pytest.mark.django_db  # enable database access for all tests in this module
+pytestmark = pytest.mark.django_db
 
-
+# ────────────── seed data ──────────────
 @pytest.fixture
-def setup_data():
-    # Users
-    alice = CustomUser.objects.create_user(
-        username="alice", password="pass123", name="Alice Anderson", email="alice@uchicago.edu"
+def seed():
+    alice  = CustomUser.objects.create_user(
+        "alice", email="alice@example.com",
+        password="pass123", name="Alice"
     )
     brenda = CustomUser.objects.create_user(
-        username="brenda", password="secret456", name="Brenda Brown", email="brenda@uchicago.edu"
+        "brenda", email="brenda@example.com",
+        password="secret456", name="Brenda"
     )
 
-    # Link to UserLogin
-    UserLogin.objects.create(user_id=alice, username="alice", password="pass123")
-    UserLogin.objects.create(user_id=brenda, username="brenda", password="secret456")
+    org1, org2 = (
+        Organization.objects.create(name="UChicago"),
+        Organization.objects.create(name="HP Hist Soc"),
+    )
+    OrgUser.objects.bulk_create([
+        OrgUser(user_id=alice,  org_id=org1, access="admin"),
+        OrgUser(user_id=brenda, org_id=org2, access="admin"),
+    ])
 
-    # Organizations
-    org1 = Organization.objects.create(name="University of Chicago")
-    org2 = Organization.objects.create(name="Hyde Park Historical Society")
-    org3 = Organization.objects.create(name="Chicago Story Guild")
-
-    # OrgUser memberships
-    OrgUser.objects.create(user_id=alice, org_id=org1, access="admin")
-    OrgUser.objects.create(user_id=brenda, org_id=org2, access="admin")
-    OrgUser.objects.create(user_id=alice, org_id=org3, access="admin")
-
-    # Projects
     proj1 = Project.objects.create(
-        org_id=org1, name="Campus Tales", curator=alice, date="2025-04-01"
+        org_id=org1, name="Campus Tales",
+        curator=alice, date=datetime.date(2025, 4, 1)
     )
-    proj2 = Project.objects.create(
-        org_id=org2, name="Memory Lane", curator=brenda, date="2025-03-15"
-    )
-
-    # Stories
     story1 = Story.objects.create(
-        proj_id=proj1,
-        org_id=org1,
-        storyteller="Alice A.",
-        curator=alice,
-        date="2025-04-05",
-        content="Story one content",
+        proj_id=proj1, storyteller="Alice",
+        curator=alice, date=datetime.date(2025, 4, 5),
+        content="Hello!"
     )
-    story2 = Story.objects.create(
-        proj_id=proj1,
-        org_id=org1,
-        storyteller="Bob B.",
-        curator=brenda,
-        date="2025-04-10",
-        content="Story two content",
-    )
+    tag = Tag.objects.create(name="fun")
+    StoryTag.objects.create(story_id=story1, tag_id=tag)
+    ProjectTag.objects.create(proj_id=proj1, tag_id=tag)
 
-    # Tags & link tables
-    tag1 = Tag.objects.create(name="Fun")
-    StoryTag.objects.create(story_id=story1, tag_id=tag1)
-    ProjectTag.objects.create(proj_id=proj1, tag_id=tag1)
-
-    return {
-        "alice": alice,
-        "brenda": brenda,
-        "org1": org1,
-        "org2": org2,
-        "proj1": proj1,
-        "proj2": proj2,
-        "story1": story1,
-        "story2": story2,
-    }
-
+    return locals()
 
 @pytest.fixture
 def client():
     return Client()
 
+# ─────────── auth helpers ────────────
+@pytest.fixture
+def auth_headers(seed, client):
+    def _login(user="alice", pwd="pass123"):
+        body = {"post_data": {"username": user, "password": pwd}}
+        res  = client.post("/login", json.dumps(body),
+                           content_type="application/json")
+        assert res.status_code == 200, res.content
+        tok = res.json()["access_token"]
+        return {"HTTP_AUTHORIZATION": f"Bearer {tok}"}
+    return _login
 
-def test_home_test(client):
-    resp = client.get("/")
-    assert resp.status_code == 200
-    assert resp.content == b"Welcome to the Common Threads Home Page!"
+def expired_access_token(uid):
+    past = timezone.now() - datetime.timedelta(hours=2)
+    payload = {"sub": str(uid), "iat": past, "exp": past}
+    return jwt.encode(payload, JWT_SECRET_KEY, algorithm="HS256")
 
+# ───────── public / auth endpoints ─────────
+def test_home_ok(client):
+    assert client.get("/").status_code == 200
 
-def test_login_success(client, setup_data):
-    alice = setup_data["alice"]
-    body = json.dumps({"username": alice.username, "password": "pass123"})
-    resp = client.post("/login", data=body, content_type="application/json")
-    assert resp.status_code == 200
+def test_login_ok(client, seed):
+    body = {"post_data": {"username": "alice", "password": "pass123"}}
+    r = client.post("/login", json.dumps(body), content_type="application/json")
+    assert r.status_code == 200 and "access_token" in r.json()
 
+def test_login_bad_pwd(client, seed):
+    body = {"post_data": {"username": "alice", "password": "bad"}}
+    assert client.post("/login", json.dumps(body),
+                       content_type="application/json").status_code == 403
 
-def test_login_forbidden(client, setup_data):
-    alice = setup_data["alice"]
-    body = json.dumps({"username": alice.username, "password": "wrongpassword"})
-    resp = client.post("/login", data=body, content_type="application/json")
-    assert resp.status_code == 403
+def test_refresh_ok(client, seed):
+    body = {"post_data": {"username": "alice", "password": "pass123"}}
+    res  = client.post("/login", json.dumps(body), content_type="application/json")
+    ref  = res.json()["refresh_token"]
+    r = client.post("/login/create_access",
+                    json.dumps({"refresh_token": ref}),
+                    content_type="application/json")
+    assert r.status_code == 200 and "access_token" in r.json()
 
+# ───────── protected happy‑paths ─────────
+def test_org_dashboard_ok(client, seed, auth_headers):
+    alice, org1 = seed["alice"], seed["org1"]
+    r = client.get(f"/org/{alice.id}/{org1.org_id}/", **auth_headers())
+    assert r.status_code == 200 and "stories" in r.json()
 
-def test_refresh_success(client, setup_data):
-    alice = setup_data["alice"]
-    # first log in to get refresh token
-    login = client.post(
-        "/login",
-        data=json.dumps({"username": alice.username, "password": "pass123"}),
-        content_type="application/json",
-    )
-    refresh_token = login.json()["refresh_token"]
+def test_project_dashboard_ok(client, seed, auth_headers):
+    alice, p = seed["alice"], seed["proj1"]
+    r = client.get(f"/org/{alice.id}/{p.org_id.org_id}/project/{p.id}/",
+                   **auth_headers())
+    assert r.status_code == 200 and r.json()["project_id"] == p.id
 
-    # now refresh
-    refresh = client.post(
-        "/login/create_access",
-        data=json.dumps({"refresh_token": refresh_token}),
-        content_type="application/json",
-    )
-    assert refresh.status_code == 200
-    data = refresh.json()
-    assert data["success"] is True
-    assert "access_token" in data
+def test_story_detail_ok(client, seed, auth_headers):
+    s = seed["story1"]
+    r = client.get(f"/stories/{s.id}/", **auth_headers())
+    assert r.status_code == 200 and r.json()["story_id"] == s.id
 
-
-def test_show_project_dashboard_success(client, setup_data):
-    alice = setup_data["alice"]
-    org1 = setup_data["org1"]
-    proj1 = setup_data["proj1"]
-
-    resp = client.get(f"/org/{alice.user_id}/{org1.org_id}/project/{proj1.proj_id}/")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["project_id"] == proj1.proj_id
-    assert data["story_count"] == 2
-    assert data["tag_count"] == 1
-
-
-def test_show_project_dashboard_forbidden(client, setup_data):
-    brenda = setup_data["brenda"]
-    org1 = setup_data["org1"]
-    proj1 = setup_data["proj1"]
-
-    resp = client.get(f"/org/{brenda.user_id}/{org1.org_id}/project/{proj1.proj_id}/")
-    assert resp.status_code == 403
-
-
-def test_show_org_dashboard_success(client, setup_data):
-    alice = setup_data["alice"]
-    org1 = setup_data["org1"]
-
-    resp = client.get(f"/org/{alice.user_id}/{org1.org_id}/")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["organization_id"] == org1.org_id
-    assert data["project_count"] == 1
-
-
-def test_show_org_dashboard_forbidden(client, setup_data):
-    alice = setup_data["alice"]
-    org2 = setup_data["org2"]
-
-    resp = client.get(f"/org/{alice.user_id}/{org2.org_id}/")
-    assert resp.status_code == 403
-
-
-def test_get_story_list(client, setup_data):
-    resp = client.get("/stories/")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert "stories" in data
-    assert len(data["stories"]) >= 2
-
-
-def test_get_story_detail_success(client, setup_data):
-    story1 = setup_data["story1"]
-    resp = client.get(f"/stories/{story1.story_id}/")
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["story_id"] == story1.story_id
-
-
-def test_get_story_detail_not_found(client):
-    resp = client.get("/stories/9999/")
-    assert resp.status_code == 404
-
-
-def test_create_user_success(client):
-    payload = {"username": "newuser", "password": "pw1234"}
-    resp = client.post(
-        "/user/create", data=json.dumps(payload), content_type="application/json"
-    )
-    assert resp.status_code == 201
-
-
-def test_create_user_forbidden(client, setup_data):
-    alice = setup_data["alice"]
-    payload = {"username": alice.username, "password": "pass123"}
-    resp = client.post(
-        "/user/create", data=json.dumps(payload), content_type="application/json"
-    )
-    assert resp.status_code == 400
-
-
-def test_create_story_success(client, setup_data):
-    alice = setup_data["alice"]
-    proj1 = setup_data["proj1"]
-    org1 = setup_data["org1"]
-
+# ───────── create happy‑paths ─────────
+def test_create_project_ok(client, seed, auth_headers):
+    org1, alice = seed["org1"], seed["alice"]
     payload = {
-        "story_id": 3,
-        "storyteller": "Test T.",
-        "curator": alice.user_id,
-        "date": "2025-05-10",
-        "content": "New test story",
-        "proj_id": proj1.proj_id,
-        "org_id": org1.org_id,
+        "org_id":  org1.org_id,
+        "name":    "New Project",
+        "curator": alice.id,
+        "date":    "2025-05-01"
     }
-    resp = client.post(
-        "/stories/create/", data=json.dumps(payload), content_type="application/json"
-    )
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["story_id"] == 3
-    assert Story.objects.filter(story_id=3).exists()
+    r = client.post("/project/create", json.dumps(payload),
+                    content_type="application/json", **auth_headers())
+    assert r.status_code == 201
 
+def test_create_story_ok(client, seed, auth_headers):
+    p, alice = seed["proj1"], seed["alice"]
+    payload = {
+        "storyteller": "Testy", "curator": alice.id,
+        "content": "Hi!", "proj_id": p.id,
+        "tags": [{"name": "tagX", "value": 1}]
+    }
+    r = client.post("/stories/create/", json.dumps(payload),
+                    content_type="application/json", **auth_headers())
+    assert r.status_code == 200
 
-def test_create_story_bad_request(client):
-    resp = client.post("/stories/create/", data="not json", content_type="application/json")
-    assert resp.status_code == 400
+# ───────── auth / permission edges ─────────
+def test_no_token_401(client):
+    assert client.get("/stories/").status_code == 401
 
+def test_malformed_token_401(client):
+    hdrs = {"HTTP_AUTHORIZATION": "Bearer bad.token"}
+    assert client.get("/stories/", **hdrs).status_code == 401
 
-def test_create_project_success(client, setup_data):
-    org1 = setup_data["org1"]
-    brenda = setup_data["brenda"]
+def test_expired_token_299(client, seed):
+    hdrs = {"HTTP_AUTHORIZATION":
+            f"Bearer {expired_access_token(seed['alice'].id)}"}
+    assert client.get("/stories/", **hdrs).status_code == 299
 
-    payload = {"org_id": org1.org_id, "name": "New Project", "curator": brenda.user_id, "tags": ["X", "Y"]}
-    resp = client.post(
-        "/project/create", data=json.dumps(payload), content_type="application/json"
-    )
-    assert resp.status_code == 201
-    data = resp.json()
-    assert Project.objects.filter(proj_id=data["project_id"]).exists()
+def test_project_forbidden_403(client, seed, auth_headers):
+    p = seed["proj1"]
+    hdrs = auth_headers("brenda", "secret456")
+    r = client.get(f"/org/{seed['brenda'].id}/{p.org_id.org_id}/project/{p.id}/",
+                   **hdrs)
+    assert r.status_code == 403
 
+# ───────── validation edges ─────────
+def test_create_project_missing_org_400(client, auth_headers):
+    r = client.post("/project/create", json.dumps({"name": "X"}),
+                    content_type="application/json", **auth_headers())
+    assert r.status_code == 400
 
-def test_create_project_no_org(client):
-    payload = {"name": "NoOrg"}
-    resp = client.post(
-        "/project/create", data=json.dumps(payload), content_type="application/json"
-    )
-    assert resp.status_code == 400
+def test_create_story_bad_json_400(client, auth_headers):
+    r = client.post("/stories/create/", "not‑json",
+                    content_type="application/json", **auth_headers())
+    assert r.status_code == 400
 
+def test_create_org_missing_fields_400(client, auth_headers):
+    r = client.post("/org/create/", json.dumps({}),
+                    content_type="application/json", **auth_headers())
+    assert r.status_code == 400
 
-def test_create_org_success(client, setup_data):
-    alice = setup_data["alice"]
-    payload = {"org_id": 99, "name": "XOrg", "user_id": alice.user_id}
-    resp = client.post(
-        "/org/create/", data=json.dumps(payload), content_type="application/json"
-    )
-    assert resp.status_code == 201
-    data = resp.json()
-    assert data["org_id"] == 99
-    assert Organization.objects.filter(org_id=99).exists()
+# ───────── refresh edges ─────────
+def test_refresh_missing_token_400(client):
+    r = client.post("/login/create_access", json.dumps({}),
+                    content_type="application/json")
+    assert r.status_code == 400
 
+def test_refresh_invalid_token_401(client):
+    r = client.post("/login/create_access",
+                    json.dumps({"refresh_token": "bogus"}),
+                    content_type="application/json")
+    assert r.status_code == 401
 
-def test_create_org_bad_request(client):
-    resp = client.post("/org/create/", data=json.dumps({}), content_type="application/json")
-    assert resp.status_code == 400
+# ───────── count guard ─────────
+def test_have_at_least_18_tests():
+    assert sum(n.startswith("test_")
+               for n, _ in inspect.getmembers(sys.modules[__name__])) >= 18

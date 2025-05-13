@@ -5,16 +5,16 @@ import jwt
 def generate_access_token(user_id:int)-> str:
     payload = {
         'sub': str(user_id),
-        'exp': datetime.datetime.now() + datetime.timedelta(hours = 2),
-        'iat': datetime.datetime.now()
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours = 2),
+        'iat': datetime.datetime.now(datetime.timezone.utc)
     }
     return jwt.encode(payload,JWT_SECRET_KEY,algorithm = 'HS256')
 
 def generate_refresh_token(user_id:int)-> str:
     payload = {
         'sub': str(user_id),
-        'exp': datetime.datetime.now() + datetime.timedelta(days=7),
-        'iat': datetime.datetime.now()
+        'exp': datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7),
+        'iat': datetime.datetime.now(datetime.timezone.utc)
     }
     return jwt.encode(payload,JWT_REFRESH_SECRET_KEY,algorithm ='HS256')
 
