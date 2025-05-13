@@ -1,5 +1,3 @@
-![Repo structure](diagram.svg)
-
 ![GitHub License](https://img.shields.io/github/license/uchicago-capp-30320/CivicLens?color=133335)
 ![Files](https://img.shields.io/github/directory-file-count/uchicago-capp-30320/CivicLens?color=%23d0fdb9) 
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-closed/uchicago-capp-30320/CivicLens?color=%2356bcb3)
