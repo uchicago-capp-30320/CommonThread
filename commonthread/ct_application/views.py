@@ -85,19 +85,23 @@ def verify_user(view_function):
     return wrapper
 
 
-def authorize_user(check_type: str):
+def authorize_user(check_type: str, required_access: str):
     """
     Decorator designed to provide interface that simplifies links & setup for views. The If statement allows for
     individual auth functions that take varieties of input, but a single wrapper for ease of use.
 
     view_function: function being called
-    request is pulled in via args, as it is the only
-    check_type -> information given to access: can also add level of access required through this as well later
+    request is pulled in via args
+
+    check_type -> information given to get to user_org:
         - story: story id provided
         - project: project id provided
-        - org: org id provided
-
-    all id fields are optional, only need to include what is required.
+        - org: org id provided (PREFERRED)
+    
+    required_access -> level of access needed for an endpoint
+        - creator: for delete endpoints
+        - admit: for some edit and some delete endpoints
+        - user: for some edit and all get endpoints
     """
     def decorator(view_function):
         @wraps(view_function)
@@ -121,19 +125,19 @@ def authorize_user(check_type: str):
                     logger.debug(
                         "Auth using info: user_id=%r story_id=%r", user_id, ids["story_id"]
                     )
-                    is_auth = check_story_auth(user_id, ids["story_id"])
+                    auth_level = check_story_auth(user_id, ids["story_id"])
                 elif check_type == "project":
                     # accept either project_id (new) or legacy proj_id
                     proj_id = ids.get("project_id") or ids.get("proj_id")
                     if proj_id is None:
                         logger.debug("Missing project id in kwargs: %r", ids)
                         return JsonResponse({"success": False, "error": "Missing project ID"}, status=400)
-                    is_auth = check_project_auth(user_id, proj_id)
+                    auth_level = check_project_auth(user_id, proj_id)
                 elif check_type == "org":
                     logger.debug(
                         "Auth using info: user_id=%r org_id=%r", user_id, ids["org_id"]
                     )
-                    is_auth = check_org_auth(user_id, ids["org_id"])
+                    auth_level = check_org_auth(user_id, ids["org_id"])
                 else:
                     logger.debug("Invalid Auth checktype with check_type=%r", check_type)
 
@@ -142,10 +146,10 @@ def authorize_user(check_type: str):
                 return JsonResponse(
                     {"success": False, "error": "Missing required ID"}, status=400
                 )
-            if not is_auth:
-                return JsonResponse(
-                    {"success": False, "error": "Not authorized"}, status=403
-                )
+            
+            # Checking to see if user has permission for the endpoint
+            auth_level_check(auth_level, required_access)
+            
             return view_function(request, *args, **kwargs)
         return inner
     return decorator
@@ -154,8 +158,8 @@ def authorize_user(check_type: str):
 def check_org_auth(user_id: str, org_id: str):
     # Checks if user has access to an oranization, returns True if the link exists
     try:
-        _ = OrgUser.objects.get(user_id=user_id, org_id=org_id)
-        return True
+        row = OrgUser.objects.get(user_id=user_id, org_id=org_id)
+        return row.access
     except OrgUser.DoesNotExist:
         return JsonResponse(
             {"success": False, "error": "Not authorized to access page"}, status=403
@@ -168,7 +172,7 @@ def check_project_auth(user_id: str, proj_id: str):
         project = Project.objects.get(proj_id=proj_id)
         return check_org_auth(user_id, project.id)
     except:
-        return JsonResponse({"Failed": False, "error": "Project not found"}, status=404)
+        return JsonResponse({"success": False, "error": "Project not found"}, status=404)
 
 
 def check_story_auth(user_id: str, story_id: str):
@@ -177,7 +181,32 @@ def check_story_auth(user_id: str, story_id: str):
         story = Story.objects.get(story_id=story_id)
         return check_project_auth(user_id, story.id)
     except:
-        return JsonResponse({"Failed": False, "error": "Story not found"}, status=404)
+        return JsonResponse({"success": False, "error": "Story not found"}, status=404)
+
+
+def auth_level_check(user_level: str, required_level:str):
+    '''
+    A way to check if a user can access a page.
+    Exists pretty much entirely to allow for word inputs on access levels
+    for readability purposes
+    '''
+    auth_dict = {
+        "creator": 3,
+        "admin": 2,
+        "user": 1,
+        "visitor": 0
+    }
+    try:
+        if auth_dict[user_level] >= auth_dict[required_level]:
+            return True
+        elif auth_dict[user_level] < auth_dict[required_level]:
+            return JsonResponse({"success": False, "error": "Insufficient Permissions"}, status=401)
+    except:
+        logger.debug(
+            "Improperly Listed Permission Level?" \
+            "Required Access Level: %r", auth_dict[required_level]
+            )
+        return JsonResponse({"success": False, "error": "Authorization Check Failed"}, status=404)
 
 
 @csrf_exempt
@@ -403,7 +432,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
 #     )
 
 @verify_user
-@authorize_user("org")
+@authorize_user("org", "user")
 def show_org_dashboard(request, user_id, org_id):
     try:
         if not all([user_id, org_id]):
@@ -461,7 +490,7 @@ def show_org_dashboard(request, user_id, org_id):
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
 @verify_user
-@authorize_user("story")
+@authorize_user("story", "user")
 # TODO authentication and authorization check
 def get_story(request, story_id=None):
     print(request.headers)
@@ -679,7 +708,7 @@ def add_user_to_org(request):
 
 @require_POST
 @verify_user
-# TODO authentication and authorization check
+@authorize_user("org", "admin")
 def create_project(request):
 
     try:
@@ -735,7 +764,6 @@ def create_project(request):
 
 @require_POST
 @verify_user
-# TODO authentication and authorization check
 def create_org(request):
     org_data = json.loads(request.body)
     try:
@@ -763,7 +791,6 @@ def create_org(request):
 
 @require_GET
 @verify_user
-# TODO authentication and authorization check
 def show_user_dashboard(request, user_id):
     try:
         user = User.objects.get(pk=user_id)
@@ -796,6 +823,7 @@ def show_user_dashboard(request, user_id):
 
 @require_http_methods(["GET", "POST"])
 @verify_user
+@authorize_user("org", "admin")
 def show_org_admin_dashboard(request, user_id, org_id):
     try:
         requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
