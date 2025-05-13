@@ -69,14 +69,14 @@ def verify_user(view_function):
                     {"success": False, "error": "Token missing or malformed"}, status=401
                 )
             access_token = access_token.split(" ",1)[1]
-            decoded = decode_access_token(access_token)
+            _ = decode_access_token(access_token)
             # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
             return view_function(request, *args, **kwargs)
 
         except ExpiredSignatureError:
-            # Token was expired
+            # Expired Token: 299 Code used by front-end to know to request new one
             return JsonResponse(
-                {"success": False, "error": "Access Expired"}, status=401
+                {"success": False, "error": "Access Expired"}, status=299
             )
         except:
             # Something broke in the process
@@ -136,6 +136,7 @@ def authorize_user(check_type: str):
                     is_auth = check_org_auth(user_id, ids["org_id"])
                 else:
                     logger.debug("Invalid Auth checktype with check_type=%r", check_type)
+
             except KeyError:
                 logger.debug("KeyError: %r", ids)
                 return JsonResponse(
@@ -252,7 +253,6 @@ def login(request):  # need not pass username and password as query params
         status=200,
     )
 
-@csrf_exempt
 @require_POST
 def get_new_access_token(request):
     # TODO change this if they will send it in as a cookie
