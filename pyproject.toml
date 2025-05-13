@@ -16,8 +16,9 @@ dependencies = [
     "django-cors-headers>=4.7.0",
     "transformers>=4.51.3",
     "openai>=1.78.1",
-    "torch>=2.7.0"
-    ]
+    "torch>=2.7.0",
+    "keybert>=0.9.0",
+]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "commonthread.settings"
