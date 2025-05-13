@@ -253,6 +253,7 @@ def login(request):  # need not pass username and password as query params
         status=200,
     )
 
+@csrf_exempt
 @require_POST
 def get_new_access_token(request):
     # TODO change this if they will send it in as a cookie
