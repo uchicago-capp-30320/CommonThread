@@ -13,8 +13,10 @@ dependencies = [
     "pytest-django>=4.11.1",
     "python-dotenv>=1.1.0",
     "pygments>=2.19.1",
-    "django-cors-headers>=4.7.0"
-   ]
+    "django-cors-headers>=4.7.0",
+    "transformers>=4.51.3",
+    "openai>=1.78.1",
+]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "commonthread.settings"
