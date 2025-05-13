@@ -442,7 +442,7 @@ def show_org_dashboard(request, user_id, org_id):
                     "project_name": story.proj_id.name,
                     "curator": story.curator.pk if story.curator else None,
                     "date": story.date.isoformat() if story.date else None,
-                    "content": story.content,
+                    "text_content": story.text_content,
                     "tags": tags,
                 }
             )
@@ -484,7 +484,7 @@ def get_story(request, story_id=None):
                     "storyteller": story.storyteller,
                     "curator": story.curator.id if story.curator else None,
                     "date": story.date,
-                    "content": story.content,
+                    "text_content": story.text_content,
                     "tags": tags,
                 },
                 status=200,
@@ -521,7 +521,7 @@ def get_story(request, story_id=None):
                         "project_name": story.proj_id.name,
                         "curator": story.curator.id if story.curator else None,
                         "date": story.date,
-                        "content": story.content,
+                        "text_content": story.text_content,
                         "tags": tags,
                     }
                 )
@@ -566,7 +566,7 @@ def create_story(request):
                 storyteller=story_data["storyteller"],
                 curator_id=story_data.get("curator"),
                 date=timezone.now(),
-                content=story_data["content"],
+                text_content=story_data["text_content"],
                 proj_id=project,
             )
             print("Created story:", story)
