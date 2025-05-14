@@ -47,7 +47,7 @@ urlpatterns = [
     path("stories/<int:story_id>/", get_story, name="story-detail"),  # GET one
     path("stories/create/", create_story, name="story-create"),  # POST one
     # TODO add a bulk‑create endpoint if needed
-    path("org/<int:user_id>/<int:org_id>/", show_org_dashboard, name="org-dashboard"),
+    path("org/<int:org_id>/", show_org_dashboard, name="org-dashboard"),
     path("org/create/", create_org, name="org-create"),
     path(
         "org/<int:user_id>/<int:org_id>/project/<int:project_id>/",
