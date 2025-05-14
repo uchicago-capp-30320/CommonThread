@@ -29,9 +29,9 @@ from .models import (
     StoryTag,
     CustomUser,
 )
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+# from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
-from jwt import ExpiredSignatureError
+# from jwt import ExpiredSignatureError
 import traceback
 from functools import wraps
 
