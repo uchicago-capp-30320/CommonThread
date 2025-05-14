@@ -4,6 +4,7 @@
 	import StoryCard from '$lib/components/StoryCard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
+	import { error, redirect } from '@sveltejs/kit';
 
 	let { data } = $props();
 	const { dataPromise: getDataPromise, params } = data;
@@ -14,7 +15,7 @@
 	let projects = $state([]);
 	let orgName = $state('Loading...');
 
-	//$inspect(getDataPromise);
+	$inspect(stories);
 	//$inspect(params);
 	// $inspect(stories);
 	// $inspect(projects);
@@ -22,8 +23,17 @@
 	$effect(() => {
 		getDataPromise
 			.then((loadedData) => {
-				stories = loadedData['stories'];
-				orgName = loadedData['org_name'];
+				// un pack loadeddata to data and response
+				console.log('Data loaded:', loadedData);
+				//console.log('Data return response:', status);
+				// Check if the response is successful
+				if (status == 403) {
+					// Handle the error
+					redirect(403, '/login');
+				}
+				stories = loadedData.data['stories'];
+				orgName = loadedData.data['org_name'];
+
 				projectsTotal = new Set(stories.map((story) => story.project_id)).size;
 				storiesTotal = stories.length;
 
@@ -51,14 +61,12 @@
 				}));
 			})
 			.catch((error) => {
-				console.error('Error loading stories:', error);
+				error;
 			});
 	});
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
-
-	$inspect(projects);
 </script>
 
 <div class="container">

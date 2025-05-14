@@ -13,11 +13,8 @@
 // 	params
 // };
 
-const dataRequest = async (cookies) => {
-	// get cookie
-	const accessToken = cookies.get('ct_access_token');
-
-	const response = await fetch(`http://127.0.0.1:8000/org/1/1`, {
+const dataRequest = async (accessToken) => {
+	let response = await fetch(`http://127.0.0.1:8000/org/1/1`, {
 		method: 'GET',
 		headers: {
 			'Content-Type': 'application/json',
@@ -29,18 +26,6 @@ const dataRequest = async (cookies) => {
 };
 
 export async function load({ params, cookies, fetch }) {
-	// Return a promise that the page can handle
-	// const getDataPromise = async () => {
-	// 	// Use the provided fetch parameter which handles environment appropriately
-	// 	const response = await fetch(`http://127.0.0.1:8000/org/1/1/`);
-	// 	const data = await response.json();
-	// 	return data;
-	// };
-	// // Return the promise directly
-	// return {
-	// 	storiesPromise: getDataPromise(),
-	// 	params
-	// };
 	const getDataPromise = async () => {
 		let data;
 
@@ -51,11 +36,12 @@ export async function load({ params, cookies, fetch }) {
 		console.log('accessToken from cookie', accessToken);
 		console.log('refreshToken from cookie', refreshToken);
 
-		const response = await dataRequest(cookies);
-		//console.log('response from dataRequest', response);
+		const ogResponse = await dataRequest(accessToken);
+		console.log('making first ogResponse', ogResponse.status);
 
-		if (response.ok) {
-			const statusCode = response.status;
+		if (!ogResponse.ok) {
+			const statusCode = ogResponse.status;
+			// check if error from refresh token expired
 			if (statusCode === 299) {
 				console.log('299 response, need to refresh token');
 				// need to refresh token
@@ -70,40 +56,39 @@ export async function load({ params, cookies, fetch }) {
 				});
 				// save token
 
-				const statusCode = refreshResponse.status;
-				if (statusCode === 401) {
-					// redirect to login page
-					return { status: 401, error: new Error('Unauthorized') };
-				} else if (statusCode === 403) {
-					// redirect to login page
-					return { status: 403, error: new Error('Forbidden') };
-				} else if (statusCode === 404) {
-					// redirect to login page
-					return { status: 404, error: new Error('Not Found') };
-				} else if (statusCode === 500) {
-					// redirect to login page
-					return { status: 500, error: new Error('Internal Server Error') };
+				console.log('refreshResponse status', refreshResponse.status);
+
+				if (!refreshResponse.ok) {
+					// error
+
+					return { data, status: refreshResponse.status, statusText: refreshResponse.statusText };
 				}
 				// save new access token
-				data = await refreshResponse.json();
-				console.log('data from refreshResponse', data);
-				cookies.set('ct_access_token', data.access_token, { path: '/' });
+				const refreshData = await refreshResponse.json();
+				const newAccessToken = refreshData.access_token;
+				console.log('refreshData', refreshData);
 
 				// retry the original request
-				const retryResponse = dataRequest(cookies);
+				const retryResponse = await dataRequest(newAccessToken);
+
 				if (!retryResponse.ok) {
-					return { status: retryResponse.status, error: new Error('Failed to fetch stories') };
+					// if retry fails, return the response
+					return { data, status: retryResponse.status, statusText: retryResponse.statusText };
+				} else if (retryResponse.ok) {
+					// if retry succeeds, return the data
+					data = await retryResponse.json();
+					console.log('retryResponse data', data);
+					//ookies.set('ct_access_token', newAccessToken, { path: '/' });
+					return { data: data, status: retryResponse.status, statusText: retryResponse.statusText };
 				}
-				const retryStatusCode = retryResponse.status;
-				data = await response.json();
-				// console.log(data);
-				return data;
 			} else {
-				// you got data
-				data = await response.json();
-				// console.log(data);
-				return data;
+				// other issue
+				return { data: data, status: ogResponse.status, statusText: ogResponse.statusText };
 			}
+		} else {
+			// if response is ok, return the data
+			data = await ogResponse.json();
+			return { data: data, status: ogResponse.status, statusText: ogResponse.statusText };
 		}
 	};
 	return {

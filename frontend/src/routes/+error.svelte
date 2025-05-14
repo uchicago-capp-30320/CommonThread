@@ -8,7 +8,7 @@
 
 <div id="container">
 	<div class="banner">
-		{#if page.status === 500}
+		{#if page.status === 500 || page.error.message === 'Forbidden'}
 			<img src={error500} alt="Customized illustration for HTTP error 500" />
 		{:else if page.status === 404}
 			<img src={error404} alt="Customized illustration for HTTP error 404" />
