@@ -31,6 +31,7 @@ from .models import (
 )
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
+from jwt import ExpiredSignatureError
 import traceback
 from functools import wraps
 
@@ -62,22 +63,16 @@ def verify_user(view_function):
     def wrapper(request, *args, **kwargs):
         try:
             # Decode Given Access Token
-            access_token = request.headers.get("Authorization", "")
-            if not access_token or not access_token.startswith("Bearer "):
-                return JsonResponse(
-                    {"success": False, "error": "Token missing or malformed"}, status=401
-                )
-            access_token = access_token.split(" ",1)[1]
-            _ = decode_access_token(access_token)
-            # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
+            access_token = request.headers["Authorization"]
+            decoded = decode_access_token(access_token)
             return view_function(request, *args, **kwargs)
 
         except ExpiredSignatureError:
-            # Expired Token: 299 Code used by front-end to know to request new one
+            # Token was expired
             return JsonResponse(
                 {"success": False, "error": "Access Expired"}, status=299
             )
-        except InvalidTokenError:
+        except:
             # Something broke in the process
             return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
@@ -98,56 +93,46 @@ def authorize_user(check_type: str):
 
     all id fields are optional, only need to include what is required.
     """
-    def decorator(view_function):
-        @wraps(view_function)
-        def inner(request, *args, **kwargs):
-            auth_header = request.headers.get("Authorization", "")
-            if not auth_header.startswith("Bearer "):
-                return JsonResponse({"success": False, "error": "No token"}, status=401)
 
-            token = auth_header.split(" ", 1)[1]
-            try:
-                payload = decode_access_token(token)
-                user_id = payload["sub"]
-            except Exception:
-                return JsonResponse({"success": False, "error": "Bad token"}, status=401)
-            
-            # Get the ids from the kwargs
-            ids = kwargs
-            try:
-                # Reach the necessary authentication table based on the information provided by the request
-                if check_type == "story":
-                    logger.debug(
-                        "Auth using info: user_id=%r story_id=%r", user_id, ids["story_id"]
-                    )
-                    is_auth = check_story_auth(user_id, ids["story_id"])
-                elif check_type == "project":
-                    # accept either project_id (new) or legacy proj_id
-                    proj_id = ids.get("project_id") or ids.get("proj_id")
-                    if proj_id is None:
-                        logger.debug("Missing project id in kwargs: %r", ids)
-                        return JsonResponse({"success": False, "error": "Missing project ID"}, status=400)
-                    is_auth = check_project_auth(user_id, proj_id)
-                elif check_type == "org":
-                    logger.debug(
-                        "Auth using info: user_id=%r org_id=%r", user_id, ids["org_id"]
-                    )
-                    is_auth = check_org_auth(user_id, ids["org_id"])
-                else:
-                    logger.debug("Invalid Auth checktype with check_type=%r", check_type)
+    def inner(view_function, *args, **kwargs):
+        request = args
+        ids = kwargs
+        # Get the user ID from the access token, for security reasons
+        access_token = request.header.get("Authorization")
+        access_detail = decode_access_token(access_token)
+        user_id = access_detail["sub"]
 
-            except KeyError:
-                logger.debug("KeyError: %r", ids)
-                return JsonResponse(
-                    {"success": False, "error": "Missing required ID"}, status=400
-                )
-            if not is_auth:
-                return JsonResponse(
-                    {"success": False, "error": "Not authorized"}, status=403
-                )
-            return view_function(request, *args, **kwargs)
-        return inner
-    return decorator
+        # Reach the necessary authentication table based on the information provided by the request
+        if check_type == "story":
+            logger.debug(
+                "Auth using info: user_id=%r story_id=%r", user_id, ids["story_id"]
+            )
+            is_auth = check_story_auth(user_id, ids["story_id"])
+        elif check_type == "project":
+            logger.debug(
+                "Auth using info: user_id=%r proj_id=%r", user_id, ids["proj_id"]
+            )
+            is_auth = check_project_auth(user_id, ids["proj_id"])
+        elif check_type == "org":
+            logger.debug(
+                "Auth using info: user_id=%r org_id=%r", user_id, ids["org_id"]
+            )
+            is_auth = check_org_auth(user_id, ids["org_id"])
+        else:
+            logger.debug("Invalid Auth checktype with check_type=%r", check_type)
+            is_auth = False
+        if is_auth == True:
+
+            def wrapper():
+                view_function()
+
+            return wrapper
+        else:
+            return JsonResponse(
+                {"success": False, "error": "Not authorized to access page"}, status=403
+            )
+
+    return inner
 
 
 def check_org_auth(user_id: str, org_id: str):
@@ -166,7 +151,7 @@ def check_project_auth(user_id: str, proj_id: str):
     try:
         project = Project.objects.get(proj_id=proj_id)
         return check_org_auth(user_id, project.id)
-    except Project.DoesNotExist:
+    except:
         return JsonResponse({"Failed": False, "error": "Project not found"}, status=404)
 
 
@@ -175,7 +160,7 @@ def check_story_auth(user_id: str, story_id: str):
     try:
         story = Story.objects.get(story_id=story_id)
         return check_project_auth(user_id, story.id)
-    except Story.DoesNotExist:
+    except:
         return JsonResponse({"Failed": False, "error": "Story not found"}, status=404)
 
 
@@ -224,35 +209,14 @@ def login(request):  # need not pass username and password as query params
         )
 
     access_token = generate_access_token(authenticated_user.id)
-    logger.debug(f"LOGIN ➤ issued access_token={access_token}")
     refresh_token = generate_refresh_token(authenticated_user.id)
 
-    # ───────────────────────────────────────────────────────────────
-    import datetime
-    import jwt
-    from commonthread.settings import JWT_SECRET_KEY
-    # decode *without* verifying exp, so we can inspect the claims:
-    payload = jwt.decode(
-        access_token,
-        JWT_SECRET_KEY,
-        algorithms=["HS256"],
-        options={"verify_signature": True, "verify_exp": False}
-    )
-    iat = payload.get("iat")
-    exp = payload.get("exp")
-    # log both as raw seconds and as UTC datetimes
-    logger.debug(f"JWT iat (epoch): {iat}, which is {datetime.datetime.fromtimestamp(iat, datetime.timezone.utc).isoformat()}")
-    logger.debug(f"JWT exp (epoch): {exp}, which is {datetime.datetime.fromtimestamp(exp, datetime.timezone.utc).isoformat()}")
-    # ───────────────────────────────────────────────────────────────
-
     return JsonResponse(
-        {"success": True, 
-         "access_token": access_token, 
-         "refresh_token": refresh_token},
+        {"success": True, "access_token": access_token, "refresh_token": refresh_token},
         status=200,
     )
 
-@csrf_exempt
+
 @require_POST
 def get_new_access_token(request):
     # TODO change this if they will send it in as a cookie
@@ -302,11 +266,6 @@ def get_new_access_token(request):
         )
 
 
-#--------------------------------- Above will move to utils.py
-#--------------------------------- Below are endpoints for the application
-
-@verify_user
-@authorize_user("project")
 def show_project_dashboard(request, user_id, org_id, project_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id, project_id]):
@@ -361,7 +320,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         status=200,
     )
 
-# Onur: Do we still need this?
+
 # @verify_user
 # #@authorize_user(check_type="org")
 # def show_org_dashboard(request, user_id, org_id):
@@ -401,8 +360,7 @@ def show_project_dashboard(request, user_id, org_id, project_id):
 #         status=200,
 #     )
 
-@verify_user
-@authorize_user("org")
+
 def show_org_dashboard(request, user_id, org_id):
     try:
         if not all([user_id, org_id]):
@@ -441,7 +399,7 @@ def show_org_dashboard(request, user_id, org_id):
                     "project_name": story.proj_id.name,
                     "curator": story.curator.pk if story.curator else None,
                     "date": story.date.isoformat() if story.date else None,
-                    "text_content": story.text_content,
+                    "content": story.content,
                     "tags": tags,
                 }
             )
@@ -457,11 +415,11 @@ def show_org_dashboard(request, user_id, org_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
+###############################################################################
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
-@verify_user
-@authorize_user("story")
 # TODO authentication and authorization check
+# @verify_user
 def get_story(request, story_id=None):
     print(request.headers)
     if story_id:
@@ -483,7 +441,7 @@ def get_story(request, story_id=None):
                     "storyteller": story.storyteller,
                     "curator": story.curator.id if story.curator else None,
                     "date": story.date,
-                    "text_content": story.text_content,
+                    "content": story.content,
                     "tags": tags,
                 },
                 status=200,
@@ -520,7 +478,7 @@ def get_story(request, story_id=None):
                         "project_name": story.proj_id.name,
                         "curator": story.curator.id if story.curator else None,
                         "date": story.date,
-                        "text_content": story.text_content,
+                        "content": story.content,
                         "tags": tags,
                     }
                 )
@@ -532,63 +490,8 @@ def get_story(request, story_id=None):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-@csrf_exempt
-@verify_user
-@require_http_methods(["POST", "OPTIONS"])
-def create_story(request):
-    if request.method == "OPTIONS":
-        response = HttpResponse()
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type"
-        return response
 
-    try:
-        print("Received request body:", request.body)
-        story_data = json.loads(request.body)
-        print("Parsed story data:", story_data)
-
-        try:
-            project = Project.objects.get(id=story_data["proj_id"])
-            print("Found project:", project)
-        except Project.DoesNotExist:
-            print(f"Project with ID {story_data['proj_id']} does not exist")
-            return JsonResponse(
-                {"error": f"Project with ID {story_data['proj_id']} does not exist"},
-                status=400,
-            )
-
-        print("Curator ID:", story_data.get("curator"))
-
-        try:
-            story = Story.objects.create(
-                storyteller=story_data["storyteller"],
-                curator_id=story_data.get("curator"),
-                date=timezone.now(),
-                text_content=story_data["text_content"],
-                proj_id=project,
-            )
-            print("Created story:", story)
-        except Exception as e:
-            print("Error creating story:", str(e))
-            print("Error type:", type(e))
-            print("Traceback:", traceback.format_exc())
-            raise
-
-        if "tags" in story_data:
-            for tag_data in story_data["tags"]:
-                tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"]
-                )
-                StoryTag.objects.create(story_id=story, tag_id=tag)
-                print("Created tag:", tag)
-
-        return JsonResponse({"story_id": story.id}, status=200)
-    except Exception as e:
-        print("Error creating story:", str(e))
-        print("Error type:", type(e))
-        print("Traceback:", traceback.format_exc())
-        return JsonResponse({"error": str(e)}, status=400)
+###############################################################################
 
 
 @require_POST
@@ -637,9 +540,10 @@ def create_user(request):
     return JsonResponse({"success": True}, status=201)
 
 
+###############################################################################
+
+
 @require_POST
-@verify_user
-@authorize_user("org")
 def add_user_to_org(request):
     """
     Receives a request with user_id and org_id its body and registers new user
@@ -675,9 +579,67 @@ def add_user_to_org(request):
     return JsonResponse({"success": True}, status=201)
 
 
+###############################################################################
+@csrf_exempt
+@require_http_methods(["POST", "OPTIONS"])
+def create_story(request):
+    if request.method == "OPTIONS":
+        response = HttpResponse()
+        response["Access-Control-Allow-Origin"] = "*"
+        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
+        response["Access-Control-Allow-Headers"] = "Content-Type"
+        return response
 
+    try:
+        print("Received request body:", request.body)
+        story_data = json.loads(request.body)
+        print("Parsed story data:", story_data)
+
+        try:
+            project = Project.objects.get(id=story_data["proj_id"])
+            print("Found project:", project)
+        except Project.DoesNotExist:
+            print(f"Project with ID {story_data['proj_id']} does not exist")
+            return JsonResponse(
+                {"error": f"Project with ID {story_data['proj_id']} does not exist"},
+                status=400,
+            )
+
+        print("Curator ID:", story_data.get("curator"))
+
+        try:
+            story = Story.objects.create(
+                storyteller=story_data["storyteller"],
+                curator_id=story_data.get("curator"),
+                date=timezone.now(),
+                content=story_data["content"],
+                proj_id=project,
+            )
+            print("Created story:", story)
+        except Exception as e:
+            print("Error creating story:", str(e))
+            print("Error type:", type(e))
+            print("Traceback:", traceback.format_exc())
+            raise
+
+        if "tags" in story_data:
+            for tag_data in story_data["tags"]:
+                tag, _ = Tag.objects.get_or_create(
+                    name=tag_data["name"], value=tag_data["value"]
+                )
+                StoryTag.objects.create(story_id=story, tag_id=tag)
+                print("Created tag:", tag)
+
+        return JsonResponse({"story_id": story.id}, status=200)
+    except Exception as e:
+        print("Error creating story:", str(e))
+        print("Error type:", type(e))
+        print("Traceback:", traceback.format_exc())
+        return JsonResponse({"error": str(e)}, status=400)
+
+
+###############################################################################
 @require_POST
-@verify_user
 # TODO authentication and authorization check
 def create_project(request):
 
@@ -732,8 +694,10 @@ def create_project(request):
         )
 
 
+###############################################################################
+
+
 @require_POST
-@verify_user
 # TODO authentication and authorization check
 def create_org(request):
     org_data = json.loads(request.body)
@@ -760,8 +724,8 @@ def create_org(request):
     )
 
 
+###############################################################################
 @require_GET
-@verify_user
 # TODO authentication and authorization check
 def show_user_dashboard(request, user_id):
     try:
@@ -793,8 +757,8 @@ def show_user_dashboard(request, user_id):
         return HttpResponseNotFound("User not found.")
 
 
+###############################################################################
 @require_http_methods(["GET", "POST"])
-@verify_user
 def show_org_admin_dashboard(request, user_id, org_id):
     try:
         requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
