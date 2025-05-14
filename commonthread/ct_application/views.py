@@ -379,27 +379,27 @@ def show_org_dashboard(request, user_id, org_id):
             )
 
         projects = Project.objects.filter(org_id=org)
-        stories = Story.objects.filter(proj_id__in=projects).select_related("proj_id")
+        stories = Story.objects.filter(proj_id__in=projects).select_related("proj")
 
         story_list = []
         for story in stories:
 
             story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                "tag_id"
+                "tag"
             )
             tags = [
-                {"name": st.tag_id.name, "value": st.tag_id.value} for st in story_tags
+                {"name": st.tag_id, "value": st.tag_id} for st in story_tags
             ]
 
             story_list.append(
                 {
                     "story_id": story.pk,
                     "storyteller": story.storyteller,
-                    "project_id": story.proj_id.pk,
-                    "project_name": story.proj_id.name,
+                    "project_id": story.proj_id,
+                    "project_name": story.proj.name,
                     "curator": story.curator.pk if story.curator else None,
                     "date": story.date.isoformat() if story.date else None,
-                    "content": story.content,
+                    "text_content": story.text_content,
                     "tags": tags,
                 }
             )
@@ -424,10 +424,10 @@ def get_story(request, story_id=None):
     print(request.headers)
     if story_id:
         try:
-            story = Story.objects.select_related("proj_id").get(id=story_id)
+            story = Story.objects.select_related("proj").get(id=story_id)
 
             story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                "tag_id"
+                "tag"
             )
             tags = [
                 {"name": st.tag_id.name, "value": st.tag_id.value} for st in story_tags
@@ -455,7 +455,7 @@ def get_story(request, story_id=None):
         try:
             # Get all stories with their tags and projects
             stories = (
-                Story.objects.select_related("proj_id")
+                Story.objects.select_related("proj")
                 .prefetch_related("storytag_set__tag_id")
                 .all()
             )
@@ -463,7 +463,7 @@ def get_story(request, story_id=None):
 
             for story in stories:
                 story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                    "tag_id"
+                    "tag"
                 )
                 tags = [
                     {"name": st.tag_id.name, "value": st.tag_id.value}
@@ -732,7 +732,7 @@ def show_user_dashboard(request, user_id):
         user = User.objects.get(pk=user_id)
 
         org_memberships = OrgUser.objects.filter(user_id=user_id).select_related(
-            "org_id"
+            "org"
         )
 
         orgs_data = [
@@ -767,7 +767,7 @@ def show_org_admin_dashboard(request, user_id, org_id):
 
     # get method for seeing users in org
     if request.method == "GET":
-        org_members = OrgUser.objects.filter(org_id=org_id).select_related("user_id")
+        org_members = OrgUser.objects.filter(org_id=org_id).select_related("user")
 
         data = [
             {
