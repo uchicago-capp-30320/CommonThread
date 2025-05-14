@@ -5,11 +5,15 @@ from transformers import pipeline
 
 #example implementation of a tagging strategy
 class MLTaggingStrategy(TaggingStrategy):
-    def __init__(self):
+    def __init__(self, aggregation_strategy: str = "simple", 
+                 model_name: str = "dslim/bert-base-NER",
+                 tokenizer_name: str = "dslim/bert-base-NER"):
+        
         ner = pipeline("ner", 
-                       model="dslim/bert-base-NER", 
-                       tokenizer="dslim/bert-base-NER",
-                       aggregation_strategy="simple")
+                       model=model_name, 
+                       tokenizer=tokenizer_name,
+                       aggregation_strategy=aggregation_strategy)
+                       
         self.ner = ner
 
     def get_tags(self, story_text: str) -> List[str]:
