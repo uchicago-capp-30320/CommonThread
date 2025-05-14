@@ -43,7 +43,6 @@ urlpatterns = [
     path("user/create", create_user, name="user-create"),
     path("project/create", create_project, name="project-create"),
     path("project/add_user", add_user_to_org, name="add-user-to-org"),
-    path("stories/", get_story, name="story-list"),  # GET all
     path("stories/<int:story_id>/", get_story, name="story-detail"),  # GET one
     path("stories/create/", create_story, name="story-create"),  # POST one
     # TODO add a bulk‑create endpoint if needed
@@ -54,8 +53,6 @@ urlpatterns = [
         show_project_dashboard,
         name="project-dashboard",
     ),
-    path("admin/", admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),  # new
     path("user/<int:user_id>/dashboard/", show_user_dashboard, name="user_dashboard"),
     path(
         "org/<int:user_id>/admin/<int:org_id>/",
