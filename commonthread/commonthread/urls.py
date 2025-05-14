@@ -50,7 +50,7 @@ urlpatterns = [
     path("org/<int:org_id>/", show_org_dashboard, name="org-dashboard"),
     path("org/create/", create_org, name="org-create"),
     path(
-        "org/<int:user_id>/<int:org_id>/project/<int:project_id>/",
+        "org/<int:org_id>/project/<int:project_id>/",
         show_project_dashboard,
         name="project-dashboard",
     ),
