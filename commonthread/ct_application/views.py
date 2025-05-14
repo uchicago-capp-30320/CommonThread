@@ -399,7 +399,7 @@ def show_org_dashboard(request, user_id, org_id):
                     "project_name": story.proj.name,
                     "curator": story.curator.pk if story.curator else None,
                     "date": story.date.isoformat() if story.date else None,
-                    "text_content": story.text_content,
+                    "content": story.text_content,
                     "tags": tags,
                 }
             )
@@ -612,8 +612,8 @@ def create_story(request):
                 storyteller=story_data["storyteller"],
                 curator_id=story_data.get("curator"),
                 date=timezone.now(),
-                content=story_data["content"],
-                proj_id=project,
+                text_content=story_data["content"],
+                proj_id=project.id,
             )
             print("Created story:", story)
         except Exception as e:
@@ -627,7 +627,7 @@ def create_story(request):
                 tag, _ = Tag.objects.get_or_create(
                     name=tag_data["name"], value=tag_data["value"]
                 )
-                StoryTag.objects.create(story_id=story, tag_id=tag)
+                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
                 print("Created tag:", tag)
 
         return JsonResponse({"story_id": story.id}, status=200)
