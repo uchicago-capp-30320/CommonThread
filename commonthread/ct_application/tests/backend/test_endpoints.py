@@ -1,5 +1,10 @@
 # commonthread/ct_application/tests/backend/test_endpoints.py
-import json, datetime, jwt, inspect, sys, pytest
+import json
+import datetime
+import jwt
+import inspect
+import sys
+import pytest
 from django.utils import timezone
 from django.test import Client
 from ct_application.models import (

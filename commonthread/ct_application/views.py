@@ -31,7 +31,6 @@ from .models import (
 )
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
-from jwt import ExpiredSignatureError
 import traceback
 from functools import wraps
 
@@ -78,7 +77,7 @@ def verify_user(view_function):
             return JsonResponse(
                 {"success": False, "error": "Access Expired"}, status=299
             )
-        except:
+        except InvalidTokenError:
             # Something broke in the process
             return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
@@ -167,7 +166,7 @@ def check_project_auth(user_id: str, proj_id: str):
     try:
         project = Project.objects.get(proj_id=proj_id)
         return check_org_auth(user_id, project.id)
-    except:
+    except Project.DoesNotExist:
         return JsonResponse({"Failed": False, "error": "Project not found"}, status=404)
 
 
@@ -176,7 +175,7 @@ def check_story_auth(user_id: str, story_id: str):
     try:
         story = Story.objects.get(story_id=story_id)
         return check_project_auth(user_id, story.id)
-    except:
+    except Story.DoesNotExist:
         return JsonResponse({"Failed": False, "error": "Story not found"}, status=404)
 
 
