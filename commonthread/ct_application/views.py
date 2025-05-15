@@ -336,7 +336,7 @@ def get_new_access_token(request):
 #--------------------------------- Below are endpoints for the application
 
 @verify_user
-@authorize_user("project")
+@authorize_user("project", "user")
 def show_project_dashboard(request, user_id, org_id, project_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id, project_id]):
@@ -669,7 +669,7 @@ def create_user(request):
 
 @require_POST
 @verify_user
-@authorize_user("org")
+@authorize_user("org", "admin")
 def add_user_to_org(request):
     """
     Receives a request with user_id and org_id its body and registers new user
