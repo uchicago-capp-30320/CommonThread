@@ -18,6 +18,8 @@ dependencies = [
     "openai>=1.78.1",
     "torch>=2.7.0",
     "keybert>=0.9.0",
+    "boto3>=1.38.16",
+    "django-storages>=1.14.6",
 ]
 
 [tool.pytest.ini_options]
