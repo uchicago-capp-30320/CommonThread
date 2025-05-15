@@ -24,7 +24,9 @@ class TaggingService:
         
         created_tags = []
         
-        for tag_name,tag_value in suggested_tags:
+        for tag in suggested_tags:
+            tag_name = tag["word"]
+            tag_value = tag["label"]
             
             tag, created = Tag.objects.get_or_create(
                 name=tag_name,
