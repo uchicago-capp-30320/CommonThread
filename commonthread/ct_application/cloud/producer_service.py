@@ -84,14 +84,8 @@ class SQSQueueProducer(QueueProducer):
                     }
                     
                     if self.tasks[task.task_type].story_level:
-                        message.update({
-                            'story_id': story.id,
-                            'content': story.text_content
-                        })
-                    else:
-                        stories = story.proj.story_set.all()
-                        message['contents'] = [s.text_content for s in stories]
-
+                        message['story_id'] = story.id
+                    
                     response = self.sqs.send_message(
                         QueueUrl=self.queue_url,
                         MessageBody=json.dumps(message)
