@@ -306,8 +306,8 @@ def get_new_access_token(request):
 #--------------------------------- Below are endpoints for the application
 
 @verify_user
-@authorize_user("project")
-def show_project_dashboard(request, user_id, org_id, project_id):
+#@authorize_user('project','user')
+def get_project(request, user_id, org_id, project_id):
     # check user org and project IDs are provided
     if not all([user_id, org_id, project_id]):
         return HttpResponseNotFound(
@@ -361,49 +361,10 @@ def show_project_dashboard(request, user_id, org_id, project_id):
         status=200,
     )
 
-# Onur: Do we still need this?
-# @verify_user
-# #@authorize_user(check_type="org")
-# def show_org_dashboard(request, user_id, org_id):
-#     # check user org and project IDs are provided
-#     if not all([user_id, org_id]):
-#         return HttpResponseNotFound(
-#             "User ID or Organization ID not provided.", status=404
-#         )
-#     # load user and org or throw 404 if not found
-#     user = get_object_or_404(User, pk=user_id)
-#     org = get_object_or_404(Organization, pk=org_id)
-
-#     # check if user is indeed a member of the org
-#     try:
-#         _ = OrgUser.objects.get(user_id=user, org_id=org)
-#     except OrgUser.DoesNotExist:
-#         return HttpResponseForbidden(
-#             "You are not a member of this organization! Not authorized.", status=403
-#         )
-
-#     # get all projects for the organization
-#     projects = Project.objects.filter(org_id=org)
-#     project_count = projects.count()
-
-#     # data= {
-#     #     "user": user,
-#     #     "org": org,
-#     #     "projects": projects,
-#     # }
-
-#     return JsonResponse(
-#         {
-#             "organization_id": org.org_id,
-#             "organization_name": org.name,
-#             "project_count": project_count,
-#         },
-#         status=200,
-#     )
 
 @verify_user
-@authorize_user("org")
-def show_org_dashboard(request, user_id, org_id):
+#@authorize_user('org','user')
+def get_org(request, user_id, org_id):
     try:
         if not all([user_id, org_id]):
             return HttpResponseNotFound(
@@ -460,8 +421,7 @@ def show_org_dashboard(request, user_id, org_id):
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
 @verify_user
-@authorize_user("story")
-# TODO authentication and authorization check
+#@authorize_user('story','user')
 def get_story(request, story_id=None):
     print(request.headers)
     if story_id:
@@ -534,6 +494,7 @@ def get_story(request, story_id=None):
 
 @csrf_exempt
 @verify_user
+#@authorize_user('org','user')
 @require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
     if request.method == "OPTIONS":
@@ -639,7 +600,7 @@ def create_user(request):
 
 @require_POST
 @verify_user
-@authorize_user("org")
+#@authorize_user('org','admin')
 def add_user_to_org(request):
     """
     Receives a request with user_id and org_id its body and registers new user
@@ -674,9 +635,13 @@ def add_user_to_org(request):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     return JsonResponse({"success": True}, status=201)
 
+@verify_user
+#@authorize_user('org','admin')
+def delete_user_from_org(request):
+    pass
 
 ###############################################################################
-@csrf_exempt
+'''@csrf_exempt
 @require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
     if request.method == "OPTIONS":
@@ -732,12 +697,22 @@ def create_story(request):
         print("Error type:", type(e))
         print("Traceback:", traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=400)
+'''
 
+@verify_user
+#@authorize_user('org','admin')
+def edit_story(request):
+    pass
+
+@verify_user
+#@authorize_user('story','admin')
+def delete_story(request):
+    pass
 
 ###############################################################################
 @require_POST
 @verify_user
-# TODO authentication and authorization check
+#@authorize_user('org','admin')
 def create_project(request):
 
     try:
@@ -791,9 +766,20 @@ def create_project(request):
         )
 
 
+@verify_user
+#@authorize_user('project','admin')
+def edit_project(request):
+    pass
+
+
+@verify_user
+#@authorize_user('project','admin')
+def delete_project(request):
+    pass
+
+
 @require_POST
 @verify_user
-# TODO authentication and authorization check
 def create_org(request):
     org_data = json.loads(request.body)
     try:
@@ -819,10 +805,21 @@ def create_org(request):
     )
 
 
+@verify_user
+#@authorize_user('org','admin')
+def edit_org(request):
+    pass
+
+
+@verify_user
+#@authorize_user('org','creator')
+def delete_org(request):
+    pass
+
+
 @require_GET
 @verify_user
-# TODO authentication and authorization check
-def show_user_dashboard(request, user_id):
+def get_user(request, user_id):
     try:
         user = User.objects.get(pk=user_id)
 
@@ -852,9 +849,25 @@ def show_user_dashboard(request, user_id):
         return HttpResponseNotFound("User not found.")
 
 
+@verify_user
+def get_user_detail(request, user_id):
+    pass
+
+
+@verify_user
+def edit_user(request):
+    pass
+
+
+@verify_user
+def delete_user(request):
+    pass
+
+
 @require_http_methods(["GET", "POST"])
 @verify_user
-def show_org_admin_dashboard(request, user_id, org_id):
+#@authorize_user('org','admin')
+def get_org_admin(request, user_id, org_id):
     try:
         requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
     except OrgUser.DoesNotExist:
@@ -912,5 +925,11 @@ def show_org_admin_dashboard(request, user_id, org_id):
         except json.JSONDecodeError:
             return HttpResponseBadRequest("Invalid JSON.")
 
+
+@verify_user
+#@authorize_user('org','user')
+def get_org_projects(request, org_id):
+    #return JUST the list of projects within the organizaton, and a count how many stories are in each.
+    pass
 
 #### EOF. ####
