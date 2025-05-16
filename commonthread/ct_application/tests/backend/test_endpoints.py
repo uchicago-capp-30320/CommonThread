@@ -32,22 +32,22 @@ def seed():
         Organization.objects.create(name="HP Hist Soc"),
     )
     OrgUser.objects.bulk_create([
-        OrgUser(user_id=alice,  org_id=org1, access="admin"),
-        OrgUser(user_id=brenda, org_id=org2, access="admin"),
+        OrgUser(user_id=alice.id,  org_id=org1.id, access="admin"),
+        OrgUser(user_id=brenda.id, org_id=org2.id, access="admin"),
     ])
 
     proj1 = Project.objects.create(
-        org_id=org1, name="Campus Tales",
+        org_id=org1.id, name="Campus Tales",
         curator=alice, date=datetime.date(2025, 4, 1)
     )
     story1 = Story.objects.create(
-        proj_id=proj1, storyteller="Alice",
+        proj_id=proj1.id, storyteller="Alice",
         curator=alice, date=datetime.date(2025, 4, 5),
-        content="Hello!"
+        text_content="Hello!"
     )
-    tag = Tag.objects.create(name="fun")
-    StoryTag.objects.create(story_id=story1, tag_id=tag)
-    ProjectTag.objects.create(proj_id=proj1, tag_id=tag)
+    tag = Tag.objects.create(name="fun", required=False)
+    StoryTag.objects.create(story_id=story1.id, tag_id=tag.id)
+    ProjectTag.objects.create(proj_id=proj1.id, tag_id=tag.id)
 
     return locals()
 
@@ -98,12 +98,12 @@ def test_refresh_ok(client, seed):
 # ───────── protected happy‑paths ─────────
 def test_org_dashboard_ok(client, seed, auth_headers):
     alice, org1 = seed["alice"], seed["org1"]
-    r = client.get(f"/org/{alice.id}/{org1.org_id}/", **auth_headers())
+    r = client.get(f"/org/{alice.id}/{org1.id}/", **auth_headers())
     assert r.status_code == 200 and "stories" in r.json()
 
 def test_project_dashboard_ok(client, seed, auth_headers):
     alice, p = seed["alice"], seed["proj1"]
-    r = client.get(f"/org/{alice.id}/{p.org_id.org_id}/project/{p.id}/",
+    r = client.get(f"/org/{alice.id}/{seed["org1"].id}/project/{p.id}/", #org1 hardcoded, just to test page working at all
                    **auth_headers())
     assert r.status_code == 200 and r.json()["project_id"] == p.id
 
@@ -116,9 +116,9 @@ def test_story_detail_ok(client, seed, auth_headers):
 def test_create_project_ok(client, seed, auth_headers):
     org1, alice = seed["org1"], seed["alice"]
     payload = {
-        "org_id":  org1.org_id,
+        "org_id":  org1.id,
         "name":    "New Project",
-        "curator": alice.id,
+        "curator": alice,
         "date":    "2025-05-01"
     }
     r = client.post("/project/create", json.dumps(payload),
@@ -128,8 +128,8 @@ def test_create_project_ok(client, seed, auth_headers):
 def test_create_story_ok(client, seed, auth_headers):
     p, alice = seed["proj1"], seed["alice"]
     payload = {
-        "storyteller": "Testy", "curator": alice.id,
-        "content": "Hi!", "proj_id": p.id,
+        "storyteller": "Testy", "curator": alice,
+        "content": "Hi!", "proj": p.id,
         "tags": [{"name": "tagX", "value": 1}]
     }
     r = client.post("/stories/create/", json.dumps(payload),
@@ -152,7 +152,7 @@ def test_expired_token_299(client, seed):
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
     hdrs = auth_headers("brenda", "secret456")
-    r = client.get(f"/org/{seed['brenda'].id}/{p.org_id.org_id}/project/{p.id}/",
+    r = client.get(f"/org/{seed['brenda'].id}/{seed["org1"].id}/project/{p.id}/",
                    **hdrs)
     assert r.status_code == 403
 
