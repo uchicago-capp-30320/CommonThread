@@ -508,7 +508,7 @@ def create_story(request):
                 curator_id=story_data.get("curator"),
                 date=timezone.now(),
                 text_content=story_data["text_content"],
-                proj_id=project,
+                proj_id=project.id,
             )
             print("Created story:", story)
         except Exception as e:
@@ -520,9 +520,9 @@ def create_story(request):
         if "tags" in story_data:
             for tag_data in story_data["tags"]:
                 tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"]
+                    name=tag_data["name"], value=tag_data["value"], required=tag_data["required"]
                 )
-                StoryTag.objects.create(story_id=story, tag_id=tag)
+                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
                 print("Created tag:", tag)
 
         return JsonResponse({"story_id": story.id}, status=200)
@@ -719,7 +719,7 @@ def create_project(request):
         project = Project.objects.create(
             name=project_data["name"],
             curator_id=project_data["curator"],
-            org_id=org,
+            org_id=org.id,
             date=project_data.get("date", str(date.today())),
         )
 
@@ -728,8 +728,8 @@ def create_project(request):
         for tag_name in tags:
             tag = Tag.objects.create(name=tag_name)
             ProjectTag.objects.create(
-                tag_id=tag,
-                proj_id=project,
+                tag_id=tag.id,
+                proj_id=project.id,
             )
 
         return JsonResponse(

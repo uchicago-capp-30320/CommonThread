@@ -118,7 +118,7 @@ def test_create_project_ok(client, seed, auth_headers):
     payload = {
         "org_id":  org1.id,
         "name":    "New Project",
-        "curator": alice,
+        "curator": alice.id,
         "date":    "2025-05-01"
     }
     r = client.post("/project/create", json.dumps(payload),
@@ -128,9 +128,9 @@ def test_create_project_ok(client, seed, auth_headers):
 def test_create_story_ok(client, seed, auth_headers):
     p, alice = seed["proj1"], seed["alice"]
     payload = {
-        "storyteller": "Testy", "curator": alice,
-        "content": "Hi!", "proj": p.id,
-        "tags": [{"name": "tagX", "value": 1}]
+        "storyteller": "Testy", "curator": alice.id,
+        "text_content": "Hi!", "proj_id": p.id,
+        "tags": [{"name": "tagX", "value": 1, "required": False}],
     }
     r = client.post("/story/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
