@@ -5,8 +5,10 @@
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
-	let { data } = $props();
-	const { storiesPromise: getDataPromise, params } = data;
+	import { authRequest } from '$lib/authRequest.js';
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { accessToken, refreshToken } from '$lib/store.js';
 
 	let stories = $state([]);
 	let projectsTotal = $state('...');
@@ -14,51 +16,54 @@
 	let projects = $state([]);
 	let orgName = $state('Loading...');
 
-	$inspect(getDataPromise);
-	$inspect(params);
+	let params = $state(page.params);
+
 	$inspect(stories);
-	$inspect(projects);
 
-	$effect(() => {
-		getDataPromise
-			.then((loadedData) => {
-				stories = loadedData['stories'];
-				orgName = loadedData['org_name'];
-				projectsTotal = new Set(stories.map((story) => story.project_id)).size;
-				storiesTotal = stories.length;
+	onMount(async () => {
+		// first make a request to get list of orgs that user is a part of
+		const orgs = await authRequest(`/orgs`, 'GET', $accessToken, $refreshToken);
+		const orgsData = await orgs.json();
+		console.log('Orgs fetched:', orgsData);
+		const defaultOrg = orgsData[0].org_id;
+		orgName = orgsData[0].org_name;
 
-				// Group stories by project_id
-				const projectGroups = {};
-				stories.forEach((story) => {
-					const projectId = story.project_id || 'unknown';
-					if (!projectGroups[projectId]) {
-						projectGroups[projectId] = {
-							id: projectId,
-							name: story.project_name || 'Unnamed Project',
-							description: story.project_description || 'No description available',
-							stories: []
-						};
-					}
-					projectGroups[projectId].stories.push(story);
-				});
+		// Fetch the data when the component mounts
+		const data = await authRequest(`/orgs/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
+		const loadedData = await data.json();
+		console.log('Data fetched:', loadedData);
 
-				// Convert to array and add story count
-				projects = Object.values(projectGroups).map((project) => ({
-					id: project.id,
-					name: project.name,
-					description: project.description,
-					total_stories: project.stories.length
-				}));
-			})
-			.catch((error) => {
-				console.error('Error loading stories:', error);
-			});
+		stories = loadedData['stories'];
+		orgName = loadedData['org_name'];
+		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
+		storiesTotal = stories.length;
+
+		// Group stories by project_id
+		const projectGroups = {};
+		stories.forEach((story) => {
+			const projectId = story.project_id || 'unknown';
+			if (!projectGroups[projectId]) {
+				projectGroups[projectId] = {
+					id: projectId,
+					name: story.project_name || 'Unnamed Project',
+					description: story.project_description || 'No description available',
+					stories: []
+				};
+			}
+			projectGroups[projectId].stories.push(story);
+		});
+
+		// Convert to array and add story count
+		projects = Object.values(projectGroups).map((project) => ({
+			id: project.id,
+			name: project.name,
+			description: project.description,
+			total_stories: project.stories.length
+		}));
 	});
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
-
-	$inspect(projects);
 </script>
 
 <div class="container">
@@ -91,7 +96,7 @@
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/new?org_id={encodeURIComponent(params.org_name)}" class="button">
+					<a href="/stories/" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>
