@@ -372,9 +372,15 @@ def get_org(request, org_id):
             story_tags = StoryTag.objects.filter(story_id=story).select_related(
                 "tag"
             )
-            tags = [
-                {"name": st.tag_id, "value": st.tag_id} for st in story_tags
-            ]
+            
+            tags = []
+            for st in story_tags:
+                tag_obj = Tag.objects.get(id = st.tag_id)
+                tag = {
+                    "name": tag_obj.name,
+                    "value": tag_obj.value
+                }
+                tags.append(tag)
 
             story_list.append(
                 {
@@ -408,19 +414,25 @@ def get_story(request, story_id=None):
     if story_id:
         try:
             story = Story.objects.select_related("proj").get(id=story_id)
-
+            project = Project.objects.get(id=story.proj_id)
             story_tags = StoryTag.objects.filter(story_id=story).select_related(
                 "tag"
             )
-            tags = [
-                {"name": st.tag_id.name, "value": st.tag_id.value} for st in story_tags
-            ]
+
+            tags = []
+            for st in story_tags:
+                tag_obj = Tag.objects.get(id = st.tag_id)
+                tag = {
+                    "name": tag_obj.name,
+                    "value": tag_obj.value
+                }
+                tags.append(tag)
 
             return JsonResponse(
                 {
                     "story_id": story.id,
-                    "project_id": story.proj_id.id,
-                    "project_name": story.proj_id.name,
+                    "project_id": story.proj_id,
+                    "project_name": project.name,
                     "storyteller": story.storyteller,
                     "curator": story.curator.id if story.curator else None,
                     "date": story.date,
