@@ -31,7 +31,6 @@ from .models import (
 )
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
-from jwt import ExpiredSignatureError
 import traceback
 from functools import wraps
 
@@ -78,7 +77,7 @@ def verify_user(view_function):
             return JsonResponse(
                 {"success": False, "error": "Access Expired"}, status=299
             )
-        except:
+        except InvalidTokenError:
             # Something broke in the process
             return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
@@ -171,8 +170,8 @@ def check_project_auth(user_id: str, proj_id: str):
     try:
         project = Project.objects.get(proj_id=proj_id)
         return check_org_auth(user_id, project.id)
-    except:
-        return JsonResponse({"success": False, "error": "Project not found"}, status=404)
+    except Project.DoesNotExist:
+        return JsonResponse({"Failed": False, "error": "Project not found"}, status=404)
 
 
 def check_story_auth(user_id: str, story_id: str):
@@ -471,7 +470,7 @@ def show_org_dashboard(request, user_id, org_id):
                     "project_name": story.proj_id.name,
                     "curator": story.curator.pk if story.curator else None,
                     "date": story.date.isoformat() if story.date else None,
-                    "content": story.content,
+                    "text_content": story.text_content,
                     "tags": tags,
                 }
             )
@@ -513,7 +512,7 @@ def get_story(request, story_id=None):
                     "storyteller": story.storyteller,
                     "curator": story.curator.id if story.curator else None,
                     "date": story.date,
-                    "content": story.content,
+                    "text_content": story.text_content,
                     "tags": tags,
                 },
                 status=200,
@@ -550,7 +549,7 @@ def get_story(request, story_id=None):
                         "project_name": story.proj_id.name,
                         "curator": story.curator.id if story.curator else None,
                         "date": story.date,
-                        "content": story.content,
+                        "text_content": story.text_content,
                         "tags": tags,
                     }
                 )
@@ -595,7 +594,7 @@ def create_story(request):
                 storyteller=story_data["storyteller"],
                 curator_id=story_data.get("curator"),
                 date=timezone.now(),
-                content=story_data["content"],
+                text_content=story_data["text_content"],
                 proj_id=project,
             )
             print("Created story:", story)
