@@ -18,7 +18,7 @@ class MLTask:
         self.story_level = story_level
 
 # Abstract class for task producers
-class TaskProducer(ABC):
+class QueueProducer(ABC):
     def __init__(self):
         self.tasks = {
             'tag': MLTask('tag'),
@@ -38,11 +38,11 @@ class TaskProducer(ABC):
         return [task for task in self.tasks.values() if task.enabled]
 
     @abstractmethod
-    def produce_tasks(self, story: Story) -> Dict:  
+    def add_to_queue(self, story: Story) -> Dict:  
         pass
 
 
-class SQSTaskProducer(TaskProducer):
+class SQSQueueProducer(QueueProducer):
     def __init__(self):
         super().__init__()  
         self.sqs = boto3.client(
@@ -69,7 +69,7 @@ class SQSTaskProducer(TaskProducer):
         
         return MLProcessingQueue.objects.bulk_create(entries)
 
-    def produce_tasks(self, story: Story) -> Dict:
+    def add_to_queue(self, story: Story) -> Dict:
         try:
             with transaction.atomic():
                 processing_tasks = self._create_queue_entries(story)
