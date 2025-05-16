@@ -302,12 +302,9 @@ def get_new_access_token(request):
         )
 
 
-#--------------------------------- Above will move to utils.py
-#--------------------------------- Below are endpoints for the application
-
 @verify_user
 #@authorize_user('project','user')
-def get_project(request, user_id, org_id, project_id):
+def get_project(request, org_id, project_id):
     '''
     Updates required:
     -get user id from JWT?
@@ -315,21 +312,12 @@ def get_project(request, user_id, org_id, project_id):
     -remove org + user id from inputs
     '''
     # check user org and project IDs are provided
-    if not all([user_id, org_id, project_id]):
+    if not all([org_id, project_id]):
         return HttpResponseNotFound(
             "User ID, Organization ID, or Project ID not provided.", status=404
         )
     # load user and org or throw 404 if not found
-    user = get_object_or_404(User, pk=user_id)
     org = get_object_or_404(Organization, pk=org_id)
-
-    # check if user is indeed a member of the org
-    try:
-        _ = OrgUser.objects.get(user_id=user, org_id=org)
-    except OrgUser.DoesNotExist:
-        return HttpResponseForbidden(
-            "You are not a member of this organization! Not authorized.", status=403
-        )
 
     # project may not belong to the org, so check that too
     project = get_object_or_404(Project, pk=project_id)
@@ -357,7 +345,8 @@ def get_project(request, user_id, org_id, project_id):
         status=200,
     )
 
-
+def show_org_dashboard(request, org_id):
+=======
 @verify_user
 #@authorize_user('org','user')
 def get_org(request, user_id, org_id):
@@ -368,20 +357,12 @@ def get_org(request, user_id, org_id):
     '''
 
     try:
-        if not all([user_id, org_id]):
+        if not all([org_id]):
             return HttpResponseNotFound(
-                "User ID or Organization ID not provided.", status=404
+                "Organization ID not provided.", status=404
             )
 
-        user = get_object_or_404(User, pk=user_id)
         org = get_object_or_404(Organization, pk=org_id)
-
-        try:
-            _ = OrgUser.objects.get(user_id=user, org_id=org)
-        except OrgUser.DoesNotExist:
-            return HttpResponseForbidden(
-                "You are not a member of this organization! Not authorized.", status=403
-            )
 
         projects = Project.objects.filter(org_id=org)
         stories = Story.objects.filter(proj_id__in=projects).select_related("proj")
@@ -418,7 +399,6 @@ def get_org(request, user_id, org_id):
 
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
-
 
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes

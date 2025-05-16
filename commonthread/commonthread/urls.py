@@ -55,6 +55,7 @@ urlpatterns = [
 
     #User Related Endpoints
     path("user/create", create_user, name="user-create"),
+  
     path("user/<int:user_id>/dashboard", get_user, name="user-dashboard"),
     path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
@@ -72,6 +73,7 @@ urlpatterns = [
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
     path("org/<int:org_id>/add-user", add_user_to_org, name="add-user-to-org"),
+
     path(
         "/org/<int:org_id>/delete-user", 
          delete_user_from_org, 
