@@ -26,5 +26,13 @@
 			This is a description placeholder of the project. It can be a bit longer to give more context about
 			the project and its goals.
 		</div>
+		<div class="has-text-right mt-4">
+			<a href="/projects/{project.id}/dashboard" class="button is-primary">
+				<span>Explore Project</span>
+				<span class="icon">
+					<i class="fa fa-arrow-right"></i>
+				</span>
+			</a>
+		</div>
 	</div>
 </div>
