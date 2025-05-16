@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from ..ml_services.tagging_service import TaggingStrategy
 from transformers import pipeline
 
@@ -16,7 +16,7 @@ class MLTaggingStrategy(TaggingStrategy):
                        
         self.ner = ner
 
-    def get_tags(self, story_text: str) -> List[str]:
+    def get_tags(self, story_text: str) -> List[Dict[str, str]]:
         ner_results = self.ner(story_text)
-        tags = [result['word'] for result in ner_results]
+        tags = [{"word": r["word"], "label": r["entity_group"]} for r in ner_results]
         return tags
