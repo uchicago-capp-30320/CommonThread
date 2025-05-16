@@ -103,7 +103,7 @@ def test_org_dashboard_ok(client, seed, auth_headers):
 
 def test_project_dashboard_ok(client, seed, auth_headers):
     alice, p = seed["alice"], seed["proj1"]
-    r = client.get(f"/project/{p.id}", #org1 hardcoded, just to test page working at all
+    r = client.get(f"/project/1/{p.id}", #org1 hardcoded, just to test page working at all
                    **auth_headers())
     assert r.status_code == 200 and r.json()["project_id"] == p.id
 
@@ -152,7 +152,7 @@ def test_expired_token_299(client, seed):
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
     hdrs = auth_headers("brenda", "secret456")
-    r = client.get(f"/project/{p.id}",
+    r = client.get(f"/project/{p.org_id}/{p.id}",
                    **hdrs)
     assert r.status_code == 403
 

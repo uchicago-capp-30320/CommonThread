@@ -345,11 +345,10 @@ def get_project(request, org_id, project_id):
         status=200,
     )
 
-def show_org_dashboard(request, org_id):
-=======
+
 @verify_user
 #@authorize_user('org','user')
-def get_org(request, user_id, org_id):
+def get_org(request, org_id):
     '''
     Updates Required:
     -get user id from JWT?
