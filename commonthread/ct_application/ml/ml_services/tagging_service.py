@@ -31,7 +31,7 @@ class TaggingService:
             tag_name = tag["word"]
             tag_value = tag["label"]
             
-            tag, created = Tag.objects.get_or_create(
+            tag, _ = Tag.objects.get_or_create(
                 name=tag_name,
                 value=tag_value,
                 created_by = "ML_created"
@@ -44,5 +44,5 @@ class TaggingService:
             )
             
             created_tags.append(tag)
-        
-        return created_tags
+        print(f"Created {len(created_tags)} tags for story {story_id}")
+        return True
