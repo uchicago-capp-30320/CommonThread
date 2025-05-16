@@ -34,6 +34,8 @@ from django.utils import timezone
 # from jwt import ExpiredSignatureError
 import traceback
 from functools import wraps
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from cloud.producer_service import SQSQueueProducer
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -629,6 +631,16 @@ def create_story(request):
                 )
                 StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
                 print("Created tag:", tag)
+
+        # ML processing - create and add ml tasks to the queue
+        try:
+            # i think we do not need to mention what type of queue producer we are using
+            # perhaps a better way is to specify in settings.py what type of queue producer we are using and then import it here
+            producer = SQSQueueProducer()
+            producer.add_to_queue(story)
+        except Exception as e:
+            print("Error adding tasks to queue:", str(e))
+            print("Error type:", type(e))
 
         return JsonResponse({"story_id": story.id}, status=200)
     except Exception as e:
