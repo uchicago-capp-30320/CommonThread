@@ -55,7 +55,6 @@ urlpatterns = [
 
     #User Related Endpoints
     path("user/create", create_user, name="user-create"),
-  
     path("user/<int:user_id>/dashboard", get_user, name="user-dashboard"),
     path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
@@ -73,17 +72,16 @@ urlpatterns = [
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
     path("org/<int:org_id>/add-user", add_user_to_org, name="add-user-to-org"),
-
     path(
-        "/org/<int:org_id>/delete-user", 
+        "org/<int:org_id>/delete-user", 
          delete_user_from_org, 
          name="delete-user-from-org"),
 
     #Project Related Endpoints
     path("project/create", create_project, name="project-create"),
-    path("project/<int:project_id>", get_project, name="project-dashboard"),
-    path("project/<int:project_id>/edit", edit_project, name="project-edit"),
-    path("project/<int:project_id>/delete", delete_project, name="project-delete"),
+    path("project/<int:org_id>/<int:project_id>", get_project, name="project-dashboard"),
+    path("project/<int:org_id>/<int:project_id>/edit", edit_project, name="project-edit"),
+    path("project/<int:org_id>/<int:project_id>/delete", delete_project, name="project-delete"),
     
     #Story Related Endpoints
     path("story/create", create_story, name="story-create"),
