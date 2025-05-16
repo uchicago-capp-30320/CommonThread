@@ -1,5 +1,10 @@
 # commonthread/ct_application/tests/backend/test_endpoints.py
-import json, datetime, jwt, inspect, sys, pytest
+import json
+import datetime
+import jwt
+import inspect
+import sys
+import pytest
 from django.utils import timezone
 from django.test import Client
 from ct_application.models import (
@@ -139,10 +144,10 @@ def test_malformed_token_401(client):
     hdrs = {"HTTP_AUTHORIZATION": "Bearer bad.token"}
     assert client.get("/stories/", **hdrs).status_code == 401
 
-def test_expired_token_401(client, seed):
+def test_expired_token_299(client, seed):
     hdrs = {"HTTP_AUTHORIZATION":
             f"Bearer {expired_access_token(seed['alice'].id)}"}
-    assert client.get("/stories/", **hdrs).status_code == 401
+    assert client.get("/stories/", **hdrs).status_code == 299
 
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
