@@ -24,7 +24,7 @@ load_dotenv(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 AUTH_USER_MODEL = 'ct_application.CustomUser'
-
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 SECRET_KEY = os.getenv("SECRET_KEY")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'storages'
 ]
 
 MIDDLEWARE = [
