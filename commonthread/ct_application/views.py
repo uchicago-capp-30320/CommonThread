@@ -29,7 +29,7 @@ from .models import (
     StoryTag,
     CustomUser,
 )
-# from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 import traceback
 from functools import wraps
@@ -165,7 +165,7 @@ def check_project_auth(user_id: str, proj_id: str):
     # Checks if user has access through proj->org link, returns True if the link exists
     try:
         project = Project.objects.get(proj_id=proj_id)
-        return check_org_auth(user_id, project.id)
+        return check_org_auth(user_id, project.org_id)
     except Project.DoesNotExist:
         return JsonResponse({"Failed": False, "error": "Project not found"}, status=404)
 
@@ -174,7 +174,7 @@ def check_story_auth(user_id: str, story_id: str):
     # Checks if user has access through story->proj->org link, returns True if the link exists
     try:
         story = Story.objects.get(story_id=story_id)
-        return check_project_auth(user_id, story.id)
+        return check_project_auth(user_id, story.proj_id)
     except Story.DoesNotExist:
         return JsonResponse({"Failed": False, "error": "Story not found"}, status=404)
 

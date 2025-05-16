@@ -68,7 +68,6 @@ class Story(models.Model):
 
 # tag
 class Tag(models.Model):
-    tag_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     value = models.CharField(max_length=100, null=True, blank=True)  # Allow null values
     required = models.BooleanField()
