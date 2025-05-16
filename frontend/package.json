@@ -31,5 +31,8 @@
 		"svelte": "^5.0.0",
 		"svelte-preprocess": "^6.0.3",
 		"vite": "^6.2.5"
+	},
+	"dependencies": {
+		"layercake": "^8.4.3"
 	}
 }

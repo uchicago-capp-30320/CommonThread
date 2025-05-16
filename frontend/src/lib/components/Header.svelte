@@ -21,7 +21,12 @@
 			</ul>
 		</nav>
 		<div class="auth">
-			<button class="login-btn">Log In</button>
+			<a href="/login">
+				<button class="login-btn">Log In</button>
+			</a>
+			<!-- <a href="/signup">
+				<button class="signup-btn">Sign Up</button>
+			</a> -->
 		</div>
 	</div>
 </header>

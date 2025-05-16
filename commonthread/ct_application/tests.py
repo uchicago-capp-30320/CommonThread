@@ -2,23 +2,28 @@
 
 import json
 from django.test import TestCase, RequestFactory
-from django.shortcuts import reverse
 from django.contrib.auth import get_user_model
-
 from ct_application import views
 from ct_application.models import (
-    CustomUser, Organization, OrgUser, Project, Story,
-    Tag, StoryTag, ProjectTag, UserLogin
+    Organization,
+    OrgUser,
+    Project,
+    Story,
+    Tag,
+    StoryTag,
+    ProjectTag,
+    UserLogin,
 )
 
 User = get_user_model()
+
 
 class ViewTests(TestCase):
     def setUp(self):
         # RequestFactory for direct view calls
         # This allows us to create mock http requests for testing
-        #https://medium.com/@altafkhan_24475/part-8-an-overview-of-request-factory-in-django-testing-d60de51b8e19 
-        #https://docs.djangoproject.com/en/4.2/topics/testing/tools/#requestfactory
+        # https://medium.com/@altafkhan_24475/part-8-an-overview-of-request-factory-in-django-testing-d60de51b8e19
+        # https://docs.djangoproject.com/en/4.2/topics/testing/tools/#requestfactory
         self.factory = RequestFactory()
 
         # Mock Users for testing
@@ -26,17 +31,23 @@ class ViewTests(TestCase):
             username="alice",
             password="pass123",
             name="Alice Anderson",
-            email="alice@uchicago.edu"
+            email="alice@uchicago.edu",
         )
+
         self.brenda = User.objects.create_user(
             username="brenda",
             password="secret456",
             name="Brenda Brown",
-            email="brenda@uchicago.edu"
+            email="brenda@uchicago.edu",
         )
+
         # Link into UserLogin
-        UserLogin.objects.create(user_id=self.alice, username="alice", password="pass123")
-        UserLogin.objects.create(user_id=self.brenda, username="brenda", password="secret456")
+        UserLogin.objects.create(
+            user_id=self.alice, username="alice", password="pass123"
+        )
+        UserLogin.objects.create(
+            user_id=self.brenda, username="brenda", password="secret456"
+        )
 
         # Orgs
         self.org1 = Organization.objects.create(name="University of Chicago")
@@ -50,28 +61,34 @@ class ViewTests(TestCase):
 
         # Projects
         self.proj1 = Project.objects.create(
-            org_id=self.org1, name="Campus Tales",
-            curator=self.alice, date="2025-04-01"
+            org_id=self.org1, name="Campus Tales", curator=self.alice, date="2025-04-01"
         )
         self.proj2 = Project.objects.create(
-            org_id=self.org2, name="Memory Lane",
-            curator=self.brenda, date="2025-03-15"
+            org_id=self.org2, name="Memory Lane", curator=self.brenda, date="2025-03-15"
         )
         self.proj3 = Project.objects.create(
-            org_id=self.org3, name="Windy City Whispers",
-            curator=self.alice, date="2025-02-20"
+            org_id=self.org3,
+            name="Windy City Whispers",
+            curator=self.alice,
+            date="2025-02-20",
         )
 
         # Stories
         self.story1 = Story.objects.create(
-            proj_id=self.proj1, org_id=self.org1,
-            storyteller="Alice A.", curator=self.alice,
-            date="2025-04-05", content="Story one content"
+            proj_id=self.proj1,
+            org_id=self.org1,
+            storyteller="Alice A.",
+            curator=self.alice,
+            date="2025-04-05",
+            content="Story one content",
         )
         self.story2 = Story.objects.create(
-            proj_id=self.proj1, org_id=self.org1,
-            storyteller="Bob B.", curator=self.brenda,
-            date="2025-04-10", content="Story two content"
+            proj_id=self.proj1,
+            org_id=self.org1,
+            storyteller="Bob B.",
+            curator=self.brenda,
+            date="2025-04-10",
+            content="Story two content",
         )
 
         # --- Tags & link tables ---
@@ -85,6 +102,46 @@ class ViewTests(TestCase):
         response = views.home_test(request)
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.content, b"Welcome to the Common Threads Home Page!")
+
+    def test_login_success(self):
+        payload = {"username": self.alice.username, "password": self.alice.password}
+        body    = json.dumps(payload)
+        request = self.factory.post(
+            "/login",
+            data=body,
+            content_type="application/json"
+        )
+        response = views.login(request)
+        self.assertEqual(response.status_code, 200)
+
+    def test_login_forbiden(self):
+        payload = {
+            "username": self.alice.username,
+            "password": self.alice.password + "additional_chars",
+        }
+        body    = json.dumps(payload)
+        request = self.factory.post(
+            "/login",
+            data=body,
+            content_type="application/json"
+        )
+        response = views.login(request)
+        self.assertEqual(response.status_code, 403)
+    
+    def test_refresh_success(self):
+        body = json.dumps({"username": self.alice.username, "password": "pass123"})
+        req  = self.factory.post("/login", data=body, content_type="application/json")
+        login_resp = views.login(req)
+        refresh_t  = json.loads(login_resp.content)["refresh_token"]
+
+        body = json.dumps({"refresh_token": refresh_t})
+        req  = self.factory.post("/login/create_access", data=body, content_type="application/json")
+        resp = views.get_new_access_token(req)
+        self.assertEqual(resp.status_code, 200)
+        data = json.loads(resp.content)
+        self.assertTrue(data["success"])
+        self.assertIn("access_token", data)
+
 
     def test_show_project_dashboard_success(self):
         req = self.factory.get("/")
@@ -137,6 +194,36 @@ class ViewTests(TestCase):
         resp = views.get_story(req, story_id=9999)
         self.assertEqual(resp.status_code, 404)
 
+    def test_create_user_success(self):
+        payload = {"username": "Alessandro", "password": "Reynosa124"}
+        req = self.factory.post(
+            "/user/create", data=json.dumps(payload), content_type="application/json"
+        )
+
+        resp = views.create_user(req)
+        self.assertEqual(resp.status_code, 201)
+
+    def test_create_user_forbidden(self):
+        """
+        Test adding a user that already exists
+        """
+        payload = {"username": self.alice.username, "password": self.alice.password}
+        req = self.factory.post(
+            "/user/create", data=json.dumps(payload), content_type="application/json"
+        )
+
+        resp = views.create_user(req)
+        self.assertEqual(resp.status_code, 400)
+
+    def add_user_to_org_sucess(self):
+        payload = {"user_id": self.alice.user_id, "org_id": self.org1.org_id}
+        req = self.factory.post(
+            "/user/create", data=json.dumps(payload), content_type="application/json"
+        )
+
+        resp = views.create_user(req)
+        self.assertEqual(resp.status_code, 201)
+
     def test_create_story_success(self):
         payload = {
             "story_id": 3,
@@ -166,7 +253,7 @@ class ViewTests(TestCase):
             "org_id": self.org1.org_id,
             "name": "New Project",
             "curator": self.brenda.user_id,
-            "tags": ["X", "Y"]
+            "tags": ["X", "Y"],
         }
         req = self.factory.post(
             "/", data=json.dumps(payload), content_type="application/json"
