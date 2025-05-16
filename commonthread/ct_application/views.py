@@ -308,6 +308,12 @@ def get_new_access_token(request):
 @verify_user
 #@authorize_user('project','user')
 def get_project(request, user_id, org_id, project_id):
+    '''
+    Updates required:
+    -get user id from JWT?
+    -get org id from project id
+    -remove org + user id from inputs
+    '''
     # check user org and project IDs are provided
     if not all([user_id, org_id, project_id]):
         return HttpResponseNotFound(
@@ -332,16 +338,6 @@ def get_project(request, user_id, org_id, project_id):
             "Project does not belong to this organization. Not authorized.", status=404
         )
 
-    # how will this access level be defined? admin, curator, member?
-    # if not (
-    #     membership.access_level == "admin"
-    #     or project.curator == user.id
-    # ):
-    #     return HttpResponseForbidden(
-    #         "Insufficient access level to view this project.",
-    #         status=403
-    #     )
-
     # load whatever data you need for the dashboard and send to frontend
     story_count = Story.objects.filter(proj_id=project).count()
     tag_count = ProjectTag.objects.filter(proj_id=project).count()
@@ -365,6 +361,12 @@ def get_project(request, user_id, org_id, project_id):
 @verify_user
 #@authorize_user('org','user')
 def get_org(request, user_id, org_id):
+    '''
+    Updates Required:
+    -get user id from JWT?
+    -remove userid as field entry
+    '''
+
     try:
         if not all([user_id, org_id]):
             return HttpResponseNotFound(

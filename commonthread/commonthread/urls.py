@@ -25,20 +25,20 @@ from ct_application.views import (
     login,
     get_new_access_token,
     create_user,
-    get_user, #show_user_dashboard
+    get_user, #old show_user_dashboard
     get_user_detail,
     edit_user,
     delete_user,
     create_org,
-    get_org, #show_org_dashboard, the new get-stories
-    get_org_admin, #show_org_admin dasboard
+    get_org, #old show_org_dashboard, the new get-stories
+    get_org_admin, #old show_org_admin dasboard
     get_org_projects,
     edit_org,
     delete_org,
     add_user_to_org,
     delete_user_from_org,
     create_project,
-    get_project, #show_project_dashboard
+    get_project, #old show_project_dashboard
     edit_project,
     delete_project,
     get_story,

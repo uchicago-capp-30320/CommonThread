@@ -98,18 +98,18 @@ def test_refresh_ok(client, seed):
 # ───────── protected happy‑paths ─────────
 def test_org_dashboard_ok(client, seed, auth_headers):
     alice, org1 = seed["alice"], seed["org1"]
-    r = client.get(f"/org/{org1.id}/", **auth_headers())
+    r = client.get(f"/org/{org1.id}", **auth_headers())
     assert r.status_code == 200 and "stories" in r.json()
 
 def test_project_dashboard_ok(client, seed, auth_headers):
     alice, p = seed["alice"], seed["proj1"]
-    r = client.get(f"/org/{seed["org1"].id}/project/{p.id}/", #org1 hardcoded, just to test page working at all
+    r = client.get(f"/project/{p.id}", #org1 hardcoded, just to test page working at all
                    **auth_headers())
     assert r.status_code == 200 and r.json()["project_id"] == p.id
 
 def test_story_detail_ok(client, seed, auth_headers):
     s = seed["story1"]
-    r = client.get(f"/story/{s.id}/", **auth_headers())
+    r = client.get(f"/story/{s.id}", **auth_headers())
     assert r.status_code == 200 and r.json()["story_id"] == s.id
 
 # ───────── create happy‑paths ─────────
@@ -132,17 +132,17 @@ def test_create_story_ok(client, seed, auth_headers):
         "content": "Hi!", "proj": p.id,
         "tags": [{"name": "tagX", "value": 1}]
     }
-    r = client.post("/story/create/", json.dumps(payload),
+    r = client.post("/story/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
     assert r.status_code == 200
 
 # ───────── auth / permission edges ─────────
 def test_no_token_401(client):
-    assert client.get("/stories/").status_code == 401
+    assert client.get("/story/1").status_code == 401
 
 def test_malformed_token_401(client):
     hdrs = {"HTTP_AUTHORIZATION": "Bearer bad.token"}
-    assert client.get("/stories/", **hdrs).status_code == 401
+    assert client.get("/story/1", **hdrs).status_code == 401
 
 def test_expired_token_299(client, seed):
     hdrs = {"HTTP_AUTHORIZATION":
@@ -152,7 +152,7 @@ def test_expired_token_299(client, seed):
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
     hdrs = auth_headers("brenda", "secret456")
-    r = client.get(f"/org/{seed['brenda'].id}/{seed["org1"].id}/project/{p.id}/",
+    r = client.get(f"/project/{p.id}",
                    **hdrs)
     assert r.status_code == 403
 
@@ -163,12 +163,12 @@ def test_create_project_missing_org_400(client, auth_headers):
     assert r.status_code == 400
 
 def test_create_story_bad_json_400(client, auth_headers):
-    r = client.post("/story/create/", "not‑json",
+    r = client.post("/story/create", "not‑json",
                     content_type="application/json", **auth_headers())
     assert r.status_code == 400
 
 def test_create_org_missing_fields_400(client, auth_headers):
-    r = client.post("/org/create/", json.dumps({}),
+    r = client.post("/org/create", json.dumps({}),
                     content_type="application/json", **auth_headers())
     assert r.status_code == 400
 
