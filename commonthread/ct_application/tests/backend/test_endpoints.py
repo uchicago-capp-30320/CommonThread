@@ -29,7 +29,7 @@ def seed():
 
     org1, org2 = (
         Organization.objects.create(name="UChicago"),
-        Organization.objects.create(name="HP Hist Soc"),
+        Organization.objects.create(name="HP Hist Soc"),
     )
     OrgUser.objects.bulk_create([
         OrgUser(user_id=alice.id,  org_id=org1.id, access="admin"),
@@ -37,7 +37,7 @@ def seed():
     ])
 
     proj1 = Project.objects.create(
-        org_id=org1.id, name="Campus Tales",
+        org_id=org1.id, name="Campus Tales",
         curator=alice, date=datetime.date(2025, 4, 1)
     )
     story1 = Story.objects.create(
@@ -45,7 +45,7 @@ def seed():
         curator=alice, date=datetime.date(2025, 4, 5),
         text_content="Hello!"
     )
-    tag = Tag.objects.create(name="fun", required=False)
+    tag = Tag.objects.create(name="fun", value="yes", required=False)
     StoryTag.objects.create(story_id=story1.id, tag_id=tag.id)
     ProjectTag.objects.create(proj_id=proj1.id, tag_id=tag.id)
 
@@ -103,7 +103,7 @@ def test_org_dashboard_ok(client, seed, auth_headers):
 
 def test_project_dashboard_ok(client, seed, auth_headers):
     alice, p = seed["alice"], seed["proj1"]
-    r = client.get(f"/project/{p.id}", #org1 hardcoded, just to test page working at all
+    r = client.get(f"/project/{p.org_id}/{p.id}", #org1 hardcoded, just to test page working at all
                    **auth_headers())
     assert r.status_code == 200 and r.json()["project_id"] == p.id
 
@@ -118,7 +118,7 @@ def test_create_project_ok(client, seed, auth_headers):
     payload = {
         "org_id":  org1.id,
         "name":    "New Project",
-        "curator": alice,
+        "curator": alice.id,
         "date":    "2025-05-01"
     }
     r = client.post("/project/create", json.dumps(payload),
@@ -128,9 +128,9 @@ def test_create_project_ok(client, seed, auth_headers):
 def test_create_story_ok(client, seed, auth_headers):
     p, alice = seed["proj1"], seed["alice"]
     payload = {
-        "storyteller": "Testy", "curator": alice,
-        "content": "Hi!", "proj": p.id,
-        "tags": [{"name": "tagX", "value": 1}]
+        "storyteller": "Testy", "curator": alice.id,
+        "text_content": "Hi!", "proj_id": p.id,
+        "tags": [{"name": "tagX", "value": 1, "required": False}],
     }
     r = client.post("/story/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
@@ -152,7 +152,7 @@ def test_expired_token_299(client, seed):
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
     hdrs = auth_headers("brenda", "secret456")
-    r = client.get(f"/project/{p.id}",
+    r = client.get(f"/project/{p.org_id}/{p.id}",
                    **hdrs)
     assert r.status_code == 403
 

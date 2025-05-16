@@ -302,7 +302,7 @@ def get_new_access_token(request):
         )
 
 
-@verify_user
+# @verify_user
 #@authorize_user('project','user')
 def get_project(request, org_id, project_id):
     '''
@@ -311,30 +311,25 @@ def get_project(request, org_id, project_id):
     -get org id from project id
     -remove org + user id from inputs
     '''
+
     # check user org and project IDs are provided
     if not all([org_id, project_id]):
         return HttpResponseNotFound(
-            "User ID, Organization ID, or Project ID not provided.", status=404
+            "Organization ID or Project ID not provided.", status=404
         )
     # load user and org or throw 404 if not found
     org = get_object_or_404(Organization, pk=org_id)
 
     # project may not belong to the org, so check that too
     project = get_object_or_404(Project, pk=project_id)
-    if project.org_id != org:
+    if project.org_id != org.id:
         return HttpResponseNotFound(
             "Project does not belong to this organization. Not authorized.", status=404
         )
 
     # load whatever data you need for the dashboard and send to frontend
-    story_count = Story.objects.filter(proj_id=project).count()
-    tag_count = ProjectTag.objects.filter(proj_id=project).count()
-    # data= {
-    #     "user": user,
-    #     "org": org,
-    #     "project": project,
-    #     # Add any other data you need for the dashboard
-    # }
+    story_count = Story.objects.filter(proj_id=project.id).count()
+    tag_count = ProjectTag.objects.filter(proj_id=project.id).count()
 
     return JsonResponse(
         {
@@ -345,7 +340,8 @@ def get_project(request, org_id, project_id):
         status=200,
     )
 
-@verify_user
+
+# @verify_user
 #@authorize_user('org','user')
 def get_org(request, org_id):
     '''
@@ -371,9 +367,15 @@ def get_org(request, org_id):
             story_tags = StoryTag.objects.filter(story_id=story).select_related(
                 "tag"
             )
-            tags = [
-                {"name": st.tag_id, "value": st.tag_id} for st in story_tags
-            ]
+            
+            tags = []
+            for st in story_tags:
+                tag_obj = Tag.objects.get(id = st.tag_id)
+                tag = {
+                    "name": tag_obj.name,
+                    "value": tag_obj.value
+                }
+                tags.append(tag)
 
             story_list.append(
                 {
@@ -407,19 +409,25 @@ def get_story(request, story_id=None):
     if story_id:
         try:
             story = Story.objects.select_related("proj").get(id=story_id)
-
+            project = Project.objects.get(id=story.proj_id)
             story_tags = StoryTag.objects.filter(story_id=story).select_related(
                 "tag"
             )
-            tags = [
-                {"name": st.tag_id.name, "value": st.tag_id.value} for st in story_tags
-            ]
+
+            tags = []
+            for st in story_tags:
+                tag_obj = Tag.objects.get(id = st.tag_id)
+                tag = {
+                    "name": tag_obj.name,
+                    "value": tag_obj.value
+                }
+                tags.append(tag)
 
             return JsonResponse(
                 {
                     "story_id": story.id,
-                    "project_id": story.proj_id.id,
-                    "project_name": story.proj_id.name,
+                    "project_id": story.proj_id,
+                    "project_name": project.name,
                     "storyteller": story.storyteller,
                     "curator": story.curator.id if story.curator else None,
                     "date": story.date,
@@ -507,7 +515,7 @@ def create_story(request):
                 curator_id=story_data.get("curator"),
                 date=timezone.now(),
                 text_content=story_data["text_content"],
-                proj_id=project,
+                proj_id=project.id,
             )
             print("Created story:", story)
         except Exception as e:
@@ -519,9 +527,9 @@ def create_story(request):
         if "tags" in story_data:
             for tag_data in story_data["tags"]:
                 tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"]
+                    name=tag_data["name"], value=tag_data["value"], required=tag_data["required"]
                 )
-                StoryTag.objects.create(story_id=story, tag_id=tag)
+                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
                 print("Created tag:", tag)
 
         return JsonResponse({"story_id": story.id}, status=200)
@@ -718,7 +726,7 @@ def create_project(request):
         project = Project.objects.create(
             name=project_data["name"],
             curator_id=project_data["curator"],
-            org_id=org,
+            org_id=org.id,
             date=project_data.get("date", str(date.today())),
         )
 
@@ -727,8 +735,8 @@ def create_project(request):
         for tag_name in tags:
             tag = Tag.objects.create(name=tag_name)
             ProjectTag.objects.create(
-                tag_id=tag,
-                proj_id=project,
+                tag_id=tag.id,
+                proj_id=project.id,
             )
 
         return JsonResponse(
