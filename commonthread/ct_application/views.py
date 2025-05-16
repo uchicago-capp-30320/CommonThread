@@ -637,6 +637,9 @@ def create_story(request):
             # i think we do not need to mention what type of queue producer we are using
             # perhaps a better way is to specify in settings.py what type of queue producer we are using and then import it here
             producer = SQSQueueProducer()
+            #ideally we will disable based on what the user has selected
+            #so, story_data['transcription'] will be a boolean(need to add in the future)
+            producer.disable_task('transcription')
             producer.add_to_queue(story)
         except Exception as e:
             print("Error adding tasks to queue:", str(e))
