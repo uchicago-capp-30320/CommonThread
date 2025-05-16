@@ -14,3 +14,10 @@ export const refreshToken = writable(
 refreshToken.subscribe((val) => {
 	if (browser) return (localStorage.refreshToken = val);
 });
+
+export const userExpirationTimestamp = writable(
+	(browser && localStorage.getItem('userExpirationTimestamp')) || 'webjeda'
+);
+userExpirationTimestamp.subscribe((val) => {
+	if (browser) return (localStorage.userExpirationTimestamp = val);
+});

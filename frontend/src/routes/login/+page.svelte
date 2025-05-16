@@ -2,9 +2,10 @@
 	// Load design assets
 	import background_texture from '$lib/assets/background_texture.png';
 
-	import { accessToken, refreshToken, ipAddress } from '$lib/store.js';
+	import { accessToken, refreshToken, ipAddress, userExpirationTimestamp } from '$lib/store.js';
 
 	import { redirect } from '@sveltejs/kit';
+	import { utcFormat } from 'd3-time-format';
 
 	let username = $state('');
 	let password = $state('');
@@ -35,6 +36,11 @@
 
 		refreshToken.set(response_data.refresh_token);
 		console.log('refreshToken', $refreshToken);
+
+		// Set expiration timestamp for 7 days from now
+		userExpirationTimestamp.set(
+			utcFormat(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))('%Y-%m-%dT%H:%M:%S')
+		);
 
 		const ok = response_data.success;
 
