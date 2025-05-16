@@ -33,6 +33,10 @@
 		const loadedData = await data.json();
 		console.log('Data fetched:', loadedData);
 
+		if (loadedData.newAccessToken) {
+			accessToken.set(loadedData.newAccessToken);
+		}
+
 		stories = loadedData['stories'];
 		orgName = loadedData['org_name'];
 		projectsTotal = new Set(stories.map((story) => story.project_id)).size;

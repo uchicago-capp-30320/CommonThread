@@ -12,14 +12,17 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 			Authorization: `Bearer ${accessToken}`
 		}
 	});
+	if (ogResponse.status === 200) {
+		const data = await ogResponse.json();
+		return { data, newAccessToken: null };
+	}
 
 	if (ogResponse.status === 299) {
-		const newAccessToken = getNewAccessToken(refreshToken);
+		console.log('need to refresh token');
+		const newAccessToken = await getNewAccessToken(refreshToken);
+		console.log('newAccessToken', newAccessToken);
 
-		if (newAccessToken) {
-			// update access token
-			accessToken.value = newAccessToken;
-		} else {
+		if (!newAccessToken) {
 			console.log('Failed to get new access token');
 			return;
 		}
@@ -28,12 +31,12 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 			method: method,
 			headers: {
 				'Content-Type': 'application/json',
-				Authorization: `Bearer ${accessToken}`
+				Authorization: `Bearer ${newAccessToken}`
 			}
 		});
 		if (retryResponse.status === 200) {
 			data = await retryResponse.json();
-			return data;
+			return { data, newAccessToken: newAccessToken };
 		} else {
 			console.log('Retry request failed');
 			return;
@@ -49,7 +52,9 @@ async function getNewAccessToken(refreshToken) {
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		credentials: 'include'
+		body: JSON.stringify({
+			refresh_token: refreshToken
+		})
 	});
 	if (refreshResponse.status === 200) {
 		const data = await refreshResponse.json();
