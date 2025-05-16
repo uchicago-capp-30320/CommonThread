@@ -302,7 +302,7 @@ def get_new_access_token(request):
         )
 
 
-@verify_user
+# @verify_user
 #@authorize_user('project','user')
 def get_project(request, org_id, project_id):
     '''
@@ -311,30 +311,25 @@ def get_project(request, org_id, project_id):
     -get org id from project id
     -remove org + user id from inputs
     '''
+
     # check user org and project IDs are provided
     if not all([org_id, project_id]):
         return HttpResponseNotFound(
-            "User ID, Organization ID, or Project ID not provided.", status=404
+            "Organization ID or Project ID not provided.", status=404
         )
     # load user and org or throw 404 if not found
     org = get_object_or_404(Organization, pk=org_id)
 
     # project may not belong to the org, so check that too
     project = get_object_or_404(Project, pk=project_id)
-    if project.org_id != org:
+    if project.org_id != org.id:
         return HttpResponseNotFound(
             "Project does not belong to this organization. Not authorized.", status=404
         )
 
     # load whatever data you need for the dashboard and send to frontend
-    story_count = Story.objects.filter(proj_id=project).count()
-    tag_count = ProjectTag.objects.filter(proj_id=project).count()
-    # data= {
-    #     "user": user,
-    #     "org": org,
-    #     "project": project,
-    #     # Add any other data you need for the dashboard
-    # }
+    story_count = Story.objects.filter(proj_id=project.id).count()
+    tag_count = ProjectTag.objects.filter(proj_id=project.id).count()
 
     return JsonResponse(
         {
@@ -346,7 +341,7 @@ def get_project(request, org_id, project_id):
     )
 
 
-@verify_user
+# @verify_user
 #@authorize_user('org','user')
 def get_org(request, org_id):
     '''
