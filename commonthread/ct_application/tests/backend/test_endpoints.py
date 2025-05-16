@@ -90,7 +90,7 @@ def test_refresh_ok(client, seed):
     body = {"post_data": {"username": "alice", "password": "pass123"}}
     res  = client.post("/login", json.dumps(body), content_type="application/json")
     ref  = res.json()["refresh_token"]
-    r = client.post("/login/create_access",
+    r = client.post("/create_access",
                     json.dumps({"refresh_token": ref}),
                     content_type="application/json")
     assert r.status_code == 200 and "access_token" in r.json()
@@ -98,18 +98,18 @@ def test_refresh_ok(client, seed):
 # ───────── protected happy‑paths ─────────
 def test_org_dashboard_ok(client, seed, auth_headers):
     alice, org1 = seed["alice"], seed["org1"]
-    r = client.get(f"/org/{alice.id}/{org1.id}/", **auth_headers())
+    r = client.get(f"/org/{org1.id}/", **auth_headers())
     assert r.status_code == 200 and "stories" in r.json()
 
 def test_project_dashboard_ok(client, seed, auth_headers):
     alice, p = seed["alice"], seed["proj1"]
-    r = client.get(f"/org/{alice.id}/{seed["org1"].id}/project/{p.id}/", #org1 hardcoded, just to test page working at all
+    r = client.get(f"/org/{seed["org1"].id}/project/{p.id}/", #org1 hardcoded, just to test page working at all
                    **auth_headers())
     assert r.status_code == 200 and r.json()["project_id"] == p.id
 
 def test_story_detail_ok(client, seed, auth_headers):
     s = seed["story1"]
-    r = client.get(f"/stories/{s.id}/", **auth_headers())
+    r = client.get(f"/story/{s.id}/", **auth_headers())
     assert r.status_code == 200 and r.json()["story_id"] == s.id
 
 # ───────── create happy‑paths ─────────
@@ -132,7 +132,7 @@ def test_create_story_ok(client, seed, auth_headers):
         "content": "Hi!", "proj": p.id,
         "tags": [{"name": "tagX", "value": 1}]
     }
-    r = client.post("/stories/create/", json.dumps(payload),
+    r = client.post("/story/create/", json.dumps(payload),
                     content_type="application/json", **auth_headers())
     assert r.status_code == 200
 
@@ -147,7 +147,7 @@ def test_malformed_token_401(client):
 def test_expired_token_299(client, seed):
     hdrs = {"HTTP_AUTHORIZATION":
             f"Bearer {expired_access_token(seed['alice'].id)}"}
-    assert client.get("/stories/", **hdrs).status_code == 299
+    assert client.get("/story/1", **hdrs).status_code == 299
 
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
@@ -163,7 +163,7 @@ def test_create_project_missing_org_400(client, auth_headers):
     assert r.status_code == 400
 
 def test_create_story_bad_json_400(client, auth_headers):
-    r = client.post("/stories/create/", "not‑json",
+    r = client.post("/story/create/", "not‑json",
                     content_type="application/json", **auth_headers())
     assert r.status_code == 400
 
@@ -174,12 +174,12 @@ def test_create_org_missing_fields_400(client, auth_headers):
 
 # ───────── refresh edges ─────────
 def test_refresh_missing_token_400(client):
-    r = client.post("/login/create_access", json.dumps({}),
+    r = client.post("/create_access", json.dumps({}),
                     content_type="application/json")
     assert r.status_code == 400
 
 def test_refresh_invalid_token_401(client):
-    r = client.post("/login/create_access",
+    r = client.post("/create_access",
                     json.dumps({"refresh_token": "bogus"}),
                     content_type="application/json")
     assert r.status_code == 401
