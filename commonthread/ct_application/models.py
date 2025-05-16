@@ -36,6 +36,8 @@ class Organization(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(default="")
     profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
+    description = models.TextField(default="")
+    profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
 
 
 # project
@@ -66,6 +68,7 @@ class Story(models.Model):
 
 # tag
 class Tag(models.Model):
+    tag_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     value = models.CharField(max_length=100, null=True, blank=True)  # Allow null values
     required = models.BooleanField()
