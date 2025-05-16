@@ -8,6 +8,7 @@ from typing import Dict, List
 from abc import ABC, abstractmethod
 from ct_application.models import Story, MLProcessingQueue
 
+
 logger = logging.getLogger(__name__)
 
 class MLTask:
@@ -19,30 +20,6 @@ class MLTask:
 # Abstract class for task producers
 class TaskProducer(ABC):
     def __init__(self):
-        pass
-    @abstractmethod
-    def enable_task(self, task_type: str):
-        pass
-    @abstractmethod
-    def disable_task(self, task_type: str):
-        pass
-    @abstractmethod
-    def get_enabled_tasks(self) -> List[MLTask]:
-        pass
-    @abstractmethod
-    def produce_tasks(self, story: Story) -> Dict:  
-        pass
-
-class SQSTaskProducer(TaskProducer):
-    def __init__(self):
-        self.sqs = boto3.client(
-            'sqs',
-            aws_access_key_id=settings.AWS_ACCESS_KEY,
-            aws_secret_access_key=settings.AWS_SECRET_KEY,
-            region_name=settings.AWS_REGION
-        )
-        self.queue_url = settings.SQS_QUEUE_URL
-        
         self.tasks = {
             'tag': MLTask('tag'),
             'summary': MLTask('summary'),
@@ -59,6 +36,22 @@ class SQSTaskProducer(TaskProducer):
 
     def get_enabled_tasks(self) -> List[MLTask]:
         return [task for task in self.tasks.values() if task.enabled]
+
+    @abstractmethod
+    def produce_tasks(self, story: Story) -> Dict:  
+        pass
+
+
+class SQSTaskProducer(TaskProducer):
+    def __init__(self):
+        super().__init__()  
+        self.sqs = boto3.client(
+            'sqs',
+            aws_access_key_id=settings.AWS_ACCESS_KEY,
+            aws_secret_access_key=settings.AWS_SECRET_KEY,
+            region_name=settings.AWS_REGION
+        )
+        self.queue_url = settings.SQS_QUEUE_URL
 
     def _create_queue_entries(self, story: Story) -> List[MLProcessingQueue]:
         entries = []
