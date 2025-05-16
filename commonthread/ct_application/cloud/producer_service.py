@@ -1,6 +1,5 @@
 import boto3
 import json
-import logging
 from datetime import datetime
 from django.conf import settings
 from django.db import transaction
@@ -9,7 +8,6 @@ from abc import ABC, abstractmethod
 from ct_application.models import Story, MLProcessingQueue
 
 
-logger = logging.getLogger(__name__)
 
 class MLTask:
     def __init__(self, task_type: str, enabled: bool = True, story_level: bool = True):
@@ -23,6 +21,7 @@ class QueueProducer(ABC):
         self.tasks = {
             'tag': MLTask('tag'),
             'summary': MLTask('summary'),
+            'transcription': MLTask('transcription'),
             'insight': MLTask('insight', story_level=False) #insight is a project level task
         }
 
@@ -95,7 +94,7 @@ class SQSQueueProducer(QueueProducer):
                 return {'success': True, 'task_ids': task_ids}
 
         except Exception as e:
-            logger.error(f"Failed to produce ML tasks for story {story.id}: {str(e)}")
+            print(f"Failed to produce ML tasks for story {story.id}: {str(e)}")
             return {'success': False, 'error': str(e)}
 
  
