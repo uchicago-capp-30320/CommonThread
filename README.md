@@ -1,9 +1,7 @@
-![Repo structure](diagram.svg)
-
-![GitHub License](https://img.shields.io/github/license/uchicago-capp-30320/CivicLens?color=133335)
-![Files](https://img.shields.io/github/directory-file-count/uchicago-capp-30320/CivicLens?color=%23d0fdb9) 
-![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-closed/uchicago-capp-30320/CivicLens?color=%2356bcb3)
-![Contributors](https://img.shields.io/github/contributors/uchicago-capp-30320/CivicLens)
+![GitHub License](https://img.shields.io/github/license/uchicago-capp-30320/CommonThread?color=133335)
+![Files](https://img.shields.io/github/directory-file-count/uchicago-capp-30320/CommonThread?color=%23d0fdb9) 
+![GitHub Issues or Pull Requests](https://img.shields.io/github/issues-closed/uchicago-capp-30320/CommonThread?color=%2356bcb3)
+![Contributors](https://img.shields.io/github/contributors/uchicago-capp-30320/CommonThread)
 
 ![CommonThread Banner with a logo of four hands forming a ball of yarn](CommonThread_Banner.png)
 
@@ -15,6 +13,7 @@
 ## Tech Stack :toolbox:
 ![GIT](https://img.shields.io/badge/GIT-E44C30?style=for-the-badge&logo=git&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![AWS](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)
 ![Python](https://img.shields.io/badge/Python-FFD43B?style=for-the-badge&logo=python&logoColor=blue)
 ![Django](https://img.shields.io/badge/Django-092E20?style=for-the-badge&logo=django&logoColor=green)
 ![JSON](https://img.shields.io/badge/json-5E5C5C?style=for-the-badge&logo=json&logoColor=white)
@@ -27,6 +26,7 @@
 ![Bulma](https://img.shields.io/badge/Bulma-00D1B2?style=for-the-badge&logo=Bulma&logoColor=white)
 ![Pytest](https://img.shields.io/badge/pytest-%23ffffff.svg?style=for-the-badge&logo=pytest&logoColor=2f9fe3)
 ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+
 ## Set Up 
 
 ### Backend :hammer:
