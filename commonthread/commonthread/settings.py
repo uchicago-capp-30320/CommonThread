@@ -33,6 +33,16 @@ DATABASE_PORT = os.getenv("DATABASE_PORT")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_REFRESH_SECRET_KEY = os.getenv("JWT_REFRESH_SECRET_KEY")
 
+AWS_ACCESS_KEY_ID     = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_S3_REGION_NAME    = os.getenv("AWS_S3_REGION_NAME")
+
+CT_BUCKET_USER_PROFILES = os.getenv("CT_BUCKET_USER_PROFILES")
+CT_BUCKET_ORG_PROFILES  = os.getenv("CT_BUCKET_ORG_PROFILES")
+CT_BUCKET_STORY_IMAGES  = os.getenv("CT_BUCKET_STORY_IMAGES")
+CT_BUCKET_STORY_AUDIO   = os.getenv("CT_BUCKET_STORY_AUDIO")
+
+SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 # if not SECRET_KEY:
     # raise ImproperlyConfigured("Secret Key not set in .env! Please set SECRET_KEY in an .env file next to your manage.py")
 
@@ -77,7 +87,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'corsheaders',
+    'storages'
 ]
+
+DEFAULT_FILE_STORAGE = "storages.backends.s3boto3.S3Boto3Storage"
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',

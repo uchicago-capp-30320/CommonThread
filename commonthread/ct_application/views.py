@@ -12,7 +12,9 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseBadRequest,
 )
+from django.conf import settings
 from .utils import (
+    generate_s3_presigned,
     generate_access_token,
     generate_refresh_token,
     decode_refresh_token,
@@ -592,7 +594,7 @@ def create_story(request):
         print("Traceback:", traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=400)
 
-
+@csrf_exempt
 @require_POST
 def create_user(request):
     """
@@ -625,7 +627,7 @@ def create_user(request):
 
     try:
         # this needs to be CustomUser
-        CustomUser.objects.create_user(
+        user = CustomUser.objects.create_user(
             username=username,
             password=password,
             first_name=user_data.get("first_name", ""),
@@ -636,7 +638,18 @@ def create_user(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    return JsonResponse({"success": True}, status=201)
+    # generate presigned upload data for this new user's profile picture
+    presign = generate_s3_presigned(
+        bucket_name=settings.CT_BUCKET_USER_PROFILES,
+        key=f"profile-pictures/{user.id}.png",
+        operation="upload",
+        content_type="image/png",
+        expiration=3600,
+    )
+    return JsonResponse({"success": True, "upload": {
+            "url": presign["url"],
+            "fields": presign["fields"]
+        }}, status=201)
 
 
 @require_POST
