@@ -21,16 +21,23 @@
 	$inspect(stories);
 
 	onMount(async () => {
-		// first make a request to get list of orgs that user is a part of
-		const orgs = await authRequest(`/orgs`, 'GET', $accessToken, $refreshToken);
-		const orgsData = await orgs.json();
-		console.log('Orgs fetched:', orgsData);
-		const defaultOrg = orgsData[0].org_id;
-		orgName = orgsData[0].org_name;
+		// // first make a request to get list of orgs that user is a part of
+		// const orgs = await authRequest(`/org/1`, 'GET', $accessToken, $refreshToken);
+		// console.log('Orgs response:', orgs);
+
+		// if (orgs.newAccessToken) {
+		// 	accessToken.set(orgs.newAccessToken);
+		// }
+
+		// const orgsData = await orgs.data;
+		// console.log('Orgs fetched:', orgsData);
+		const defaultOrg = 1;
+		// orgName = orgsData.org_name;
 
 		// Fetch the data when the component mounts
-		const data = await authRequest(`/orgs/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
-		const loadedData = await data.json();
+		const response = await authRequest(`/org/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
+		console.log('Response:', response);
+		const loadedData = response.data;
 		console.log('Data fetched:', loadedData);
 
 		if (loadedData.newAccessToken) {
@@ -132,27 +139,37 @@
 
 	<hr />
 
-	{#if stories.length === 0}
-		<p class="has-text-centered">Loading Stories...</p>
-	{:else if type === 'project'}
-		<div class="columns mt-4 is-multiline">
-			{#each projects as project}
-				<div class="column is-one-third">
-					<ProjectCard {project} />
+	<div class="container">
+		{#if stories.length === 0}
+			{#each [1, 2, 3] as project}
+				<div class="columns mt-4 is-multiline">
+					{#each [1, 2, 3] as _}
+						<div class="column is-one-third">
+							<div class="skeleton-block" style="height: 250px;"></div>
+						</div>
+					{/each}
 				</div>
 			{/each}
-		</div>
-	{:else if type === 'story'}
-		{#each stories as story}
-			<div class="">
-				<StoryPreview {story} />
+		{:else if type === 'project'}
+			<div class="columns mt-4 is-multiline">
+				{#each projects as project}
+					<div class="column is-one-third">
+						<ProjectCard {project} />
+					</div>
+				{/each}
 			</div>
-		{/each}
-	{:else if type === 'dash'}
-		<DataDashboard {stories} />
-	{:else}
-		<p class="has-text-centered">No stories available</p>
-	{/if}
+		{:else if type === 'story'}
+			{#each stories as story}
+				<div class="">
+					<StoryPreview {story} />
+				</div>
+			{/each}
+		{:else if type === 'dash'}
+			<DataDashboard {stories} />
+		{:else}
+			<p class="has-text-centered">No stories available</p>
+		{/if}
+	</div>
 </div>
 
 <style>

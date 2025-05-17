@@ -1,6 +1,7 @@
 import { ipAddress } from '$lib/store.js';
 
 export async function authRequest(url, method, accessToken, refreshToken) {
+	let data;
 	// Get the access token from cookies
 	console.log('accessToken', accessToken);
 	console.log('ipAddress', ipAddress + url);
@@ -13,7 +14,7 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 		}
 	});
 	if (ogResponse.status === 200) {
-		const data = await ogResponse.json();
+		data = await ogResponse.json();
 		return { data, newAccessToken: null };
 	}
 
@@ -34,8 +35,11 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 				Authorization: `Bearer ${newAccessToken}`
 			}
 		});
+
 		if (retryResponse.status === 200) {
+			console.log('Retry request successful', retryResponse);
 			data = await retryResponse.json();
+
 			return { data, newAccessToken: newAccessToken };
 		} else {
 			console.log('Retry request failed');
@@ -47,7 +51,7 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 }
 
 async function getNewAccessToken(refreshToken) {
-	const refreshResponse = await fetch(`${ipAddress}/login/create_access`, {
+	const refreshResponse = await fetch(`${ipAddress}/create_access`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
