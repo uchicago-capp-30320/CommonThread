@@ -1,11 +1,11 @@
 from typing import Union, BinaryIO, Optional
 from transformers import pipeline
 from abc import ABC, abstractmethod
-from deepgram import Deepgram
+from deepgram import DeepgramClient, PrerecordedOptions
 import os
 
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 class AudioInput:
-    """Class to encapsulate different types of audio inputs"""
     def __init__(
         self, 
         audio_file: Optional[Union[str, BinaryIO]] = None,
@@ -20,12 +20,14 @@ class AudioInput:
     def is_presigned(self) -> bool:
         return self.presigned_url is not None
 
+
+
 class TranscribingStrategy(ABC):
-    """Abstract base class for transcription strategies."""
     
     @abstractmethod
     def transcribe(self, audio_input: AudioInput) -> str:
         pass 
+
 
 class HFTranscribingStrategy(TranscribingStrategy):
     def __init__(self, model_name: str = "openai/whisper-base"):
@@ -41,25 +43,36 @@ class HFTranscribingStrategy(TranscribingStrategy):
         result = self.transcriber(audio_input.audio_file)
         return result["text"]
 
+
+
 class DeepgramTranscribingStrategy(TranscribingStrategy):
     def __init__(self):
-        api_key = os.environ["DEEPGRAM_API_KEY"]
-        self.deepgram = Deepgram(api_key)
+        if not DEEPGRAM_API_KEY:
+            raise ValueError("DEEPGRAM_API_KEY environment variable is not set")
+        self.deepgram = DeepgramClient(DEEPGRAM_API_KEY)
 
     def transcribe(self, audio_input: AudioInput) -> str:
-        options = {
-            "smart_format": True,
-            "model": "nova-3",
-        }
+        options = PrerecordedOptions(
+            smart_format=True,
+            model="nova-3",
+        )
 
         if audio_input.is_presigned:
             source = {"url": audio_input.presigned_url}
+            response = self.deepgram.listen.rest.v("1").transcribe_url(source, options)
         else:
-            # Handle direct audio file input
             if hasattr(audio_input.audio_file, 'read'):
-                source = {"buffer": audio_input.audio_file, "mimetype": 'audio/mp3'}
+                buffer_data = audio_input.audio_file.read()
+                payload = {
+                    "buffer": buffer_data,
+                }
+                response = self.deepgram.listen.rest.v("1").transcribe_file(payload, options)
             else:
-                source = {"url": audio_input.audio_file}
+                with open(audio_input.audio_file, "rb") as file:
+                    buffer_data = file.read()
+                payload = {
+                    "buffer": buffer_data,
+                }
+                response = self.deepgram.listen.rest.v("1").transcribe_file(payload, options)
 
-        result = self.deepgram.transcription.sync_prerecorded(source, options)
-        return result['results']['channels'][0]['alternatives'][0]['transcript']
+        return response.results.channels[0].alternatives[0].transcript

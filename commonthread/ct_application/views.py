@@ -36,7 +36,7 @@ from django.utils import timezone
 import traceback
 from functools import wraps
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-from cloud.producer_service import SQSQueueProducer
+from cloud.producer_service import QueueProducer
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -588,6 +588,11 @@ def create_story(request):
                 )
                 StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
                 print("Created tag:", tag)
+
+        # Add ML tasks to the queue
+        queue_producer = QueueProducer()
+        queue_producer.disable_task("transcription")
+        queue_producer.add_to_queue(story)
 
         return JsonResponse({"story_id": story.id}, status=200)
     except Exception as e:
