@@ -75,7 +75,7 @@
 			<div class="level-right">
 				<div class="level-item">
 					<p class="subtitle is-5">
-						<strong>{storiesTotal}</strong> Stories
+						<strong>{projectData.story_count}</strong> Stories
 					</p>
 				</div>
 				{#if type === 'story'}
