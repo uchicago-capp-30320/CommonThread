@@ -16,36 +16,27 @@
 	let projects = $state([]);
 	let orgName = $state('Loading...');
 
-	let params = $state(page.params);
-
 	$inspect(stories);
 
 	onMount(async () => {
-		// // first make a request to get list of orgs that user is a part of
-		// const orgs = await authRequest(`/org/1`, 'GET', $accessToken, $refreshToken);
-		// console.log('Orgs response:', orgs);
-
-		// if (orgs.newAccessToken) {
-		// 	accessToken.set(orgs.newAccessToken);
-		// }
-
-		// const orgsData = await orgs.data;
-		// console.log('Orgs fetched:', orgsData);
-		const defaultOrg = 1;
-		// orgName = orgsData.org_name;
-
 		// Fetch the data when the component mounts
-		const response = await authRequest(`/org/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
-		console.log('Response:', response);
-		const loadedData = response.data;
-		console.log('Data fetched:', loadedData);
+		const org_id = page.params.org_id;
 
-		if (loadedData.newAccessToken) {
-			accessToken.set(loadedData.newAccessToken);
+		// Make both requests concurrently using Promise.all
+		const [storiesResponse, orgResponse] = await Promise.all([
+			authRequest(`/stories?org_id=${org_id}`, 'GET', $accessToken, $refreshToken),
+			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken)
+		]);
+
+		orgName = orgResponse.data.name;
+
+		if (storiesResponse.newAccessToken) {
+			accessToken.set(storiesResponse.newAccessToken);
 		}
 
+		const loadedData = storiesResponse.data;
+
 		stories = loadedData['stories'];
-		orgName = loadedData['org_name'];
 		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
 		storiesTotal = stories.length;
 
@@ -100,9 +91,6 @@
 						<button
 							class="button {type === 'story' ? 'active' : ''}"
 							onclick={() => (type = 'story')}>Story View</button
-						>
-						<button class="button {type === 'dash' ? 'active' : ''}" onclick={() => (type = 'dash')}
-							>Dashboard</button
 						>
 					</div>
 				</div>
@@ -164,9 +152,6 @@
 					<StoryPreview {story} />
 				</div>
 			{/each}
-		{:else if type === 'dash'}
-			<DataDashboard {stories} />
-		{:else}
 			<p class="has-text-centered">No stories available</p>
 		{/if}
 	</div>

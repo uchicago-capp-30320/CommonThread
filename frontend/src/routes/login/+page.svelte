@@ -1,6 +1,7 @@
 <script>
 	// Load design assets
 	import background_texture from '$lib/assets/background_texture.png';
+	import { authRequest } from '$lib/authRequest';
 
 	import { accessToken, refreshToken, ipAddress, userExpirationTimestamp } from '$lib/store.js';
 
@@ -46,8 +47,16 @@
 
 		// Handle redirect if login is successful
 		if (ok) {
+			const user = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
+			console.log('user', user);
+
+			const org_id = user.data.orgs[0].org_id;
+
+			// TODO find org_id from response data?
+			//const org_id = response_data.org_id;
+
 			// Use window.location for client-side navigation
-			window.location.href = '/org/1';
+			window.location.href = `/org/${org_id}`;
 		} else {
 			redirect(303, '/signup');
 		}

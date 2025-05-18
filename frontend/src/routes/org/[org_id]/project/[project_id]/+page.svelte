@@ -3,66 +3,48 @@
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 
-	//import { authRequest } from '$lib/authRequest.js';
+	import { authRequest } from '$lib/authRequest.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	//import { accessToken, refreshToken } from '$lib/store.js';
+	import { accessToken, refreshToken } from '$lib/store.js';
 
-	let projectData = $state({
-		projectName: 'Test Project',
-		description: 'This is a test description',
-		storiesTotal: 1000
-	});
+	let stories = $state([]);
+	let projectData = $state({ name: 'Loading...', insight: 'Loading...', story_count: 0 });
+	let projectsTotal = $state('...');
+	let storiesTotal = $state('...');
+	let themeColor = $state('#133335');
 	let type = $state('dash');
-	let stories = $state([
-		{
-			id: 1,
-			tags: { topic: 'health', location: 'chicago' },
-			curator: 'John Doe',
-			storyteller: 'Fatima',
-			date: '2023-01-01',
-			content: 'This is a test story'
-		},
-		{
-			id: 2,
-			tags: { topic: 'health', location: 'chicago' },
-			curator: 'Jane Doe',
-			storyteller: 'Austin',
-			date: '2023-01-02',
-			content: 'This is a test story'
-		},
-		{
-			id: 2,
-			tags: { topic: 'health', location: 'chicago' },
-			curator: 'Jane Doe',
-			storyteller: 'Austin',
-			date: '2023-01-02',
-			content: 'This is a test story'
-		}
-	]);
-	let storiesTotal = $derived(stories.length);
-
-	let params = $state(page.params);
-
+	$inspect(projectData);
 	$inspect(stories);
 
 	onMount(async () => {
-		// first make a request to get list of orgs that user is a part of
-		//const project = await authRequest(`/projects`, 'GET', $accessToken, $refreshToken);
-		//projectData = await project.json();
-		console.log('project fetched:', projectData);
-	});
+		// Fetch the data when the component mounts
+		const project_id = page.params.project_id;
 
-	let themeColor = $state('#133335');
+		// Make both requests concurrently using Promise.all
+		const [storiesResponse, projectResponse] = await Promise.all([
+			authRequest(`/stories?project_id=${project_id}`, 'GET', $accessToken, $refreshToken),
+			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+		]);
+
+		if (storiesResponse.newAccessToken) {
+			accessToken.set(storiesResponse.newAccessToken);
+		}
+
+		projectData = projectResponse.data;
+
+		const loadedData = storiesResponse.data;
+		stories = loadedData['stories'];
+	});
 </script>
 
 <div class="container">
 	<div class="p-5">
 		<OrgHeader
-			org_name={projectData.projectName}
-			description={projectData.description}
-			numProjects="1"
-			numStories={projectData.storiesTotal}
+			org_name={projectData.project_name}
+			description={projectData.insight}
+			numProjects={projectData.story_count}
+			numStories={projectData.story_count}
 			--card-color={themeColor}
 		/>
 	</div>
@@ -115,7 +97,15 @@
 	<hr />
 
 	{#if stories.length === 0}
-		<p class="has-text-centered">Loading Stories...</p>
+		{#each [1, 2, 3] as project}
+			<div class="columns mt-4 is-multiline">
+				{#each [1, 2, 3] as _}
+					<div class="column is-one-third">
+						<div class="skeleton-block" style="height: 250px;"></div>
+					</div>
+				{/each}
+			</div>
+		{/each}
 	{:else if type === 'dash'}
 		<DataDashboard {stories} />
 	{:else if type === 'story'}
