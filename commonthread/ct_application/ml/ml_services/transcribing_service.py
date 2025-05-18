@@ -8,6 +8,7 @@ from ..ml_pipelines.transcribing_pipeline import (
 from ct_application.models import Story
 from commonthread.settings import CT_BUCKET_STORY_AUDIO
 import boto3
+from ct_application.utils import get_presigned_url
 
 def get_story_audio(story_id: int) -> BinaryIO:
     story = Story.objects.get(id=story_id)
@@ -24,7 +25,6 @@ class TranscribingService:
 
     def _get_transcribed_text(self, story_id: int, use_presigned: bool = False) -> str:
         if use_presigned:
-            # Assume get_presigned_url is a helper function that exists
             presigned_url = get_presigned_url(story_id)
             audio_input = AudioInput(presigned_url=presigned_url)
         else:
