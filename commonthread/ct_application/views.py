@@ -819,32 +819,37 @@ def delete_org(request):
 #@verify_user
 def get_user(request, user_id):
     try:
-        user = User.objects.get(pk=user_id)
+        user = get_object_or_404(CustomUser, id=user_id)
 
-        org_memberships = OrgUser.objects.filter(user_id=user_id).select_related(
-            "org"
-        )
-
-        orgs_data = [
+        # Get organizations the user belongs to
+        org_users = OrgUser.objects.filter(user=user)
+        orgs = [
             {
-                "org_id": membership.org_id.org_id,
-                "org_name": membership.org_id.name,
-                "access": membership.access,
+                "org_id": str(org_user.org.id),
+                "org_name": org_user.org.name,
+                "org_profile_pic_path": org_user.org.profile.url if org_user.org.profile else None
             }
-            for membership in org_memberships
+            for org_user in org_users
         ]
 
-        return JsonResponse(
-            {
-                "user_id": user.id,
-                "user_name": user.name,
-                "organizations": orgs_data,
-            },
-            status=200,
-        )
+        user_data = {
+            "user_id": user.id,
+            "name": user.name,
+            "First_name": user.first_name,
+            "Last_name": user.last_name,
+            "Email": user.email,
+            "City": user.city,
+            "Bio": user.bio,
+            "Position": user.position,
+            "Profile_pic_path": user.profile.url if user.profile else None,
+            "orgs": orgs
+        }
 
-    except User.DoesNotExist:
-        return HttpResponseNotFound("User not found.")
+        return JsonResponse(user_data, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 
 @verify_user
