@@ -1,5 +1,6 @@
 import logging
 import json
+import boto3
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -36,7 +37,7 @@ from django.utils import timezone
 import traceback
 from functools import wraps
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
-from cloud.producer_service import QueueProducer
+from .cloud.producer_service import QueueProducer
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -550,28 +551,40 @@ def create_story(request):
         return response
 
     try:
-        print("Received request body:", request.body)
-        story_data = json.loads(request.body)
-        print("Parsed story data:", story_data)
+        audio = None
+        if request.content_type.startswith("multipart/form-data"):
+            # form-data mode: pull fields from POST and FILES
+            storyteller  = request.POST["storyteller"]
+            proj_id      = request.POST["proj_id"]
+            text_content = request.POST.get("text_content", "")
+            curator      = request.POST.get("curator")
+            tags         = json.loads(request.POST.get("tags", "[]"))
+            audio        = request.FILES.get("audio_file")
+        else:
+            # as before
+            payload      = json.loads(request.body)
+            storyteller  = payload["storyteller"]
+            proj_id      = payload["proj_id"]
+            text_content = payload.get("text_content", "")
+            curator      = payload.get("curator")
+            tags         = payload.get("tags", [])
+
+        print("Audio file:", audio)
 
         try:
-            project = Project.objects.get(id=story_data["proj_id"])
-            print("Found project:", project)
+            project = Project.objects.get(id=proj_id)
         except Project.DoesNotExist:
-            print(f"Project with ID {story_data['proj_id']} does not exist")
             return JsonResponse(
-                {"error": f"Project with ID {story_data['proj_id']} does not exist"},
+                {"error": f"Project with ID {proj_id} does not exist"},
                 status=400,
             )
 
-        print("Curator ID:", story_data.get("curator"))
-
         try:
             story = Story.objects.create(
-                storyteller=story_data["storyteller"],
-                curator_id=story_data.get("curator"),
+                storyteller=storyteller,
+                curator_id=curator,
                 date=timezone.now(),
-                text_content=story_data["text_content"],
+                text_content=text_content,
                 proj_id=project.id,
             )
             print("Created story:", story)
@@ -581,20 +594,36 @@ def create_story(request):
             print("Traceback:", traceback.format_exc())
             raise
 
-        if "tags" in story_data:
-            for tag_data in story_data["tags"]:
-                tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"], required=tag_data["required"]
-                )
-                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
-                print("Created tag:", tag)
+        if audio:
+            import uuid
+            from django.conf import settings
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME,
+            )
+            key = f"story_audio/{uuid.uuid4()}.mp3"
+            s3.upload_fileobj(audio, settings.CT_BUCKET_STORY_AUDIO, key)
+            story.audio_content = key
+            story.save()
 
-        # Add ML tasks to the queue
+        for tag_data in tags:
+            tag, _ = Tag.objects.get_or_create(
+                name=tag_data["name"],
+                value=tag_data["value"],
+                required=tag_data["required"],
+            )
+            StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
+
         queue_producer = QueueProducer()
-        queue_producer.disable_task("transcription")
-        queue_producer.add_to_queue(story)
+        queue_producer.disable_task("tag")
+        queue_producer.disable_task("summary")
+        queue_producer.disable_task("insight")
+        queue_producer.process_story(story)
 
         return JsonResponse({"story_id": story.id}, status=200)
+    
     except Exception as e:
         print("Error creating story:", str(e))
         print("Error type:", type(e))

@@ -6,7 +6,7 @@ from django.db import transaction
 from typing import Dict, List
 from abc import ABC, abstractmethod
 from ct_application.models import Story, MLProcessingQueue
-from commonthread.settings import SQS_QUEUE_URL
+from commonthread.settings import CT_SQS_QUEUE_URL
 
 
 
@@ -29,11 +29,11 @@ class SQSStrategy(QueueStrategy):
     def __init__(self):
         self.sqs = boto3.client(
                             'sqs',
-                            aws_access_key_id=settings.AWS_ACCESS_KEY,
-                            aws_secret_access_key=settings.AWS_SECRET_KEY,
-                            region_name=settings.AWS_REGION
+                            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                            region_name=settings.AWS_S3_REGION_NAME
                         )
-        self.queue_url = SQS_QUEUE_URL
+        self.queue_url = CT_SQS_QUEUE_URL
 
     def add_to_queue(self, tasks: List[MLTask], story: Story) -> Dict:
         task_ids = {}

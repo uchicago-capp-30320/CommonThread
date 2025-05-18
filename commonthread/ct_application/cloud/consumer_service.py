@@ -40,16 +40,17 @@ class MLWorkerService:
         task_type = body.get("task_type")
         story_id = body.get("story_id")
         logger.info("Dispatching job_id=%s, type=%s", job_id, task_type)
-        if task_type == "transcribe_audio":
+        if task_type == "transcription":
             self.transcribing_service.process_story_transcription(story_id)
-        elif task_type == "extract_tags":
+        elif task_type == "tag":
             self.tagging_service.process_story_tagging(story_id)
-        elif task_type == "summarize":
+        elif task_type == "summary":
             self.summary_service.process_story_summarization(story_id)
-        elif task_type == "extract_insights":
+        elif task_type == "insight":
             self.insight_service.process_story_insights(story_id)
         else:
             logger.error("Unknown task_type %s for job_id=%s", task_type, job_id)
+
     def process_messages(self, use_lambda: bool = False, event: dict = None, context=None):
         """
         Entry point for processing ML tasks.
