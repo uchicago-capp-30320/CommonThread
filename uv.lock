@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.13"
 
 [[package]]
@@ -224,6 +225,7 @@ dependencies = [
     { name = "django" },
     { name = "django-cors-headers" },
     { name = "django-storages" },
+    { name = "ffmpeg" },
     { name = "keybert" },
     { name = "mkdocs-material" },
     { name = "openai" },
@@ -245,6 +247,7 @@ requires-dist = [
     { name = "django", specifier = ">=5.2" },
     { name = "django-cors-headers", specifier = ">=4.7.0" },
     { name = "django-storages", specifier = ">=1.14.6" },
+    { name = "ffmpeg", specifier = ">=1.4" },
     { name = "keybert", specifier = ">=0.9.0" },
     { name = "mkdocs-material", specifier = ">=9.6.12" },
     { name = "openai", specifier = ">=1.78.1" },
@@ -350,6 +353,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/ff/d6/2e50e378fff0408d5
 wheels = [
     { url = "https://files.pythonhosted.org/packages/1f/21/3cedee63417bc5553eed0c204be478071c9ab208e5e259e97287590194f1/django_storages-1.14.6-py3-none-any.whl", hash = "sha256:11b7b6200e1cb5ffcd9962bd3673a39c7d6a6109e8096f0e03d46fab3d3aabd9", size = 33095 },
 ]
+
+[[package]]
+name = "ffmpeg"
+version = "1.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/f0/cc/3b7408b8ecf7c1d20ad480c3eaed7619857bf1054b690226e906fdf14258/ffmpeg-1.4.tar.gz", hash = "sha256:6931692c890ff21d39938433c2189747815dca0c60ddc7f9bb97f199dba0b5b9", size = 5055 }
 
 [[package]]
 name = "filelock"
