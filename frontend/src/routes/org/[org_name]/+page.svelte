@@ -3,109 +3,49 @@
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
 	import StoryCard from '$lib/components/StoryCard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
+	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
-	// import { authRequest } from '$lib/authRequest.js';
+	import { authRequest } from '$lib/authRequest.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
-	// import { accessToken, refreshToken } from '$lib/store.js';
+	import { accessToken, refreshToken } from '$lib/store.js';
 
-	let stories = $state([
-		{
-			id: 1,
-			tags: { topic: 'health', location: 'chicago' },
-			curator: 'John Doe',
-			storyteller: 'Fatima',
-			date: '2023-01-01',
-			content: 'I love horses so much',
-			project_name: 'I Love Horses',
-			project_id: '1'
-		},
-		{
-			id: 2,
-			tags: { topic: 'health', location: 'chicago' },
-			curator: 'Jane Doe',
-			storyteller: 'Austin',
-			date: '2023-01-02',
-			content: 'My first experience with python was last year.',
-			project_name: 'Python for Beginners',
-			project_id: '2'
-		},
-		{
-			id: 2,
-			tags: { topic: 'health', location: 'chicago' },
-			curator: 'Jane Doe',
-			storyteller: 'Austin',
-			date: '2023-01-02',
-			content: 'Here is a story about horses',
-			project_name: 'I Love Horses',
-			project_id: '1'
-		}
-	]);
+	let stories = $state([]);
 	let projectsTotal = $state('...');
 	let storiesTotal = $state('...');
 	let projects = $state([]);
 	let orgName = $state('Loading...');
-	let searchValue = $state('');
-	let themeColor = $state('#133335');
-	let type = $state('project');
-	let dataLoaded = $state(false);
 
 	let params = $state(page.params);
-
-	// Create a function to filter items based on search value
-	function getFilteredItems() {
-		if (searchValue === '') {
-			if (type === 'project') {
-				return projects;
-			} else if (type === 'story') {
-				return stories;
-			}
-		}
-
-		const searchTerm = searchValue.toLowerCase();
-
-		if (type === 'project') {
-			return projects.filter((project) => project.name.toLowerCase().includes(searchTerm));
-		} else if (type === 'story') {
-			return stories.filter((story) => story.content.toLowerCase().includes(searchTerm));
-		}
-
-		return [];
-	}
-
-	// Create derived state for filtered items
-	let filteredItems = $derived(getFilteredItems());
-
-	// Update counts based on filtered items
-	$effect(() => {
-		if (type === 'project') {
-			projectsTotal = filteredItems.length;
-		} else if (type === 'story') {
-			storiesTotal = filteredItems.length;
-		}
-	});
 
 	$inspect(stories);
 
 	onMount(async () => {
-		// first make a request to get list of orgs that user is a part of
-		// const orgs = await authRequest(`/orgs`, 'GET', $accessToken, $refreshToken);
-		// const orgsData = await orgs.json();
-		// console.log('Orgs fetched:', orgsData);
-		// const defaultOrg = orgsData[0].org_id;
-		// orgName = orgsData[0].org_name;
+		// // first make a request to get list of orgs that user is a part of
+		// const orgs = await authRequest(`/org/1`, 'GET', $accessToken, $refreshToken);
+		// console.log('Orgs response:', orgs);
 
-		// // Fetch the data when the component mounts
-		// const data = await authRequest(`/orgs/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
-		// const loadedData = await data.json();
-		// console.log('Data fetched:', loadedData);
-
-		// if (loadedData.newAccessToken) {
-		// 	accessToken.set(loadedData.newAccessToken);
+		// if (orgs.newAccessToken) {
+		// 	accessToken.set(orgs.newAccessToken);
 		// }
 
-		// stories = loadedData['stories'];
-		// orgName = loadedData['org_name'];
+		// const orgsData = await orgs.data;
+		// console.log('Orgs fetched:', orgsData);
+		const defaultOrg = 1;
+		// orgName = orgsData.org_name;
+
+		// Fetch the data when the component mounts
+		const response = await authRequest(`/org/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
+		console.log('Response:', response);
+		const loadedData = response.data;
+		console.log('Data fetched:', loadedData);
+
+		if (loadedData.newAccessToken) {
+			accessToken.set(loadedData.newAccessToken);
+		}
+
+		stories = loadedData['stories'];
+		orgName = loadedData['org_name'];
 		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
 		storiesTotal = stories.length;
 
@@ -132,6 +72,9 @@
 			total_stories: project.stories.length
 		}));
 	});
+
+	let themeColor = $state('#133335');
+	let type = $state('project'); // or 'story', depending on your logic
 </script>
 
 <div class="container">
@@ -158,10 +101,13 @@
 							class="button {type === 'story' ? 'active' : ''}"
 							onclick={() => (type = 'story')}>Story View</button
 						>
+						<button class="button {type === 'dash' ? 'active' : ''}" onclick={() => (type = 'dash')}
+							>Dashboard</button
+						>
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/new?org_id={encodeURIComponent(params.org_name)}" class="button">
+					<a href="/stories/" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>
@@ -180,12 +126,10 @@
 				<div class="level-item">
 					<div class="field has-addons">
 						<p class="control">
-							<input
-								class="input"
-								type="text"
-								bind:value={searchValue}
-								placeholder={`Search for ${type}`}
-							/>
+							<input class="input" type="text" placeholder={`Search for ${type}`} />
+						</p>
+						<p class="control">
+							<button class="button">Search</button>
 						</p>
 					</div>
 				</div>
@@ -195,25 +139,37 @@
 
 	<hr />
 
-	{#if stories.length === 0}
-		<p class="has-text-centered">Loading Stories...</p>
-	{:else if filteredItems.length === 0}
-		<p class="has-text-centered">No {type} available. Widen search.</p>
-	{:else if type === 'project'}
-		<div class="columns mt-4 is-multiline">
-			{#each filteredItems as project}
-				<div class="column is-one-third">
-					<ProjectCard {project} />
+	<div class="container">
+		{#if stories.length === 0}
+			{#each [1, 2, 3] as project}
+				<div class="columns mt-4 is-multiline">
+					{#each [1, 2, 3] as _}
+						<div class="column is-one-third">
+							<div class="skeleton-block" style="height: 250px;"></div>
+						</div>
+					{/each}
 				</div>
 			{/each}
-		</div>
-	{:else if type === 'story'}
-		{#each filteredItems as story}
-			<div class="">
-				<StoryPreview {story} />
+		{:else if type === 'project'}
+			<div class="columns mt-4 is-multiline">
+				{#each projects as project}
+					<div class="column is-one-third">
+						<ProjectCard {project} />
+					</div>
+				{/each}
 			</div>
-		{/each}
-	{/if}
+		{:else if type === 'story'}
+			{#each stories as story}
+				<div class="">
+					<StoryPreview {story} />
+				</div>
+			{/each}
+		{:else if type === 'dash'}
+			<DataDashboard {stories} />
+		{:else}
+			<p class="has-text-centered">No stories available</p>
+		{/if}
+	</div>
 </div>
 
 <style>
