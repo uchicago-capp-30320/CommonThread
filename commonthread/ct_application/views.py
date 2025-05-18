@@ -695,63 +695,7 @@ def delete_user_from_org(request):
     pass
 
 ###############################################################################
-'''@csrf_exempt
-@require_http_methods(["POST", "OPTIONS"])
-def create_story(request):
-    if request.method == "OPTIONS":
-        response = HttpResponse()
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type"
-        return response
 
-    try:
-        print("Received request body:", request.body)
-        story_data = json.loads(request.body)
-        print("Parsed story data:", story_data)
-
-        try:
-            project = Project.objects.get(id=story_data["proj_id"])
-            print("Found project:", project)
-        except Project.DoesNotExist:
-            print(f"Project with ID {story_data['proj_id']} does not exist")
-            return JsonResponse(
-                {"error": f"Project with ID {story_data['proj_id']} does not exist"},
-                status=400,
-            )
-
-        print("Curator ID:", story_data.get("curator"))
-
-        try:
-            story = Story.objects.create(
-                storyteller=story_data["storyteller"],
-                curator_id=story_data.get("curator"),
-                date=timezone.now(),
-                text_content=story_data["content"],
-                proj_id=project.id,
-            )
-            print("Created story:", story)
-        except Exception as e:
-            print("Error creating story:", str(e))
-            print("Error type:", type(e))
-            print("Traceback:", traceback.format_exc())
-            raise
-
-        if "tags" in story_data:
-            for tag_data in story_data["tags"]:
-                tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"]
-                )
-                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
-                print("Created tag:", tag)
-
-        return JsonResponse({"story_id": story.id}, status=200)
-    except Exception as e:
-        print("Error creating story:", str(e))
-        print("Error type:", type(e))
-        print("Traceback:", traceback.format_exc())
-        return JsonResponse({"error": str(e)}, status=400)
-'''
 
 #@verify_user
 #@authorize_user('org','admin')
