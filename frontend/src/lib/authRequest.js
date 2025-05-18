@@ -3,8 +3,7 @@ import { ipAddress } from '$lib/store.js';
 export async function authRequest(url, method, accessToken, refreshToken) {
 	let data;
 	// Get the access token from cookies
-	console.log('accessToken', accessToken);
-	console.log('ipAddress', ipAddress + url);
+	//console.log('ipAddress', ipAddress + url);
 
 	const ogResponse = await fetch(ipAddress + url, {
 		method: method,
@@ -21,7 +20,7 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 	if (ogResponse.status === 299) {
 		console.log('need to refresh token');
 		const newAccessToken = await getNewAccessToken(refreshToken);
-		console.log('newAccessToken', newAccessToken);
+		//console.log('newAccessToken', newAccessToken);
 
 		if (!newAccessToken) {
 			console.log('Failed to get new access token');
@@ -37,7 +36,7 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 		});
 
 		if (retryResponse.status === 200) {
-			console.log('Retry request successful', retryResponse);
+			console.log('Retry request successful');
 			data = await retryResponse.json();
 
 			return { data, newAccessToken: newAccessToken };

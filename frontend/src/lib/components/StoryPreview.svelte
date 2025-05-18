@@ -14,7 +14,7 @@
 		</div>
 
 		<div class="text" id="storyContent">
-			{story.content}
+			{story.text_content}
 		</div>
 	</div>
 </div>

@@ -31,8 +31,6 @@
 
 	let uniqueTags = new Set();
 
-	console.log('stories', stories);
-
 	// Extract unique tags from stories
 	stories.forEach((story) => {
 		if (story.tags) {

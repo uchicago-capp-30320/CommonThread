@@ -27,7 +27,7 @@
 			the project and its goals.
 		</div>
 		<div class="has-text-right mt-4">
-			<a href="/projects/{project.id}/dashboard" class="button is-primary">
+			<a href="{window.location.href}/project/{project.id}" class="button is-primary">
 				<span>Explore Project</span>
 				<span class="icon">
 					<i class="fa fa-arrow-right"></i>
