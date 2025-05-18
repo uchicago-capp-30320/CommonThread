@@ -1,23 +1,74 @@
 <script>
 	// Load design assets
 	import background_texture from '$lib/assets/background_texture.png';
+
+	import { accessToken, refreshToken, ipAddress, userExpirationTimestamp } from '$lib/store.js';
+
+	import { redirect } from '@sveltejs/kit';
+	import { utcFormat } from 'd3-time-format';
+
+	let username = $state('');
+	let password = $state('');
+
+	async function login(data) {
+		data = { post_data: data };
+		console.log('login data', data);
+		// Send POST request to login endpoint
+		const response = await fetch(`${ipAddress}/login`, {
+			method: 'POST',
+			body: JSON.stringify(data),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		let response_data = {};
+
+		await response.json().then((d) => {
+			response_data = d;
+		});
+
+		console.log('response_data', response_data);
+		console.log('accessToken', $accessToken);
+
+		accessToken.set(response_data.access_token);
+		console.log('accessToken', $accessToken);
+
+		refreshToken.set(response_data.refresh_token);
+		console.log('refreshToken', $refreshToken);
+
+		// Set expiration timestamp for 7 days from now
+		userExpirationTimestamp.set(
+			utcFormat(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))('%Y-%m-%dT%H:%M:%S')
+		);
+
+		const ok = response_data.success;
+
+		// Handle redirect if login is successful
+		if (ok) {
+			// Use window.location for client-side navigation
+			window.location.href = '/org/1';
+		} else {
+			redirect(303, '/signup');
+		}
+	}
 </script>
 
 <div id="container">
 	<div class="container is-max-tablet">
-		<div class="notification" S>
+		<div class="notification">
 			<div class="title has-text-centered">LOGIN</div>
-			<form method="POST">
+			<form onsubmit={() => login({ username, password })}>
 				<div class="field">
-					<label class="label" for="username">Username</label>
+					<label class="label" for="username" bind>Username</label>
 					<div class="control has-icons-left has-icons-right">
 						<input
 							class="input is-success"
 							type="text"
-							d
 							id="username"
 							name="username"
 							placeholder="Your username"
+							bind:value={username}
 							required
 						/>
 						<span class="icon is-small is-left">
@@ -38,6 +89,7 @@
 							id="password"
 							name="password"
 							placeholder="*****"
+							bind:value={password}
 							required
 						/>
 						<span class="icon is-small is-left">
