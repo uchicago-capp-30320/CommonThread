@@ -4,6 +4,13 @@ This module has 2 main functions:
 1. Keep listening to the sqs queue
 2  Process the message and update the database table (MLProcessingQueue) with the task status.
 """
+#We need these to run this consumer as a standalone script
+import os
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
+django.setup()
+
 from ..ml.ml_services.summarizing_service import SummarizingService
 from ..ml.ml_services.tagging_service import TaggingService
 from ..ml.ml_services.transcribing_service import TranscribingService   
