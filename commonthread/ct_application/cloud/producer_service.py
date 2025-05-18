@@ -1,6 +1,6 @@
 import boto3
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from django.conf import settings
 from django.db import transaction
 from typing import Dict, List
@@ -42,7 +42,7 @@ class SQSStrategy(QueueStrategy):
             message = {
                 'project_id': story.proj.id,
                 'task_type': task.task_type,
-                'timestamp': datetime.now(datetime.UTC).isoformat()
+                'timestamp': datetime.now(timezone.utc).isoformat()
             }
             
             if task.story_level:  
@@ -95,7 +95,8 @@ class QueueProducer:
                     project=story.proj,
                     task_type=task.task_type,
                     status='processing',
-                    timestamp=datetime.now(datetime.UTC)
+                    timestamp=datetime.now(timezone.utc)
+
                 )
             )
         return MLProcessingQueue.objects.bulk_create(entries)

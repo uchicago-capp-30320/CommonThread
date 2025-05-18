@@ -22,6 +22,7 @@ dependencies = [
     "typing>=3.10.0.0",
     "django-storages>=1.14.6",
     "deepgram-sdk>=4.1.0",
+    "ffmpeg>=1.4",
 ]
 
 [tool.pytest.ini_options]
