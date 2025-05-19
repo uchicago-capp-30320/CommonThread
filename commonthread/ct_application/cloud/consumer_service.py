@@ -5,13 +5,14 @@ This module has 2 main functions:
 2  Process the message and update the database table (MLProcessingQueue) with the task status.
 """
 #We need these to run this consumer as a standalone script
+#TODO need to add the db updator.
 import os
 import django
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
 django.setup()
 
-from ..ml.ml_services.summarizing_service import LocalSummarizer, CollectiveSummarizer, ProjectSummarizer
+from ..ml.ml_services.summarizing_service import SummarizingService
 from ..ml.ml_services.tagging_service import TaggingService
 from ..ml.ml_services.transcribing_service import TranscribingService   
 # from ..ml.ml_services.insight_service import InsightService
@@ -35,8 +36,7 @@ sqs = boto3.client("sqs", region_name="us-east-1")
 class MLWorkerService:
     def __init__(self):
         self.tagging_service = TaggingService()
-        self.summary_service = LocalSummarizer()
-        # self.insight_service = InsightService()
+        self.summarizing_service = SummarizingService()
         self.transcribing_service = TranscribingService()
 
     def _dispatch(self, body: dict):
@@ -46,25 +46,29 @@ class MLWorkerService:
         job_id = body.get("job_id")
         task_type = body.get("task_type")
         story_id = body.get("story_id")
+        project_id = body.get("project_id")
+        
         logger.info("Dispatching job_id=%s, type=%s", job_id, task_type)
-        if task_type == "transcription":
-            story = Story.objects.get(id=story_id)
-            logger.info("Story %s audio_content=%r", story_id, story.audio_content)
-            if not story.audio_content:
-                logger.error("No audio content for story_id=%s", story_id)
+        
+        try:
+            if task_type == "transcription":
+                success = self.transcribing_service.process_story_transcription(story_id)
+                if not success:
+                    logger.error("Failed to process transcription for story_id=%s", story_id)
+            
+            elif task_type == "tag":
+                self.tagging_service.process_story_tags(story_id)
+            
+            elif task_type == "summary":
+                success = self.summarizing_service.process_project_summary(project_id)
+                if not success:
+                        logger.error("Failed to generate summary for project_id=%s", project_id)
             else:
-                self.transcribing_service.process_story_transcription(story_id)
-        elif task_type == "tag":
-            self.tagging_service.process_story_tagging(story_id)
-        elif task_type == "summary":
-            story = Story.objects.get(id=story_id)
-            summary = self.summary_service.summarize_story(story.text_content)
-            story.summary = summary
-            story.save(update_fields=["summary"])
-        # elif task_type == "insight":
-        #     self.insight_service.process_story_insights(story_id)
-        else:
-            logger.error("Unknown task_type %s for job_id=%s", task_type, job_id)
+                logger.error("Unknown task_type %s for job_id=%s", task_type, job_id)
+        
+        except Exception as e:
+            logger.exception("Error processing task_type=%s, job_id=%s: %s", task_type, job_id, str(e))
+            raise
 
     def process_messages(self, use_lambda: bool = False, event: dict = None, context=None):
         """
