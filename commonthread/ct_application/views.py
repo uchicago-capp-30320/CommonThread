@@ -307,7 +307,7 @@ def get_new_access_token(request):
 def get_project(request, project_id):
     try:
         project = Project.objects.select_related('org', 'curator').get(id=project_id)
-        stories = Story.objects.filter(proj=project)
+        story_count = Story.objects.filter(proj=project).count()
 
         # Get associated ProjectTag objects
         project_tags = ProjectTag.objects.filter(proj=project)
@@ -327,15 +327,7 @@ def get_project(request, project_id):
             "curator": project.curator.name if project.curator else None,
             "required_tags": list(required_tags),
             "optional_tags": list(optional_tags),
-            "stories": [
-                {
-                    "id": story.id,
-                    "storyteller": story.storyteller,
-                    "date": story.date,
-                    "summary": story.summary,
-                }
-                for story in stories
-            ],
+            "stories": story_count,
         }
 
         return JsonResponse(data)
