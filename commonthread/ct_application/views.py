@@ -341,7 +341,7 @@ def get_project(request, project_id):
         return JsonResponse({"error": "Internal server error."}, status=500)
     
 @require_GET
-#@verify_user
+@verify_user
 def get_org(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
@@ -809,7 +809,19 @@ def delete_org(request):
 
 @require_GET
 #@verify_user
-def get_user(request, user_id):
+def get_user(request):
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JsonResponse({"success": False, "error": "No token"}, status=401)
+
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = decode_access_token(token)
+        user_id = payload["sub"]
+    except Exception:
+        return JsonResponse({"success": False, "error": "Bad token"}, status=401)
+    
     try:
         user = get_object_or_404(CustomUser, id=user_id)
 

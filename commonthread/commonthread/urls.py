@@ -60,7 +60,7 @@ urlpatterns = [
     path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
     path("user/<int:user_id>/delete", delete_user, name="user-delete"),
-    path("user/<int:user_id>/", get_user, name="get_user"),
+    path("user", get_user, name="get_user"),
 
     
     #Org Related Endpoints
