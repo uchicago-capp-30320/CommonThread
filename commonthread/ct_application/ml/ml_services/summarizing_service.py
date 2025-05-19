@@ -8,7 +8,7 @@ from ct_application.models import Story, Project
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API")
 
 class LocalSummarizer:
-    def __init__(self, model_name="sshleifer/distilbart-cnn-12-6", min_ratio=0.2, max_ratio=0.5):
+    def __init__(self, model_name="sshleifer/distilbart-cnn-12-6", min_ratio=0.2, max_ratio=0.6):
         self.summarizer = pipeline("summarization", model=model_name, tokenizer=model_name)
         self.tokenizer = self.summarizer.tokenizer
         self.min_ratio = min_ratio
@@ -16,20 +16,21 @@ class LocalSummarizer:
 
     def summarize_story(self, story: str) -> str:
         try:
-            input_tokens = len(self.tokenizer.encode(story, truncation=True))
+            tokens = self.tokenizer.encode(story, truncation=True, max_length=1024, return_tensors="pt")
+            decoded_input = self.tokenizer.decode(tokens[0], skip_special_tokens=True)
+
+            input_tokens = len(tokens[0])
             min_length = max(20, int(input_tokens * self.min_ratio))
             max_length = max(min_length + 20, int(input_tokens * self.max_ratio))
 
             summary = self.summarizer(
-                story,
+                decoded_input,
                 max_length=max_length,
                 min_length=min_length,
                 do_sample=False,
                 no_repeat_ngram_size=3,
                 length_penalty=1.2,
                 num_beams=4,
-                early_stopping=True,
-                truncation=True,
             )
             return summary[0]['summary_text']
         except Exception as e:
@@ -38,7 +39,6 @@ class LocalSummarizer:
 
     def summarize_all(self, stories: List[str]) -> List[str]:
         return [self.summarize_story(story) for story in stories]
-
 
 class CollectiveSummarizer:
     def __init__(self, api_key: str, model: str = "sonar-pro"):
@@ -84,15 +84,6 @@ class CollectiveSummarizer:
         response = requests.post(self.api_url, headers=headers, json=data)
         response.raise_for_status()
         return response.json()["choices"][0]["message"]["content"]
-    
-
-def get_project_id_from_story(story_id: int) -> int:
-    try:
-        story = Story.objects.get(id=story_id)
-        return story.proj_id
-    except Story.DoesNotExist:
-        print(f"No story found with ID {story_id}")
-        return None
     
 class ProjectSummarizer:
     def __init__(self, story_summarizer, trend_summarizer):
@@ -148,4 +139,5 @@ class ProjectSummarizer:
         except Exception as e:
             print(f"Error summarizing project trends: {e}")
             return ""
+
 
