@@ -35,7 +35,7 @@
 		// orgName = orgsData.org_name;
 
 		// Fetch the data when the component mounts
-		const response = await authRequest(`/org/${defaultOrg}`, 'GET', $accessToken, $refreshToken);
+		const response = await authRequest(`/stories?org_id=${defaultOrg}`, 'GET', $accessToken, $refreshToken);
 		console.log('Response:', response);
 		const loadedData = response.data;
 		console.log('Data fetched:', loadedData);

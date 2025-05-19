@@ -12,7 +12,9 @@ from django.http import (
     HttpResponseForbidden,
     HttpResponseBadRequest,
 )
+from django.conf import settings
 from .utils import (
+    generate_s3_presigned,
     generate_access_token,
     generate_refresh_token,
     decode_refresh_token,
@@ -301,108 +303,153 @@ def get_new_access_token(request):
             {"success": False, "error": "Unable to refresh token"}, status=400
         )
 
-
-# @verify_user
-#@authorize_user('project','user')
-def get_project(request, org_id, project_id):
-    '''
-    Updates required:
-    -get user id from JWT?
-    -get org id from project id
-    -remove org + user id from inputs
-    '''
-
-    # check user org and project IDs are provided
-    if not all([org_id, project_id]):
-        return HttpResponseNotFound(
-            "Organization ID or Project ID not provided.", status=404
-        )
-    # load user and org or throw 404 if not found
-    org = get_object_or_404(Organization, pk=org_id)
-
-    # project may not belong to the org, so check that too
-    project = get_object_or_404(Project, pk=project_id)
-    if project.org_id != org.id:
-        return HttpResponseNotFound(
-            "Project does not belong to this organization. Not authorized.", status=404
-        )
-
-    # load whatever data you need for the dashboard and send to frontend
-    story_count = Story.objects.filter(proj_id=project.id).count()
-    tag_count = ProjectTag.objects.filter(proj_id=project.id).count()
-
-    return JsonResponse(
-        {
-            "project_id": project.id,
-            "story_count": story_count,
-            "tag_count": tag_count,
-        },
-        status=200,
-    )
-
-
-# @verify_user
-#@authorize_user('org','user')
-def get_org(request, org_id):
-    '''
-    Updates Required:
-    -get user id from JWT?
-    -remove userid as field entry
-    '''
-
+@require_GET
+def get_project(request, project_id):
     try:
-        if not all([org_id]):
-            return HttpResponseNotFound(
-                "Organization ID not provided.", status=404
-            )
+        project = Project.objects.select_related('org', 'curator').get(id=project_id)
+        story_count = Story.objects.filter(proj=project).count()
 
-        org = get_object_or_404(Organization, pk=org_id)
+        # Get associated ProjectTag objects
+        project_tags = ProjectTag.objects.filter(proj=project)
 
-        projects = Project.objects.filter(org_id=org)
-        stories = Story.objects.filter(proj_id__in=projects).select_related("proj")
+        # Filter based on related Tag's `required` field
+        required_tags = project_tags.filter(tag__required=True).values_list("tag__name", flat=True)
+        optional_tags = project_tags.filter(tag__required=False).values_list("tag__name", flat=True)
 
-        story_list = []
-        for story in stories:
+        # Construct response
+        data = {
+            "project_id": project.id,
+            "project_name": project.name,
+            "org_id": project.org.id,
+            "org_name": project.org.name,
+            "date": project.date,
+            "insight": project.insight,
+            "curator": project.curator.name if project.curator else None,
+            "required_tags": list(required_tags),
+            "optional_tags": list(optional_tags),
+            "stories": story_count,
+        }
 
-            story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                "tag"
-            )
-            
-            tags = []
-            for st in story_tags:
-                tag_obj = Tag.objects.get(id = st.tag_id)
-                tag = {
-                    "name": tag_obj.name,
-                    "value": tag_obj.value
-                }
-                tags.append(tag)
+        return JsonResponse(data)
 
-            story_list.append(
-                {
-                    "story_id": story.pk,
-                    "storyteller": story.storyteller,
-                    "project_id": story.proj_id,
-                    "project_name": story.proj.name,
-                    "curator": story.curator.pk if story.curator else None,
-                    "date": story.date.isoformat() if story.date else None,
-                    "text_content": story.text_content,
-                    "tags": tags,
-                }
-            )
-
-        return JsonResponse(
-            {"org_id": org.pk, "org_name": org.name, "stories": story_list}
-        )
+    except Project.DoesNotExist:
+        logger.error(f"Project with id={project_id} not found.")
+        return JsonResponse({"error": "Project not found."}, status=404)
 
     except Exception as e:
-        import traceback
+        logger.error(f"Error in get_project: {e}")
+        return JsonResponse({"error": "Internal server error."}, status=500)
+    
+@require_GET
+@verify_user
+def get_org(request, org_id):
+    try:
+        org = get_object_or_404(Organization, id=org_id)
 
-        traceback.print_exc()
-        return JsonResponse({"error": str(e)}, status=500)
+        # Get all projects in the org
+        projects = Project.objects.filter(org=org)
+        project_count = projects.count()
+
+        # Get all stories in those projects
+        stories = Story.objects.filter(proj__in=projects)
+        story_count = stories.count()
+
+        # Collect curators from projects and stories
+        project_curators = projects.values_list("curator", flat=True)
+        story_curators = stories.values_list("curator", flat=True)
+
+        user_ids = set(list(project_curators) + list(story_curators))
+        users = CustomUser.objects.filter(id__in=user_ids)
+
+        users_data = [
+            {
+                "user_id": user.id,
+                "name": user.name,
+                "email": user.email,
+                "position": user.position,
+            }
+            for user in users
+        ]
+
+        response_data = {
+            "org_id": org.id,
+            "name": org.name,
+            "description": org.description,
+            "profile_pic_path": org.profile.url if org.profile else "",
+            "project_count": project_count,
+            "story_count": story_count,
+            "users": users_data,
+        }
+
+        return JsonResponse(response_data, status=200)
+
+    except Exception as e:
+        logging.error(f"Error in get_org: {e}")
+        return JsonResponse({"error": "Something went wrong."}, status=500)
+
+@require_GET
+def get_stories(request):
+    try:
+        # Accept only one of the parameters
+        org_id = request.GET.get("org_id")
+        project_id = request.GET.get("project_id")
+        story_id = request.GET.get("story_id")
+        user_id = request.GET.get("user_id")
+
+        filters = {"org_id": org_id, "project_id": project_id, "story_id": story_id, "user_id": user_id}
+        active_filter = {k: v for k, v in filters.items() if v is not None}
+
+        if len(active_filter) != 1:
+            return JsonResponse({"error": "Specify exactly one of org_id, project_id, story_id, or user_id."}, status=400)
+
+        id_type, id_value = next(iter(active_filter.items()))
+
+        # Filter stories based on the input
+        if id_type == "org_id":
+            stories = Story.objects.filter(proj__org__id=id_value)
+        elif id_type == "project_id":
+            stories = Story.objects.filter(proj__id=id_value)
+        elif id_type == "story_id":
+            stories = Story.objects.filter(id=id_value)
+        elif id_type == "user_id":
+            stories = Story.objects.filter(curator__id=id_value)
+        else:
+            return JsonResponse({"error": "Invalid query parameter."}, status=400)
+
+        # Prepare the output
+        stories_data = []
+        for story in stories.select_related("proj", "curator"):
+            tags = Tag.objects.filter(storytag__story=story).values("name", "value", "created_by")
+
+            stories_data.append({
+                "story_id": story.id,
+                "storyteller": story.storyteller,
+                "project_id": story.proj.id,
+                "project_name": story.proj.name,
+                "curator": story.curator.name if story.curator else None,
+                "date": str(story.date),
+                "summary": story.summary,
+                "audio_path": story.audio_content.url if story.audio_content else None,
+                "image_path": story.image_content.url if story.image_content else None,
+                "text_content": story.text_content,
+                "tags": list(tags),
+            })
+
+        response = {
+            "id_type": [id_type],
+            "id_value": [id_value],
+            "stories": stories_data,
+        }
+
+        return JsonResponse(response, safe=False)
+
+    except Exception as e:
+        logger.error(f"Error in get_stories: {e}")
+        return JsonResponse({"error": "Internal server error."}, status=500)
 
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
-@verify_user
+#@verify_user
 #@authorize_user('story','user')
 def get_story(request, story_id=None):
     print(request.headers)
@@ -481,7 +528,7 @@ def get_story(request, story_id=None):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 @csrf_exempt
-@verify_user
+#@verify_user
 #@authorize_user('org','user')
 @require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
@@ -539,7 +586,7 @@ def create_story(request):
         print("Traceback:", traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=400)
 
-
+@csrf_exempt
 @require_POST
 def create_user(request):
     """
@@ -572,7 +619,7 @@ def create_user(request):
 
     try:
         # this needs to be CustomUser
-        CustomUser.objects.create_user(
+        user = CustomUser.objects.create_user(
             username=username,
             password=password,
             first_name=user_data.get("first_name", ""),
@@ -583,11 +630,22 @@ def create_user(request):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
 
-    return JsonResponse({"success": True}, status=201)
+    # generate presigned upload data for this new user's profile picture
+    presign = generate_s3_presigned(
+        bucket_name=settings.CT_BUCKET_USER_PROFILES,
+        key=f"profile-pictures/{user.id}.png",
+        operation="upload",
+        content_type="image/png",
+        expiration=3600,
+    )
+    return JsonResponse({"success": True, "upload": {
+            "url": presign["url"],
+            "fields": presign["fields"]
+        }}, status=201)
 
 
 @require_POST
-@verify_user
+#@verify_user
 #@authorize_user('org','admin')
 def add_user_to_org(request):
     """
@@ -623,83 +681,27 @@ def add_user_to_org(request):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     return JsonResponse({"success": True}, status=201)
 
-@verify_user
+#@verify_user
 #@authorize_user('org','admin')
 def delete_user_from_org(request):
     pass
 
 ###############################################################################
-'''@csrf_exempt
-@require_http_methods(["POST", "OPTIONS"])
-def create_story(request):
-    if request.method == "OPTIONS":
-        response = HttpResponse()
-        response["Access-Control-Allow-Origin"] = "*"
-        response["Access-Control-Allow-Methods"] = "POST, OPTIONS"
-        response["Access-Control-Allow-Headers"] = "Content-Type"
-        return response
 
-    try:
-        print("Received request body:", request.body)
-        story_data = json.loads(request.body)
-        print("Parsed story data:", story_data)
 
-        try:
-            project = Project.objects.get(id=story_data["proj_id"])
-            print("Found project:", project)
-        except Project.DoesNotExist:
-            print(f"Project with ID {story_data['proj_id']} does not exist")
-            return JsonResponse(
-                {"error": f"Project with ID {story_data['proj_id']} does not exist"},
-                status=400,
-            )
-
-        print("Curator ID:", story_data.get("curator"))
-
-        try:
-            story = Story.objects.create(
-                storyteller=story_data["storyteller"],
-                curator_id=story_data.get("curator"),
-                date=timezone.now(),
-                text_content=story_data["content"],
-                proj_id=project.id,
-            )
-            print("Created story:", story)
-        except Exception as e:
-            print("Error creating story:", str(e))
-            print("Error type:", type(e))
-            print("Traceback:", traceback.format_exc())
-            raise
-
-        if "tags" in story_data:
-            for tag_data in story_data["tags"]:
-                tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"]
-                )
-                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
-                print("Created tag:", tag)
-
-        return JsonResponse({"story_id": story.id}, status=200)
-    except Exception as e:
-        print("Error creating story:", str(e))
-        print("Error type:", type(e))
-        print("Traceback:", traceback.format_exc())
-        return JsonResponse({"error": str(e)}, status=400)
-'''
-
-@verify_user
+#@verify_user
 #@authorize_user('org','admin')
 def edit_story(request):
     pass
 
-@verify_user
+#@verify_user
 #@authorize_user('story','admin')
 def delete_story(request):
     pass
 
 ###############################################################################
 @require_POST
-@verify_user
+#@verify_user
 #@authorize_user('org','admin')
 def create_project(request):
 
@@ -754,20 +756,20 @@ def create_project(request):
         )
 
 
-@verify_user
+#@verify_user
 #@authorize_user('project','admin')
 def edit_project(request):
     pass
 
 
-@verify_user
+#@verify_user
 #@authorize_user('project','admin')
 def delete_project(request):
     pass
 
 
 @require_POST
-@verify_user
+#@verify_user
 def create_org(request):
     org_data = json.loads(request.body)
     try:
@@ -793,7 +795,7 @@ def create_org(request):
     )
 
 
-@verify_user
+#@verify_user
 #@authorize_user('org','admin')
 def edit_org(request):
     pass
@@ -806,35 +808,52 @@ def delete_org(request):
 
 
 @require_GET
-@verify_user
-def get_user(request, user_id):
+#@verify_user
+def get_user(request):
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JsonResponse({"success": False, "error": "No token"}, status=401)
+
+    token = auth_header.split(" ", 1)[1]
     try:
-        user = User.objects.get(pk=user_id)
+        payload = decode_access_token(token)
+        user_id = payload["sub"]
+    except Exception:
+        return JsonResponse({"success": False, "error": "Bad token"}, status=401)
+    
+    try:
+        user = get_object_or_404(CustomUser, id=user_id)
 
-        org_memberships = OrgUser.objects.filter(user_id=user_id).select_related(
-            "org"
-        )
-
-        orgs_data = [
+        # Get organizations the user belongs to
+        org_users = OrgUser.objects.filter(user=user)
+        orgs = [
             {
-                "org_id": membership.org_id.org_id,
-                "org_name": membership.org_id.name,
-                "access": membership.access,
+                "org_id": str(org_user.org.id),
+                "org_name": org_user.org.name,
+                "org_profile_pic_path": org_user.org.profile.url if org_user.org.profile else None
             }
-            for membership in org_memberships
+            for org_user in org_users
         ]
 
-        return JsonResponse(
-            {
-                "user_id": user.id,
-                "user_name": user.name,
-                "organizations": orgs_data,
-            },
-            status=200,
-        )
+        user_data = {
+            "user_id": user.id,
+            "name": user.name,
+            "First_name": user.first_name,
+            "Last_name": user.last_name,
+            "Email": user.email,
+            "City": user.city,
+            "Bio": user.bio,
+            "Position": user.position,
+            "Profile_pic_path": user.profile.url if user.profile else None,
+            "orgs": orgs
+        }
 
-    except User.DoesNotExist:
-        return HttpResponseNotFound("User not found.")
+        return JsonResponse(user_data, status=200)
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
 
 
 @verify_user
@@ -853,7 +872,7 @@ def delete_user(request):
 
 
 @require_http_methods(["GET", "POST"])
-@verify_user
+#@verify_user
 #@authorize_user('org','admin')
 def get_org_admin(request, user_id, org_id):
     try:

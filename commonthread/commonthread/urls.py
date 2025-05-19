@@ -44,7 +44,8 @@ from ct_application.views import (
     get_story,
     create_story,
     edit_story,
-    delete_story
+    delete_story,
+    get_stories
 
 )
 
@@ -55,10 +56,12 @@ urlpatterns = [
 
     #User Related Endpoints
     path("user/create", create_user, name="user-create"),
-    path("user/<int:user_id>/dashboard", get_user, name="user-dashboard"),
+    #path("user/<int:user_id>/dashboard", get_user, name="user-dashboard"),
     path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
     path("user/<int:user_id>/delete", delete_user, name="user-delete"),
+    path("user", get_user, name="get_user"),
+
     
     #Org Related Endpoints
     path("org/create", create_org, name="org-create"),
@@ -79,7 +82,7 @@ urlpatterns = [
 
     #Project Related Endpoints
     path("project/create", create_project, name="project-create"),
-    path("project/<int:org_id>/<int:project_id>", get_project, name="project-dashboard"),
+    path("project/<int:project_id>", get_project, name="project-dashboard"),
     path("project/<int:org_id>/<int:project_id>/edit", edit_project, name="project-edit"),
     path("project/<int:org_id>/<int:project_id>/delete", delete_project, name="project-delete"),
     
@@ -88,6 +91,7 @@ urlpatterns = [
     path("story/<int:story_id>", get_story, name="story-detail"),
     path("story/<int:story_id>/edit", edit_story, name="story-edit"),
     path("story/<int:story_id>/delete", delete_story, name="story-delete"),
+    path("stories", get_stories, name="get_stories"),
     # TODO add a bulk‑create endpoint if needed
 
     path("admin/", admin.site.urls), # UNUSED- REMOVE?
