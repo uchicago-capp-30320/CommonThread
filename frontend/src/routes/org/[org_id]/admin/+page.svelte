@@ -1,8 +1,9 @@
 <script>
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
-	//import { accessToken, refreshToken } from '$lib/store.js';
-	//import { onMount } from 'svelte';
-	//import { authRequest } from '$lib/utils.js';
+	import { accessToken, refreshToken } from '$lib/store.js';
+	import { onMount } from 'svelte';
+	import { authRequest } from '$lib/authRequest.js';
+	import { page } from '$app/stores';
 
 	let themeColor = $state('#133335');
 	let saveResponse = $state('...');
@@ -12,57 +13,48 @@
 		projectsTotal: 0,
 		storiesTotal: 0
 	});
+	let userData = $state({
+		name: 'Loading...',
+		email: 'Loading...',
+		data_added: 'Loading...'
+	});
+	let projects = $state([]);
+	let projectResponses = $state([]);
 
-	// // // get project data from the backend
-	// onMount(async () => {
-	// 	const [projectsResponse, orgInfoResponse] = await Promise.all([
-	// 		authRequest('/projects', 'GET', $accessToken, $refreshToken),
-	// 		authRequest('/org', 'GET', $accessToken, $refreshToken)
-	// 	]);
+	$inspect(projects);
+	$inspect(userData);
+	$inspect(orgData);
 
-	// 	if (response.ok) {
-	// 		const data = await response.json();
-	// 		projects = data.projects;
-	// 	} else {
-	// 		console.error('Error fetching projects:', response.statusText);
-	// 	}
-	// });
+	const org_id = $page.params.org_id;
 
-	let projects = $state([
-		{
-			name: 'Project 1',
-			description: 'Description of Project 1',
-			requiredTags: ['tag1', 'tag2'],
-			optionalTags: ['tag3', 'tag4'],
-			isOpen: false,
-			storyCount: 50,
-			createdAt: '2023-01-01'
-		},
-		{
-			name: 'Project 2',
-			description: 'Description of Project 2',
-			requiredTags: ['tag1', 'tag2'],
-			optionalTags: ['tag3', 'tag4'],
-			isOpen: false,
-			storyCount: 30,
-			createdAt: '2023-02-01'
-		}
-	]);
+	// get project data from the backend
+	onMount(async () => {
+		const orgResponse = await authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken);
 
-	let users = $state([
-		{
-			name: 'User 1',
-			email: 'test1@gmail.com',
-			data_added: '2023-01-01'
-		},
-		{
-			name: 'User 2',
-			email: 'test2@gmail.com',
-			data_added: '2023-02-01'
-		}
-	]);
+		orgData = orgResponse.data;
+		userData = orgData.users;
 
-	let totalUsers = $derived(users.length);
+		const project_ids = orgData.project_ids;
+
+		// get project info from all projects concurrently
+
+		const projectPromises = project_ids.map((project_id) =>
+			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+		);
+
+		projectResponses = await Promise.all(projectPromises);
+
+		// Extract project data from the responses
+		projects = projectResponses.map((response) => {
+			const project = response.data;
+			return {
+				...project,
+				isOpen: false
+			};
+		});
+	});
+
+	let totalUsers = $derived(userData.length);
 
 	// async function editProject(project) {
 	// 	// logic to edit the project
@@ -77,16 +69,16 @@
 	// 	console.log('Project edited:', saveResponse);
 	// }
 
-	$inspect(projects);
+	//$inspect(projects);
 </script>
 
 <div class="content">
 	<div class="header p-6">
 		<OrgHeader
-			org_name={orgData.orgName}
+			org_name={orgData.name}
 			description={orgData.description}
-			numProjects={orgData.projectsTotal}
-			numStories={orgData.storiesTotal}
+			numProjects={orgData.project_count}
+			numStories={orgData.story_count}
 			--card-color={themeColor}
 		/>
 	</div>
@@ -137,7 +129,7 @@
 						</tr>
 					</thead>
 					<tbody>
-						{#each users as user, i}
+						{#each userData as user, i}
 							<tr>
 								<td>
 									{user.name}
@@ -145,7 +137,7 @@
 								<td>
 									{user.email}
 								</td>
-								<td>{user.data_added}</td>
+								<td>1/1/2024</td>
 								<td>
 									<div class="buttons">
 										<button
@@ -197,12 +189,12 @@
 					<header class="card-header">
 						<div class="card-header-title is-justify-content-space-between is-flex-wrap-wrap">
 							<div class="is-flex is-flex-direction-column is-align-items-flex-start">
-								<p class="mb-1 is-size-4">{project.name}</p>
-								<p class="is-size-6 has-text-grey">{project.description}</p>
+								<p class="mb-1 is-size-4">{project.project_name}</p>
+								<p class="is-size-6 has-text-grey">{project.insight}</p>
 							</div>
 							<div class="is-flex is-flex-direction-column is-align-items-flex-end">
-								<p class="mb-1 is-size-5"><strong>{project.storyCount}</strong> stories</p>
-								<p class="is-size-6 has-text-grey">Created: {project.createdAt}</p>
+								<p class="mb-1 is-size-5"><strong>{project.stories}</strong> stories</p>
+								<p class="is-size-6 has-text-grey">Created: {project.date}</p>
 							</div>
 						</div>
 						<button
@@ -224,34 +216,34 @@
 							<div class="field">
 								<label class="label">Project Name</label>
 								<div class="control">
-									<input class="input" type="text" bind:value={project.name} />
+									<input class="input" type="text" bind:value={project.project_name} />
 								</div>
 							</div>
 
 							<div class="field">
 								<label class="label">Description</label>
 								<div class="control">
-									<textarea class="textarea" bind:value={project.description}></textarea>
+									<textarea class="textarea" bind:value={project.insight}></textarea>
 								</div>
 							</div>
 
 							<div class="field">
 								<label class="label">Required Tags</label>
 								<div class="control">
-									{#each project.requiredTags as tag, tagIndex}
+									{#each project.required_tags as tag, tagIndex}
 										<div class="field has-addons mb-2">
 											<div class="control is-expanded">
 												<input
 													class="input"
 													type="text"
-													bind:value={project.requiredTags[tagIndex]}
+													bind:value={project.required_tags[tagIndex]}
 												/>
 											</div>
 											<div class="control">
 												<button
 													class="button is-danger"
 													onclick={() =>
-														(project.requiredTags = project.requiredTags.filter(
+														(project.required_tags = project.required_tags.filter(
 															(_, i) => i !== tagIndex
 														))}
 												>
@@ -262,7 +254,7 @@
 									{/each}
 									<button
 										class="button is-primary is-small"
-										onclick={() => (project.requiredTags = [...project.requiredTags, ''])}
+										onclick={() => (project.required_tags = [...project.required_tags, ''])}
 									>
 										Add Required Tag
 									</button>
@@ -272,20 +264,20 @@
 							<div class="field">
 								<label class="label">Optional Tags</label>
 								<div class="control">
-									{#each project.optionalTags as tag, tagIndex}
+									{#each project.optional_tags as tag, tagIndex}
 										<div class="field has-addons mb-2">
 											<div class="control is-expanded">
 												<input
 													class="input"
 													type="text"
-													bind:value={project.optionalTags[tagIndex]}
+													bind:value={project.optional_tags[tagIndex]}
 												/>
 											</div>
 											<div class="control">
 												<button
 													class="button is-danger"
 													onclick={() =>
-														(project.optionalTags = project.optionalTags.filter(
+														(project.optional_tags = project.optional_tags.filter(
 															(_, i) => i !== tagIndex
 														))}
 												>
@@ -296,7 +288,7 @@
 									{/each}
 									<button
 										class="button is-primary is-small"
-										onclick={() => (project.optionalTags = [...project.optionalTags, ''])}
+										onclick={() => (project.optional_tags = [...project.optional_tags, ''])}
 									>
 										Add Optional Tag
 									</button>
