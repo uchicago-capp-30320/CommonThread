@@ -60,7 +60,7 @@ urlpatterns = [
     path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
     path("user/<int:user_id>/delete", delete_user, name="user-delete"),
-    path("user", get_user, name="get_user"),
+    path("user/", get_user, name="get_user"),
 
     
     #Org Related Endpoints
@@ -91,7 +91,7 @@ urlpatterns = [
     path("story/<int:story_id>", get_story, name="story-detail"),
     path("story/<int:story_id>/edit", edit_story, name="story-edit"),
     path("story/<int:story_id>/delete", delete_story, name="story-delete"),
-    path("stories", get_stories, name="get_stories"),
+    path("stories/", get_stories, name="get_stories"),
     # TODO add a bulk‑create endpoint if needed
 
     path("admin/", admin.site.urls), # UNUSED- REMOVE?
