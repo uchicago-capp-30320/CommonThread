@@ -872,22 +872,23 @@ def delete_user(request):
 
 
 @require_http_methods(["GET", "POST"])
-#@verify_user
+# @verify_user
 #@authorize_user('org','admin')
-def get_org_admin(request, user_id, org_id):
-    try:
-        requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
-    except OrgUser.DoesNotExist:
-        return HttpResponseForbidden("User is not a member of the organization.")
+def get_org_admin(request, org_id):
+    # try:
+    #     requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
+    # except OrgUser.DoesNotExist:
+    #     return HttpResponseForbidden("User is not a member of the organization.")
 
     # get method for seeing users in org
     if request.method == "GET":
         org_members = OrgUser.objects.filter(org_id=org_id).select_related("user")
+        print(org_members)
 
         data = [
             {
-                "user_id": member.user_id.id,
-                "user_name": member.user_id.name,
+                "user_id": member.user.id,
+                "user_name": member.user.name,
                 "access": member.access,
             }
             for member in org_members
@@ -896,11 +897,14 @@ def get_org_admin(request, user_id, org_id):
         return JsonResponse(
             {"org_id": org_id, "requested_by": user_id, "organization_users": data}
         )
+        # return JsonResponse(
+        #     {"org_id": org_id, "organization_users": data}
+        # )
 
     # post method for updating access level
     elif request.method == "POST":
-        if requester_membership.access != "admin":
-            return HttpResponseForbidden("Only admins can change access levels.")
+        # if requester_membership.access != "admin":
+        #     return HttpResponseForbidden("Only admins can change access levels.")
 
         try:
             body = json.loads(request.body)
