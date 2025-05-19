@@ -64,7 +64,7 @@
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/" class="button">
+					<a href="/stories/new" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>
