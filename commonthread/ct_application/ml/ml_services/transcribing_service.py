@@ -28,7 +28,7 @@ def get_story_audio(story_id: int) -> BinaryIO:
     return presigned["url"]
 
 class TranscribingService:
-    def __init__(self, transcribing_strategy: TranscribingStrategy = HFTranscribingStrategy()):
+    def __init__(self, transcribing_strategy: TranscribingStrategy = DeepgramTranscribingStrategy()):
         self.transcribing_strategy = transcribing_strategy
 
     def _get_transcribed_text(self, story_id: int, use_presigned: bool = False) -> str:
@@ -51,7 +51,7 @@ class TranscribingService:
         """
         try:
             audio_source      = get_story_audio(story_id)
-            audio_input       = AudioInput(audio_file=audio_source)
+            audio_input       = AudioInput(presigned_url=audio_source)
             transcribed_text  = self.transcribing_strategy.transcribe(audio_input)
 
             # Overwrite the Story.text_content with the transcription

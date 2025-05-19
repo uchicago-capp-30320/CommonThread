@@ -4,8 +4,8 @@ from ..ml_pipelines.summarizing_pipeline import (
     CollectiveSummarizingStrategy
 )
 import os
-from typing import List,str
-from django.conf import settings
+from typing import List
+
 
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API")
 
@@ -14,7 +14,7 @@ class SummarizingService:
     def __init__(self):
         self.local_strategy = LocalSummarizingStrategy()
         self.collective_strategy = CollectiveSummarizingStrategy(
-            api_key=settings.PERPLEXITY_API_KEY #Does this work?
+            api_key=PERPLEXITY_API_KEY #Does this work?
         )
     def get_or_generate_story_summaries(self, project_id: int) -> List[str]:
         summaries = []

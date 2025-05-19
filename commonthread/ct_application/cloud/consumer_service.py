@@ -8,6 +8,10 @@ This module has 2 main functions:
 #TODO need to add the db updator.
 import os
 import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
+django.setup()
+
 from ..ml.ml_services.summarizing_service import SummarizingService
 from ..ml.ml_services.tagging_service import TaggingService
 from ..ml.ml_services.transcribing_service import TranscribingService   
@@ -22,10 +26,6 @@ import boto3
 import logging
 import datetime
 import time
-
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
-django.setup()
-
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -52,7 +52,7 @@ class MLWorkerService:
         logger.info("Dispatching job_id=%s, type=%s", job_id, task_type)
         
         #need to move this
-        self._create_queue_entries(body)
+        # self._create_queue_entries(body)
         try:
             if task_type == "transcription":
                 success = self.transcribing_service.process_story_transcription(story_id)
@@ -73,19 +73,19 @@ class MLWorkerService:
             logger.exception("Error processing task_type=%s, job_id=%s: %s", task_type, job_id, str(e))
             raise
 
-    def _create_queue_entries(self,task_body: dict) -> MLProcessingQueue:
+    # def _create_queue_entries(self,task_body: dict) -> MLProcessingQueue:
 
-        #STILL NOT READY
-        entry = MLProcessingQueue(
-                    story = task_body.get("story_id"),
-                    project = task_body.get("proj_id"),
-                    task_type=task_body.get("task_type"),
-                    status='completed',
-                    timestamp=datetime.now(datetime.timezone.utc)
+    #     #STILL NOT READY
+    #     entry = MLProcessingQueue(
+    #                 story = task_body.get("story_id"),
+    #                 project = task_body.get("proj_id"),
+    #                 task_type=task_body.get("task_type"),
+    #                 status='completed',
+    #                 timestamp=datetime.now(datetime.timezone.utc)
 
-                )
+    #             )
             
-        return MLProcessingQueue.objects.create(entry)
+    #     return MLProcessingQueue.objects.create(entry)
     
     def process_messages(self, use_lambda: bool = False, event: dict = None, context=None):
         """
