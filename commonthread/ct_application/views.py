@@ -937,10 +937,38 @@ def get_org_admin(request, org_id):
             return HttpResponseBadRequest("Invalid JSON.")
 
 
-@verify_user
-#@authorize_user('org','user')
+# @verify_user
 def get_org_projects(request, org_id):
-    #return JUST the list of projects within the organizaton, and a count how many stories are in each.
-    pass
+    try:
+        org = get_object_or_404(Organization, id=org_id)
+
+        # Get all projects in the org
+        projects = Project.objects.filter(org=org)
+        project_count = projects.count()
+
+        for project in projects:
+            story_count = Story.objects.filter(proj=project).count()
+
+        response_data = {
+            "org_id": org.id,
+            "name": org.name,
+            "description": org.description,
+            "profile_pic_path": org.profile.url if org.profile else "",
+            "project_count": project_count,
+            "projects": [
+                {
+                    "project_id": project.id,
+                    "project_name": project.name,
+                    "story_count": story_count,
+                }
+                for project in projects
+            ],
+        }
+
+        return JsonResponse(response_data, status=200)
+
+    except Exception as e:
+        logging.error(f"Error in get_org: {e}")
+        return JsonResponse({"error": "Something went wrong."}, status=500)
 
 #### EOF. ####
