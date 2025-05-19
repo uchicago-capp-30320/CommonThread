@@ -341,7 +341,7 @@ def get_project(request, project_id):
         return JsonResponse({"error": "Internal server error."}, status=500)
     
 @require_GET
-@verify_user
+#@verify_user
 def get_org(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
@@ -371,11 +371,23 @@ def get_org(request, org_id):
             for user in users
         ]
 
+        # Generate presigned URL for profile picture
+        profile_pic_url = ""
+        if org.profile:
+            presign = generate_s3_presigned(
+                bucket_name=settings.CT_BUCKET_ORG_PROFILES,
+                key=org.profile.name,
+                operation="download",
+                expiration=3600 
+            )
+            profile_pic_url = presign["url"]
+
+
         response_data = {
             "org_id": org.id,
             "name": org.name,
             "description": org.description,
-            "profile_pic_path": org.profile.url if org.profile else "",
+            "profile_pic_path": profile_pic_url,
             "project_count": project_count,
             "story_count": story_count,
             "users": users_data,
