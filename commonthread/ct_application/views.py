@@ -402,7 +402,7 @@ def get_org(request, org_id):
 @require_GET
 def get_stories(request):
     try:
-        # Accept only one of the parameters
+        # Existing filter logic remains the same
         org_id = request.GET.get("org_id")
         project_id = request.GET.get("project_id")
         story_id = request.GET.get("story_id")
@@ -416,7 +416,7 @@ def get_stories(request):
 
         id_type, id_value = next(iter(active_filter.items()))
 
-        # Filter stories based on the input
+        # Existing filtering logic remains the same
         if id_type == "org_id":
             stories = Story.objects.filter(proj__org__id=id_value)
         elif id_type == "project_id":
@@ -428,10 +428,31 @@ def get_stories(request):
         else:
             return JsonResponse({"error": "Invalid query parameter."}, status=400)
 
-        # Prepare the output
+        # Prepare the output with presigned URLs
         stories_data = []
         for story in stories.select_related("proj", "curator"):
             tags = Tag.objects.filter(storytag__story=story).values("name", "value", "created_by")
+
+            # Generate presigned URLs for media content
+            audio_url = ""
+            if story.audio_content:
+                audio_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_AUDIO,
+                    key=story.audio_content.name,
+                    operation="download",
+                    expiration=3600
+                )
+                audio_url = audio_presign["url"] if audio_presign else ""
+
+            image_url = ""
+            if story.image_content:
+                image_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_IMAGES,
+                    key=story.image_content.name,
+                    operation="download",
+                    expiration=3600
+                )
+                image_url = image_presign["url"] if image_presign else ""
 
             stories_data.append({
                 "story_id": story.id,
@@ -441,8 +462,8 @@ def get_stories(request):
                 "curator": story.curator.name if story.curator else None,
                 "date": str(story.date),
                 "summary": story.summary,
-                "audio_path": story.audio_content.url if story.audio_content else None,
-                "image_path": story.image_content.url if story.image_content else None,
+                "audio_path": audio_url,
+                "image_path": image_url,
                 "text_content": story.text_content,
                 "tags": list(tags),
             })
@@ -458,6 +479,7 @@ def get_stories(request):
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
+
 
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
@@ -818,11 +840,9 @@ def edit_org(request):
 def delete_org(request):
     pass
 
-
 @require_GET
 #@verify_user
 def get_user(request):
-
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
         return JsonResponse({"success": False, "error": "No token"}, status=401)
@@ -837,16 +857,37 @@ def get_user(request):
     try:
         user = get_object_or_404(CustomUser, id=user_id)
 
-        # Get organizations the user belongs to
-        org_users = OrgUser.objects.filter(user=user)
-        orgs = [
-            {
-                "org_id": str(org_user.org.id),
-                "org_name": org_user.org.name,
-                "org_profile_pic_path": org_user.org.profile.url if org_user.org.profile else None
-            }
-            for org_user in org_users
-        ]
+        # Generate presigned URL for user profile picture
+        user_profile_url = ""
+        if user.profile:
+            user_presign = generate_s3_presigned(
+                bucket_name=settings.CT_BUCKET_USER_PROFILES,
+                key=user.profile.name,
+                operation="download",
+                expiration=3600
+            )
+            user_profile_url = user_presign["url"]
+
+        # Get organizations with presigned URLs for their profiles
+        org_users = OrgUser.objects.filter(user=user).select_related('org')
+        orgs = []
+        for org_user in org_users:
+            org = org_user.org
+            org_profile_url = ""
+            if org.profile:
+                org_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_ORG_PROFILES,
+                    key=org.profile.name,
+                    operation="download",
+                    expiration=3600
+                )
+                org_profile_url = org_presign["url"]
+            
+            orgs.append({
+                "org_id": str(org.id),
+                "org_name": org.name,
+                "org_profile_pic_path": org_profile_url
+            })
 
         user_data = {
             "user_id": user.id,
@@ -857,7 +898,7 @@ def get_user(request):
             "City": user.city,
             "Bio": user.bio,
             "Position": user.position,
-            "Profile_pic_path": user.profile.url if user.profile else None,
+            "Profile_pic_path": user_profile_url,
             "orgs": orgs
         }
 
@@ -865,7 +906,6 @@ def get_user(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
 
 
 @verify_user
