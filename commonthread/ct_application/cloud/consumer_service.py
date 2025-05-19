@@ -11,10 +11,10 @@ import django
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
 django.setup()
 
-from ..ml.ml_services.summarizing_service import SummarizingService
+from ..ml.ml_services.summarizing_service import LocalSummarizer, CollectiveSummarizer, ProjectSummarizer
 from ..ml.ml_services.tagging_service import TaggingService
 from ..ml.ml_services.transcribing_service import TranscribingService   
-from ..ml.ml_services.insight_service import InsightService
+# from ..ml.ml_services.insight_service import InsightService
 
 from ..models import Story
 from typing import List
@@ -35,8 +35,8 @@ sqs = boto3.client("sqs", region_name="us-east-1")
 class MLWorkerService:
     def __init__(self):
         self.tagging_service = TaggingService()
-        self.summary_service = SummarizingService()
-        self.insight_service = InsightService()
+        self.summary_service = LocalSummarizer()
+        # self.insight_service = InsightService()
         self.transcribing_service = TranscribingService()
 
     def _dispatch(self, body: dict):
@@ -48,13 +48,21 @@ class MLWorkerService:
         story_id = body.get("story_id")
         logger.info("Dispatching job_id=%s, type=%s", job_id, task_type)
         if task_type == "transcription":
-            self.transcribing_service.process_story_transcription(story_id)
+            story = Story.objects.get(id=story_id)
+            logger.info("Story %s audio_content=%r", story_id, story.audio_content)
+            if not story.audio_content:
+                logger.error("No audio content for story_id=%s", story_id)
+            else:
+                self.transcribing_service.process_story_transcription(story_id)
         elif task_type == "tag":
             self.tagging_service.process_story_tagging(story_id)
         elif task_type == "summary":
-            self.summary_service.process_story_summarization(story_id)
-        elif task_type == "insight":
-            self.insight_service.process_story_insights(story_id)
+            story = Story.objects.get(id=story_id)
+            summary = self.summary_service.summarize_story(story.text_content)
+            story.summary = summary
+            story.save(update_fields=["summary"])
+        # elif task_type == "insight":
+        #     self.insight_service.process_story_insights(story_id)
         else:
             logger.error("Unknown task_type %s for job_id=%s", task_type, job_id)
 

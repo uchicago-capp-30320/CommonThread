@@ -8,7 +8,7 @@ from ct_application.models import Story, Project
 PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API")
 
 class LocalSummarizer:
-    def __init__(self, model_name="sshleifer/distilbart-cnn-12-6", min_ratio=0.15, max_ratio=0.3):
+    def __init__(self, model_name="sshleifer/distilbart-cnn-12-6", min_ratio=0.2, max_ratio=0.5):
         self.summarizer = pipeline("summarization", model=model_name, tokenizer=model_name)
         self.tokenizer = self.summarizer.tokenizer
         self.min_ratio = min_ratio
@@ -26,6 +26,10 @@ class LocalSummarizer:
                 min_length=min_length,
                 do_sample=False,
                 no_repeat_ngram_size=3,
+                length_penalty=1.2,
+                num_beams=4,
+                early_stopping=True,
+                truncation=True,
             )
             return summary[0]['summary_text']
         except Exception as e:

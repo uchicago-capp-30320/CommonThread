@@ -618,7 +618,6 @@ def create_story(request):
 
         queue_producer = QueueProducer()
         queue_producer.disable_task("tag")
-        queue_producer.disable_task("summary")
         queue_producer.disable_task("insight")
         queue_producer.process_story(story)
 

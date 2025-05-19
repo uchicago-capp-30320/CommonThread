@@ -26,6 +26,7 @@ load_dotenv(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 AUTH_USER_MODEL = 'ct_application.CustomUser'
 
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API")
 SECRET_KEY = os.getenv("SECRET_KEY")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
