@@ -139,5 +139,3 @@ class ProjectSummarizer:
         except Exception as e:
             print(f"Error summarizing project trends: {e}")
             return ""
-
-
