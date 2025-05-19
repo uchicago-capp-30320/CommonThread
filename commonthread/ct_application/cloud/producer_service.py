@@ -70,9 +70,8 @@ class QueueProducer:
         self.queue_strategy = queue_strategy
         self.tasks = {
             'tag': MLTask('tag'),
-            'summary': MLTask('summary'),
             'transcription': MLTask('transcription'),
-            'insight': MLTask('insight', story_level=False)
+            'summarization': MLTask('summarization')
         }
 
     def enable_task(self, task_type: str):

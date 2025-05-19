@@ -59,7 +59,7 @@ class MLWorkerService:
             elif task_type == "tag":
                 self.tagging_service.process_story_tags(story_id)
             
-            elif task_type == "summary":
+            elif task_type == "summarization":
                 success = self.summarizing_service.process_project_summary(project_id)
                 if not success:
                         logger.error("Failed to generate summary for project_id=%s", project_id)
