@@ -35,7 +35,6 @@ class CustomUser(AbstractUser):
 class Organization(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(default="")
-    profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
     description = models.TextField(default="")
     profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
 
