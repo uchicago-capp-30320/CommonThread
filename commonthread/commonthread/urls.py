@@ -67,7 +67,7 @@ urlpatterns = [
     path("org/create", create_org, name="org-create"),
     path("org/<int:org_id>", get_org, name="org-dashboard"),
     path(
-        "org/<int:org_id>/user-admin",
+        "org/<int:org_id>/admin",
         get_org_admin,
         name="org-admin-dashboard",
     ),
