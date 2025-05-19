@@ -1,6 +1,7 @@
 <script>
 	// TODO update with project data
 	// project.name, project.description, project.total_stories
+	import { page } from '$app/stores';
 
 	let { project } = $props();
 </script>
@@ -27,7 +28,7 @@
 			the project and its goals.
 		</div>
 		<div class="has-text-right mt-4">
-			<a href="{window.location.href}/project/{project.id}" class="button is-primary">
+			<a href="{$page.url.pathname}/project/{project.id}" class="button is-primary">
 				<span>Explore Project</span>
 				<span class="icon">
 					<i class="fa fa-arrow-right"></i>

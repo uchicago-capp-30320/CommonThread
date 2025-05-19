@@ -1,4 +1,6 @@
 <script>
+	import { page } from '$app/stores';
+
 	let {
 		org_name,
 		description,
@@ -37,6 +39,16 @@
 							<p class="heading mb-1">Stories</p>
 							<p class="title is-4 mt-0">{numStories}</p>
 						</div>
+					</div>
+				</nav>
+				<nav class="level-right">
+					<div class="level-item">
+						<a href="{$page.url.pathname}/admin" class="button is-secondary">
+							<span class="icon">
+								<i class="fa fa-edit"></i>
+							</span>
+							<span>Edit Organization</span>
+						</a>
 					</div>
 				</nav>
 			</div>
