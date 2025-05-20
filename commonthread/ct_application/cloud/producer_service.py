@@ -96,7 +96,6 @@ class SQSStrategy(QueueStrategy):
                 message = {
                     "project_id": story.proj.id,
                     "task_type": task.task_type,
-                    "timestamp": datetime.now(UTC).isoformat(),
                 }
 
                 if task.story_level:
