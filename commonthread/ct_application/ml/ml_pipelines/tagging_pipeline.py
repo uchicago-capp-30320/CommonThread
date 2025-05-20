@@ -9,6 +9,7 @@ class TaggingStrategy(ABC):
     @abstractmethod
     def get_tags(self, story_text: str) -> List[Dict[str, str]]:
         pass
+
 #example implementation of a tagging strategy
 class HFTaggingStrategy(TaggingStrategy):
     def __init__(self, aggregation_strategy: str = "simple", 
@@ -26,3 +27,5 @@ class HFTaggingStrategy(TaggingStrategy):
         ner_results = self.ner(story_text)
         tags = [{"word": r["word"], "label": r["entity_group"]} for r in ner_results]
         return tags
+    
+    
