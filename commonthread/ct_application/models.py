@@ -16,6 +16,7 @@ class CustomUser(AbstractUser):
     position = models.CharField(max_length=100, blank=True)
     profile = models.FileField(upload_to="profile_pics/", default="profile_pics/default.jpg")
 
+
 # user-login  ########### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE ###################
 #class UserLogin(models.Model):
 #    user_id = models.OneToOneField(
@@ -32,25 +33,25 @@ class CustomUser(AbstractUser):
 
 # organization
 class Organization(models.Model):
-    org_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
+    description = models.TextField(default="")
+    profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
     description = models.TextField(default="")
     profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
 
 
 # project
 class Project(models.Model):
-    proj_id = models.AutoField(primary_key=True)
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    org = models.ForeignKey(Organization, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     curator = models.ForeignKey(CustomUser, models.SET_NULL, blank=True, null=True)
     date = models.DateField()
+    insight = models.TextField(null=True, blank=True)
 
 
 # story
 class Story(models.Model):
-    story_id = models.AutoField(primary_key=True)
-    proj_id = models.ForeignKey(Project, on_delete=models.CASCADE)
+    proj = models.ForeignKey(Project, on_delete=models.CASCADE)
     storyteller = models.CharField(max_length=100)
     curator = models.ForeignKey(
         CustomUser, models.SET_NULL, blank=True, null=True
@@ -59,6 +60,7 @@ class Story(models.Model):
     text_content = models.TextField()
     audio_content = models.FileField(upload_to="audio/", null=True, blank=True)
     image_content = models.FileField(upload_to="images/", null=True, blank=True)
+    summary = models.TextField(null=True, blank=True)
 
 
 ####################################### TAG TABLES #######################################
@@ -66,23 +68,22 @@ class Story(models.Model):
 
 # tag
 class Tag(models.Model):
-    tag_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=100)
     value = models.CharField(max_length=100, null=True, blank=True)  # Allow null values
-    required = models.BooleanField(default=False)
+    required = models.BooleanField()
+    created_at = models.DateTimeField(auto_now=True)
+    created_by = models.TextField(choices=[('user', 'user'), ('computer', 'computer')], null=True)
 
 # story-tag
 class StoryTag(models.Model):
-    story_tag_id = models.AutoField(primary_key=True)
-    story_id = models.ForeignKey(Story, on_delete=models.CASCADE)
-    tag_id = models.ForeignKey(Tag, on_delete=models.CASCADE)
+    story = models.ForeignKey(Story, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
 
 # project-tag
 class ProjectTag(models.Model):
-    proj_tag_id = models.AutoField(primary_key=True)
-    proj_id = models.ForeignKey(Project, on_delete=models.CASCADE)
-    tag_id = models.ForeignKey(Tag, on_delete=models.CASCADE)
+    proj = models.ForeignKey(Project, on_delete=models.CASCADE)
+    tag = models.ForeignKey(Tag, on_delete=models.CASCADE)
 
 
 ################################# ADMIN TABLES ############################################
@@ -90,7 +91,16 @@ class ProjectTag(models.Model):
 
 # org-user
 class OrgUser(models.Model):
-    org_user_id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
-    org_id = models.ForeignKey(Organization, on_delete=models.CASCADE)
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    org = models.ForeignKey(Organization, on_delete=models.CASCADE)
     access = models.CharField(max_length=20)
+
+
+################################# ML TABLES ############################################
+
+class MLProcessingQueue(models.Model):
+    project = models.ForeignKey(Project, null=True, on_delete=models.CASCADE)
+    story = models.ForeignKey(Story, null=True, on_delete=models.CASCADE)
+    task_type = models.TextField(choices=[('tag', 'tag'), ('summary', 'summary'), ('insight', 'insight')])
+    status = models.TextField(choices=[('processing', 'processing'), ('completed', 'completed'), ('failed', 'failed')])
+    timestamp = models.DateTimeField(auto_now_add=True)
