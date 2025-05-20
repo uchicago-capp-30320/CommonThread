@@ -483,8 +483,7 @@ def get_stories(request):
 
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
-#@verify_user
-#@authorize_user('story','user')
+#@verify_user('user')
 def get_story(request, story_id=None):
     print(request.headers)
     if story_id:
@@ -562,8 +561,7 @@ def get_story(request, story_id=None):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 @csrf_exempt
-#@verify_user
-#@authorize_user('org','user')
+#@verify_user('user')
 @require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
     if request.method == "OPTIONS":
@@ -722,15 +720,43 @@ def delete_user_from_org(request):
 ###############################################################################
 
 
-#@verify_user
-#@authorize_user('org','admin')
-def edit_story(request):
-    pass
+#@verify_user('admin')
+def edit_story(request, story_id):
+        
+    try:
+        story_updates = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    
+    try:
+        story = Story.objects.get(id = story_id)
+    except:
+        return JsonResponse({"success": False, "error": "Story does not exist"}, status=404)
+    
+    try:
+        story.proj = story_updates["name"],
+        story.storyteller = story_updates["description"]
+        story.curator = story_updates["curator"]
+        story.date = story_updates["date"]
+        story.text_content = story_updates["text_content"]
+        story.image_content = story_updates["image_content"]
+        story.audio_content = story_updates["audio_content"]
+        #story.summary = story_updates["summary"] # Should only be updated via ML?
 
-#@verify_user
-#@authorize_user('story','admin')
-def delete_story(request):
-    pass
+        story.save()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+
+
+#@verify_user('admin')
+def delete_story(request, story_id):
+    try:
+        org_to_delete = Story.objects.get(id = story_id)
+        org_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)    
 
 ###############################################################################
 @require_POST
@@ -789,16 +815,45 @@ def create_project(request):
         )
 
 
-#@verify_user
-#@authorize_user('project','admin')
-def edit_project(request):
-    pass
+#@verify_user('admin')
+def edit_project(request, project_id):
+    '''
+    Takes the full project form from the front-end and updates the Project record with
+    the fields passed from the form.
+    '''
+    try:
+        project_updates = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    
+    try:
+        # Get the project being updated
+        project = Project.objects.get(id = project_id)
+    except:
+        return JsonResponse({"success": False, "error": "Project does not exist"}, status=404)
+    
+    try:
+        #Update fields with new information
+        project.name = project_updates["name"],
+        project.curator = project_updates["curator"]
+        project.org = project_updates["org"]
+        project.date = project_updates["date"]
+        #project.insight = project_updates["insight"] # Shouldn't be updated here, only through ML?
+        project.save()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
-#@verify_user
-#@authorize_user('project','admin')
-def delete_project(request):
-    pass
+#@verify_user('admin')
+def delete_project(request, project_id):
+    try:
+        org_to_delete = Organization.objects.get(id = project_id)
+        org_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)    
+
 
 
 @require_POST
@@ -831,16 +886,37 @@ def create_org(request):
     )
 
 
-#@verify_user
-#@authorize_user('org','admin')
-def edit_org(request):
-    pass
+#@verify_user('admin')
+def edit_org(request, org_id):
+    
+    try:
+        org_updates = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    
+    try:
+        org = Organization.objects.get(id = org_id)
+    except:
+        return JsonResponse({"success": False, "error": "Organization does not exist"}, status=404)
+    
+    try:
+        org.name=org_updates["name"],
+        org.description=org_updates["description"]
+        org.save()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
-@verify_user
-#@authorize_user('org','creator')
-def delete_org(request):
-    pass
+
+#@verify_user('creator')
+def delete_org(request, org_id):
+    try:
+        org_to_delete = Organization.objects.get(id = org_id)
+        org_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)
 
 @require_GET
 #@verify_user
@@ -910,19 +986,51 @@ def get_user(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@verify_user
+@verify_user()
 def get_user_detail(request, user_id):
     pass
 
 
-@verify_user
-def edit_user(request):
-    pass
+@verify_user()
+def edit_user(request, user_id, **kwargs):
+
+    try:
+        user_updates = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    
+    username = user_updates.get("username")
+    if User.objects.filter(username=username).exists():
+        return JsonResponse(
+            {"success": False, "error": "Username already exists"}, status=400
+        )
+    
+    user = CustomUser.objects.get(id = user_id) # kwargs['real_user_id']
+
+    try:
+        user.username = username,
+        user.password = user_updates.get("password", ""),
+        user.first_name = user_updates.get("first_name", ""),
+        user.last_name = user_updates.get("last_name", ""),
+        user.email = user_updates.get("email", ""),
+        user.name = user_updates.get("name", ""),
+        user.save()
+        return JsonResponse({"success": True}, status=200)
+    
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 @verify_user
-def delete_user(request):
-    pass
+def delete_user(request, user_id: str):
+
+    try:
+        user_to_delete = CustomUser.objects.get(id = user_id) # kwargs['real_user_id']
+        user_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)
+
 
 
 @require_http_methods(["GET", "POST"])
