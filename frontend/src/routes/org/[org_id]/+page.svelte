@@ -10,42 +10,48 @@
 	import { page } from '$app/state';
 	import { accessToken, refreshToken } from '$lib/store.js';
 
+	const org_id = page.params.org_id;
+
 	let stories = $state([]);
 	let projectsTotal = $state('...');
 	let storiesTotal = $state('...');
 	let projects = $state([]);
 	let orgName = $state('Loading...');
+	let themeColor = $state('#133335');
+	let type = $state('project'); // or 'story', depending on your logic
 
-	let params = $state(page.params);
+	let searchValue = $state('');
 
-	$inspect(stories);
+	let changeOrgs = $state([
+		{
+			org_id: null,
+			org_name: 'Loading...'
+		}
+	]);
+
+	$inspect(searchValue);
 
 	onMount(async () => {
-		// // first make a request to get list of orgs that user is a part of
-		// const orgs = await authRequest(`/org/1`, 'GET', $accessToken, $refreshToken);
-		// console.log('Orgs response:', orgs);
-
-		// if (orgs.newAccessToken) {
-		// 	accessToken.set(orgs.newAccessToken);
-		// }
-
-		// const orgsData = await orgs.data;
-		// console.log('Orgs fetched:', orgsData);
-		const defaultOrg = 1;
-		// orgName = orgsData.org_name;
-
 		// Fetch the data when the component mounts
-		const response = await authRequest(`/stories?org_id=${defaultOrg}`, 'GET', $accessToken, $refreshToken);
-		console.log('Response:', response);
-		const loadedData = response.data;
-		console.log('Data fetched:', loadedData);
 
-		if (loadedData.newAccessToken) {
-			accessToken.set(loadedData.newAccessToken);
+		// Make both requests concurrently using Promise.all
+		const [storiesResponse, orgResponse, userRequest] = await Promise.all([
+			authRequest(`/stories?org_id=${org_id}`, 'GET', $accessToken, $refreshToken),
+			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
+			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
+		]);
+
+		orgName = orgResponse.data.name;
+
+		changeOrgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
+
+		if (storiesResponse.newAccessToken) {
+			accessToken.set(storiesResponse.newAccessToken);
 		}
 
+		const loadedData = storiesResponse.data;
+
 		stories = loadedData['stories'];
-		orgName = loadedData['org_name'];
 		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
 		storiesTotal = stories.length;
 
@@ -73,9 +79,43 @@
 		}));
 	});
 
-	let themeColor = $state('#133335');
-	let type = $state('project'); // or 'story', depending on your logic
+	// Create a function to filter items based on search value
+	function getFilteredItems() {
+		if (searchValue === '') {
+			if (type === 'project') {
+				return projects;
+			} else if (type === 'story') {
+				return stories;
+			}
+		}
+
+		const searchTerm = searchValue.toLowerCase();
+
+		if (type === 'project') {
+			return projects.filter((project) => project.name.toLowerCase().includes(searchTerm));
+		} else if (type === 'story') {
+			return stories.filter((story) => story.text_content.toLowerCase().includes(searchTerm));
+		}
+
+		return [];
+	}
+
+	// Create derived state for filtered items
+	let filteredItems = $derived(getFilteredItems());
+
+	// Update counts based on filtered items
+	$effect(() => {
+		if (type === 'project') {
+			projectsTotal = filteredItems.length;
+		} else if (type === 'story') {
+			storiesTotal = filteredItems.length;
+		}
+	});
 </script>
+
+<svelte:head>
+	<title>Org Dashboard</title>
+</svelte:head>
 
 <div class="container">
 	<div class="p-5">
@@ -84,6 +124,7 @@
 			description="This is a description of my organization"
 			numProjects={projectsTotal}
 			numStories={storiesTotal}
+			orgs={changeOrgs}
 			--card-color={themeColor}
 		/>
 	</div>
@@ -101,13 +142,10 @@
 							class="button {type === 'story' ? 'active' : ''}"
 							onclick={() => (type = 'story')}>Story View</button
 						>
-						<button class="button {type === 'dash' ? 'active' : ''}" onclick={() => (type = 'dash')}
-							>Dashboard</button
-						>
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/" class="button">
+					<a href="/org/{org_id}/stories/new" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>
@@ -126,10 +164,12 @@
 				<div class="level-item">
 					<div class="field has-addons">
 						<p class="control">
-							<input class="input" type="text" placeholder={`Search for ${type}`} />
-						</p>
-						<p class="control">
-							<button class="button">Search</button>
+							<input
+								class="input"
+								type="text"
+								bind:value={searchValue}
+								placeholder={`Search for ${type}`}
+							/>
 						</p>
 					</div>
 				</div>
@@ -152,20 +192,18 @@
 			{/each}
 		{:else if type === 'project'}
 			<div class="columns mt-4 is-multiline">
-				{#each projects as project}
+				{#each filteredItems as project}
 					<div class="column is-one-third">
 						<ProjectCard {project} />
 					</div>
 				{/each}
 			</div>
 		{:else if type === 'story'}
-			{#each stories as story}
+			{#each filteredItems as story}
 				<div class="">
 					<StoryPreview {story} />
 				</div>
 			{/each}
-		{:else if type === 'dash'}
-			<DataDashboard {stories} />
 		{:else}
 			<p class="has-text-centered">No stories available</p>
 		{/if}
