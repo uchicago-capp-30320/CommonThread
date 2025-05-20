@@ -860,7 +860,7 @@ def delete_org(request):
 
 
 @require_GET
-# @verify_user
+@verify_user
 def get_user(request):
 
     auth_header = request.headers.get("Authorization", "")

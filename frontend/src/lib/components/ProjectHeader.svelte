@@ -23,7 +23,7 @@
 			<div class="media">
 				<div class="media-content">
 					<p class="title is-4">{project_name}</p>
-					<p class="subtitle is-6">{insight}</p>
+					<p class="subtitle is-6">{insight || 'No AI Insight'}</p>
 				</div>
 			</div>
 
