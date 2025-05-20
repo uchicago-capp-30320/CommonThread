@@ -304,102 +304,6 @@ def get_new_access_token(request):
         )
 
 @require_GET
-def get_project(request, project_id):
-    try:
-        project = Project.objects.select_related('org', 'curator').get(id=project_id)
-        story_count = Story.objects.filter(proj=project).count()
-
-        # Get associated ProjectTag objects
-        project_tags = ProjectTag.objects.filter(proj=project)
-
-        # Filter based on related Tag's `required` field
-        required_tags = project_tags.filter(tag__required=True).values_list("tag__name", flat=True)
-        optional_tags = project_tags.filter(tag__required=False).values_list("tag__name", flat=True)
-
-        # Construct response
-        data = {
-            "project_id": project.id,
-            "project_name": project.name,
-            "org_id": project.org.id,
-            "org_name": project.org.name,
-            "date": project.date,
-            "insight": project.insight,
-            "curator": project.curator.name if project.curator else None,
-            "required_tags": list(required_tags),
-            "optional_tags": list(optional_tags),
-            "stories": story_count,
-        }
-
-        return JsonResponse(data)
-
-    except Project.DoesNotExist:
-        logger.error(f"Project with id={project_id} not found.")
-        return JsonResponse({"error": "Project not found."}, status=404)
-
-    except Exception as e:
-        logger.error(f"Error in get_project: {e}")
-        return JsonResponse({"error": "Internal server error."}, status=500)
-    
-@require_GET
-#@verify_user
-def get_org(request, org_id):
-    try:
-        org = get_object_or_404(Organization, id=org_id)
-
-        # Get all projects in the org
-        projects = Project.objects.filter(org=org)
-        project_count = projects.count()
-
-        # Get all stories in those projects
-        stories = Story.objects.filter(proj__in=projects)
-        story_count = stories.count()
-
-        # Collect curators from projects and stories
-        project_curators = projects.values_list("curator", flat=True)
-        story_curators = stories.values_list("curator", flat=True)
-
-        user_ids = set(list(project_curators) + list(story_curators))
-        users = CustomUser.objects.filter(id__in=user_ids)
-
-        users_data = [
-            {
-                "user_id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "position": user.position,
-            }
-            for user in users
-        ]
-
-        # Generate presigned URL for profile picture
-        profile_pic_url = ""
-        if org.profile:
-            presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-                key=org.profile.name,
-                operation="download",
-                expiration=3600 
-            )
-            profile_pic_url = presign["url"]
-
-
-        response_data = {
-            "org_id": org.id,
-            "name": org.name,
-            "description": org.description,
-            "profile_pic_path": profile_pic_url,
-            "project_count": project_count,
-            "story_count": story_count,
-            "users": users_data,
-        }
-
-        return JsonResponse(response_data, status=200)
-
-    except Exception as e:
-        logging.error(f"Error in get_org: {e}")
-        return JsonResponse({"error": "Something went wrong."}, status=500)
-
-@require_GET
 def get_stories(request):
     try:
         # Existing filter logic remains the same
@@ -479,87 +383,6 @@ def get_stories(request):
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
-
-
-@require_GET
-@cache_page(60 * 15)  # Cache for 15 minutes
-#@verify_user
-#@authorize_user('story','user')
-def get_story(request, story_id=None):
-    print(request.headers)
-    if story_id:
-        try:
-            story = Story.objects.select_related("proj").get(id=story_id)
-            project = Project.objects.get(id=story.proj_id)
-            story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                "tag"
-            )
-
-            tags = []
-            for st in story_tags:
-                tag_obj = Tag.objects.get(id = st.tag_id)
-                tag = {
-                    "name": tag_obj.name,
-                    "value": tag_obj.value
-                }
-                tags.append(tag)
-
-            return JsonResponse(
-                {
-                    "story_id": story.id,
-                    "project_id": story.proj_id,
-                    "project_name": project.name,
-                    "storyteller": story.storyteller,
-                    "curator": story.curator.id if story.curator else None,
-                    "date": story.date,
-                    "text_content": story.text_content,
-                    "tags": tags,
-                },
-                status=200,
-            )
-        except Story.DoesNotExist:
-            return HttpResponseNotFound(
-                "Could not find that story. It has been either deleted or misplaced",
-                status=404,
-            )
-    else:
-        try:
-            # Get all stories with their tags and projects
-            stories = (
-                Story.objects.select_related("proj")
-                .prefetch_related("storytag_set__tag_id")
-                .all()
-            )
-            stories_data = []
-
-            for story in stories:
-                story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                    "tag"
-                )
-                tags = [
-                    {"name": st.tag_id.name, "value": st.tag_id.value}
-                    for st in story.storytag_set.all()
-                ]
-
-                stories_data.append(
-                    {
-                        "story_id": story.id,
-                        "storyteller": story.storyteller,
-                        "project_id": story.proj_id.id,
-                        "project_name": story.proj_id.name,
-                        "curator": story.curator.id if story.curator else None,
-                        "date": story.date,
-                        "text_content": story.text_content,
-                        "tags": tags,
-                    }
-                )
-
-            return JsonResponse(
-                {"stories": stories_data},
-                status=200,
-            )
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 @csrf_exempt
 #@verify_user
@@ -946,12 +769,12 @@ def get_org_admin(request, org_id):
             for member in org_members
         ]
 
-        return JsonResponse(
-            {"org_id": org_id, "requested_by": user_id, "organization_users": data}
-        )
         # return JsonResponse(
-        #     {"org_id": org_id, "organization_users": data}
+        #     {"org_id": org_id, "requested_by": user_id, "organization_users": data}
         # )
+        return JsonResponse(
+            {"org_id": org_id, "organization_users": data}
+        )
 
     # post method for updating access level
     elif request.method == "POST":
@@ -988,39 +811,5 @@ def get_org_admin(request, org_id):
         except json.JSONDecodeError:
             return HttpResponseBadRequest("Invalid JSON.")
 
-
-# @verify_user
-def get_org_projects(request, org_id):
-    try:
-        org = get_object_or_404(Organization, id=org_id)
-
-        # Get all projects in the org
-        projects = Project.objects.filter(org=org)
-        project_count = projects.count()
-
-        for project in projects:
-            story_count = Story.objects.filter(proj=project).count()
-
-        response_data = {
-            "org_id": org.id,
-            "name": org.name,
-            "description": org.description,
-            "profile_pic_path": org.profile.url if org.profile else "",
-            "project_count": project_count,
-            "projects": [
-                {
-                    "project_id": project.id,
-                    "project_name": project.name,
-                    "story_count": story_count,
-                }
-                for project in projects
-            ],
-        }
-
-        return JsonResponse(response_data, status=200)
-
-    except Exception as e:
-        logging.error(f"Error in get_org: {e}")
-        return JsonResponse({"error": "Something went wrong."}, status=500)
 
 #### EOF. ####
