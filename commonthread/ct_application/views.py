@@ -2,6 +2,7 @@
 
 import logging
 import json
+from uuid import uuid4
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -933,7 +934,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
     if profile: 
         presign = generate_s3_presigned(
             bucket_name=settings.CT_BUCKET_ORG_PROFILES, 
-            key = f"{org.id}.png", 
+            key = f"orgs/images/{org.id}/{uuid4()}.png", 
             operation="upload", 
             content_type="image/png", 
             expiration=3600, 
