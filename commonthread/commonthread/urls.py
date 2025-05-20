@@ -23,43 +23,77 @@ from django.urls import path, include
 from ct_application.views import (
     home_test,
     login,
+    get_new_access_token,
     create_user,
-    create_project,
+    get_user, #old show_user_dashboard
+    get_user_detail,
+    edit_user,
+    delete_user,
+    create_org,
+    get_org, #old show_org_dashboard, the new get-stories
+    get_org_admin, #old show_org_admin dasboard
+    get_org_projects,
+    edit_org,
+    delete_org,
     add_user_to_org,
+    delete_user_from_org,
+    create_project,
+    get_project, #old show_project_dashboard
+    edit_project,
+    delete_project,
     get_story,
     create_story,
-    show_org_dashboard,
-    create_org,
-    show_project_dashboard,
-    show_user_dashboard,
-    show_org_admin_dashboard,
-    get_new_access_token,
+    edit_story,
+    delete_story,
+    get_stories
+
 )
 
 urlpatterns = [
     path("", home_test, name="home"),  # GET /
     path("login", login, name="login"),
-    path("login/create_access", get_new_access_token, name="access-create"),
+    path("create_access", get_new_access_token, name="access-create"),
+
+    #User Related Endpoints
     path("user/create", create_user, name="user-create"),
+    #path("user/<int:user_id>/dashboard", get_user, name="user-dashboard"),
+    path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
+    path("user/<int:user_id>/edit", edit_user, name="user-edit"),
+    path("user/<int:user_id>/delete", delete_user, name="user-delete"),
+    path("user/", get_user, name="get_user"),
+
+    
+    #Org Related Endpoints
+    path("org/create", create_org, name="org-create"),
+    path("org/<int:org_id>", get_org, name="org-dashboard"),
+    path(
+        "org/<int:org_id>/user-admin",
+        get_org_admin,
+        name="org-admin-dashboard",
+    ),
+    path("org/<int:org_id>/project-admin", get_org_projects, name="org-projects"),
+    path("org/<int:org_id>/edit", edit_org, name="org-edit"),
+    path("org/<int:org_id>/delete", delete_org, name="org-delete"),
+    path("org/<int:org_id>/add-user", add_user_to_org, name="add-user-to-org"),
+    path(
+        "org/<int:org_id>/delete-user", 
+         delete_user_from_org, 
+         name="delete-user-from-org"),
+
+    #Project Related Endpoints
     path("project/create", create_project, name="project-create"),
-    path("project/add_user", add_user_to_org, name="add-user-to-org"),
-    path("stories/", get_story, name="story-list"),  # GET all
-    path("stories/<int:story_id>/", get_story, name="story-detail"),  # GET one
-    path("stories/create/", create_story, name="story-create"),  # POST one
+    path("project/<int:project_id>", get_project, name="project-dashboard"),
+    path("project/<int:org_id>/<int:project_id>/edit", edit_project, name="project-edit"),
+    path("project/<int:org_id>/<int:project_id>/delete", delete_project, name="project-delete"),
+    
+    #Story Related Endpoints
+    path("story/create", create_story, name="story-create"),
+    path("story/<int:story_id>", get_story, name="story-detail"),
+    path("story/<int:story_id>/edit", edit_story, name="story-edit"),
+    path("story/<int:story_id>/delete", delete_story, name="story-delete"),
+    path("stories/", get_stories, name="get_stories"),
     # TODO add a bulk‑create endpoint if needed
-    path("org/<int:user_id>/<int:org_id>/", show_org_dashboard, name="org-dashboard"),
-    path("org/create/", create_org, name="org-create"),
-    path(
-        "org/<int:user_id>/<int:org_id>/project/<int:project_id>/",
-        show_project_dashboard,
-        name="project-dashboard",
-    ),
-    path("admin/", admin.site.urls),
-    path("accounts/", include("django.contrib.auth.urls")),  # new
-    path("user/<int:user_id>/dashboard/", show_user_dashboard, name="user_dashboard"),
-    path(
-        "org/<int:user_id>/admin/<int:org_id>/",
-        show_org_admin_dashboard,
-        name="org_admin_dashboard",
-    ),
+
+    path("admin/", admin.site.urls), # UNUSED- REMOVE?
+    path("accounts/", include("django.contrib.auth.urls")),  # UNUSED- REMOVE?
 ]
