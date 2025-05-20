@@ -14,7 +14,7 @@ class CustomUser(AbstractUser):
     city = models.CharField(max_length=100, blank=True)
     bio = models.TextField(blank=True)
     position = models.CharField(max_length=100, blank=True)
-    profile = models.FileField(upload_to="profile_pics/", default="profile_pics/default.jpg")
+    profile = models.FileField(upload_to="profile_pics/", default="user_default.jpg")
 
 
 ###################################### Story Tables ##########################################
@@ -24,7 +24,7 @@ class CustomUser(AbstractUser):
 class Organization(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(default="")
-    profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
+    profile = models.FileField(upload_to="org_pics/", default="org_default.jpg")
 
 
 # project
