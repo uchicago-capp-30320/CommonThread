@@ -20,6 +20,13 @@
 
 	let searchValue = $state('');
 
+	let changeOrgs = $state([
+		{
+			org_id: null,
+			org_name: 'Loading...'
+		}
+	]);
+
 	$inspect(searchValue);
 
 	onMount(async () => {
@@ -27,12 +34,15 @@
 		const org_id = page.params.org_id;
 
 		// Make both requests concurrently using Promise.all
-		const [storiesResponse, orgResponse] = await Promise.all([
+		const [storiesResponse, orgResponse, userRequest] = await Promise.all([
 			authRequest(`/stories?org_id=${org_id}`, 'GET', $accessToken, $refreshToken),
-			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken)
+			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
+			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
 		]);
 
 		orgName = orgResponse.data.name;
+
+		changeOrgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
 
 		if (storiesResponse.newAccessToken) {
 			accessToken.set(storiesResponse.newAccessToken);
@@ -102,6 +112,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Org Dashboard</title>
+</svelte:head>
+
 <div class="container">
 	<div class="p-5">
 		<OrgHeader
@@ -109,6 +123,7 @@
 			description="This is a description of my organization"
 			numProjects={projectsTotal}
 			numStories={storiesTotal}
+			orgs={changeOrgs}
 			--card-color={themeColor}
 		/>
 	</div>

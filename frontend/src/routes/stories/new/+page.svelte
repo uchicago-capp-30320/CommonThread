@@ -2,6 +2,10 @@
 	import StoryInput from '$lib/components/story/StoryHolder.svelte';
 </script>
 
+<svelte:head>
+	<title>Add Story</title>
+</svelte:head>
+
 <div class="page-container is-flex is-flex-direction-column is-align-items-center p-5 is-fullwidth">
 	<StoryInput />
 </div>

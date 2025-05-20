@@ -13,12 +13,23 @@
 		projectsTotal: 0,
 		storiesTotal: 0
 	});
-	let userData = $state({
-		name: 'Loading...',
-		email: 'Loading...',
-		data_added: 'Loading...'
-	});
-	let projects = $state([]);
+	let userData = $state([
+		{
+			name: 'Loading...',
+			email: 'Loading...',
+			data_added: 'Loading...'
+		}
+	]);
+	let projects = $state([
+		{
+			project_name: 'Loading...',
+			description: 'Loading...',
+			stories: 0,
+			required_tags: [],
+			optional_tags: [],
+			isOpen: false
+		}
+	]);
 	let projectResponses = $state([]);
 
 	$inspect(projects);
@@ -37,7 +48,6 @@
 		const project_ids = orgData.project_ids;
 
 		// get project info from all projects concurrently
-
 		const projectPromises = project_ids.map((project_id) =>
 			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
 		);
@@ -72,8 +82,23 @@
 	//$inspect(projects);
 </script>
 
-<div class="content">
-	<div class="header p-6">
+<svelte:head>
+	<title>Organization Admin</title>
+</svelte:head>
+
+<div class="container">
+	<div class="breadcrumb-nav mb-5 mt-3">
+		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
+			<ul>
+				<li><a href="/">Home</a></li>
+				<li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+				<li class="is-active">
+					<a href="/org/{orgData.org_id}/admin" aria-current="page">Admin Page</a>
+				</li>
+			</ul>
+		</nav>
+	</div>
+	<div class="p-5">
 		<OrgHeader
 			org_name={orgData.name}
 			description={orgData.description}
@@ -137,7 +162,7 @@
 								<td>
 									{user.email}
 								</td>
-								<td>1/1/2024</td>
+								<td>{user.data_added ? user.data_added : 'No Date'}</td>
 								<td>
 									<div class="buttons">
 										<button
@@ -167,10 +192,10 @@
 					onclick={() => {
 						projects = [
 							{
-								name: 'New Project',
-								description: 'Description of new project',
-								requiredTags: [],
-								optionalTags: [],
+								project_name: 'New Project',
+								insight: 'Description of new project',
+								required_tags: [],
+								optional_tags: [],
 								isOpen: true
 							},
 							...projects
@@ -325,6 +350,14 @@
 	<style>
 		.is-rotated {
 			transform: rotate(180deg);
+		}
+
+		.breadcrumb a {
+			color: black;
+		}
+
+		.breadcrumb a.is-active {
+			color: var(--dark_blue) !important;
 		}
 	</style>
 </div>

@@ -1,15 +1,20 @@
 <script>
-	import OrgHeader from '$lib/components/OrgHeader.svelte';
+	import ProjectHeader from '$lib/components/ProjectHeader.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 
 	import { authRequest } from '$lib/authRequest.js';
 	import { onMount } from 'svelte';
-	import { page } from '$app/state';
+	import { page } from '$app/stores';
 	import { accessToken, refreshToken } from '$lib/store.js';
 
 	let stories = $state([]);
-	let projectData = $state({ name: 'Loading...', insight: 'Loading...', story_count: 0 });
+	let projectData = $state({
+		name: 'Loading...',
+		insight: 'Loading...',
+		org_id: 'Loading...',
+		stories: 0
+	});
 	let projectsTotal = $state('...');
 	let storiesTotal = $state('...');
 	let themeColor = $state('#133335');
@@ -19,7 +24,7 @@
 
 	onMount(async () => {
 		// Fetch the data when the component mounts
-		const project_id = page.params.project_id;
+		const project_id = $page.params.project_id;
 
 		// Make both requests concurrently using Promise.all
 		const [storiesResponse, projectResponse] = await Promise.all([
@@ -38,13 +43,30 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Project Dashboard</title>
+</svelte:head>
+
 <div class="container">
+	<div class="breadcrumb-nav mb-5">
+		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
+			<ul>
+				<li><a href="/">Home</a></li>
+				<li><a href="/org/{projectData.org_id}">{projectData.org_name || 'Organization'}</a></li>
+				<li class="is-active">
+					<a href="/org/{projectData.org_id}/project/{projectData.name}" aria-current="page"
+						>{projectData.project_name}</a
+					>
+				</li>
+			</ul>
+		</nav>
+	</div>
 	<div class="p-5">
-		<OrgHeader
-			org_name={projectData.project_name}
-			description={projectData.insight}
-			numProjects={projectData.story_count}
-			numStories={projectData.story_count}
+		<ProjectHeader
+			project_name={projectData.project_name}
+			insight={projectData.insight}
+			stories={projectData.stories}
+			org_id={projectData.org_id}
 			--card-color={themeColor}
 		/>
 	</div>
@@ -75,7 +97,7 @@
 			<div class="level-right">
 				<div class="level-item">
 					<p class="subtitle is-5">
-						<strong>{projectData.story_count}</strong> Stories
+						<strong>{projectData.stories}</strong> Stories
 					</p>
 				</div>
 				{#if type === 'story'}
@@ -120,6 +142,14 @@
 <style>
 	.container {
 		margin: 30px;
+	}
+
+	li a {
+		color: black;
+	}
+
+	li.is-active {
+		color: #133335 !important;
 	}
 
 	button.active {

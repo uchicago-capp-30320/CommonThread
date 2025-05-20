@@ -63,6 +63,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Login</title>
+</svelte:head>
+
 <div id="container">
 	<div class="container is-max-tablet">
 		<div class="notification">
