@@ -18,8 +18,8 @@ Refs:
 - https://learndjango.com/tutorials/django-login-and-logout-tutorial
 """
 
-from django.contrib import admin
-from django.urls import path, include
+#from django.contrib import admin
+from django.urls import path
 from ct_application.views import (
     home_test,
     login,

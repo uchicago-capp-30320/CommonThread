@@ -97,12 +97,12 @@ def test_refresh_ok(client, seed):
 
 # ───────── protected happy‑paths ─────────
 def test_org_dashboard_ok(client, seed, auth_headers):
-    alice, org1 = seed["alice"], seed["org1"]
+    _, org1 = seed["alice"], seed["org1"]
     r = client.get(f"/org/{org1.id}", **auth_headers())
     assert r.status_code == 200 and "org_id" in r.json()
 
 def test_project_dashboard_ok(client, seed, auth_headers):
-    alice, p = seed["alice"], seed["proj1"]
+    _, p = seed["alice"], seed["proj1"]
     r = client.get(f"/project/{p.id}", #org1 hardcoded, just to test page working at all
                    **auth_headers())
     assert r.status_code == 200 and r.json()["project_id"] == p.id
