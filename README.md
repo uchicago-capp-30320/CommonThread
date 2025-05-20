@@ -113,6 +113,6 @@ Paul Soltys      | Chief Architect and Data Engineer
 Praveen Chandar  | ML Specialist, Back-end and Front-end Engineer
 Regina I. Medina | QA Specialist, Back-end and Front-end Engineer
 
-Branding resources and customized illustrations designed by [Pili Medina :cat2:](mailto:lunde@adobe.com). 
+Branding resources and customized illustrations designed by [Pili Medina :cat2:](mailto:pilar.eunice.mr@gmail.com). 
 
 --------------
