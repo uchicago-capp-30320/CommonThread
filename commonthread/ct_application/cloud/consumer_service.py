@@ -1,36 +1,33 @@
 """
-
 This module has 2 main functions:
 1. Keep listening to the sqs queue
 2  Process the message and update the database table (MLProcessingQueue) with the task status.
 """
-#We need these to run this consumer as a standalone script
-#TODO need to add the db updator.
+
 import os
 import django
+from datetime import datetime
+import json
+import boto3
+import logging
+import time
+from django.core.exceptions import ObjectDoesNotExist
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
 django.setup()
 
+# THIS HAS TO BE BELOW THE DJANGO SETUP
 from ..ml.ml_services.summarizing_service import SummarizingService
 from ..ml.ml_services.tagging_service import TaggingService
-from ..ml.ml_services.transcribing_service import TranscribingService   
-# from ..ml.ml_services.insight_service import InsightService
+from ..ml.ml_services.transcribing_service import TranscribingService
+from ..models import MLProcessingQueue, Story, Project
+from commonthread.settings import CT_SQS_QUEUE_URL
 
-from ..models import MLProcessingQueue
-from typing import List
-
-import os
-import json
-import boto3
-import logging
-import datetime
-import time
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
+
 sqs = boto3.client("sqs", region_name="us-east-1")
 
 
@@ -46,48 +43,71 @@ class MLWorkerService:
         """
         job_id = body.get("job_id")
         task_type = body.get("task_type")
-        story_id = body.get("story_id")
-        project_id = body.get("project_id")
-        
+        story_id = body.get("story_id", None)
+        project_id = body.get("project_id", None)
+
         logger.info("Dispatching job_id=%s, type=%s", job_id, task_type)
-        
-        #need to move this
-        # self._create_queue_entries(body)
+
         try:
             if task_type == "transcription":
-                success = self.transcribing_service.process_story_transcription(story_id)
+                success = self.transcribing_service.process_story_transcription(
+                    story_id
+                )
                 if not success:
-                    logger.error("Failed to process transcription for story_id=%s", story_id)
-            
+                    logger.error(
+                        "Failed to process transcription for story_id=%s", story_id
+                    )
+
             elif task_type == "tag":
                 self.tagging_service.process_story_tags(story_id)
-            
+
             elif task_type == "summarization":
                 success = self.summarizing_service.process_project_summary(project_id)
                 if not success:
-                        logger.error("Failed to generate summary for project_id=%s", project_id)
+                    logger.error(
+                        "Failed to generate summary for project_id=%s", project_id
+                    )
             else:
                 logger.error("Unknown task_type %s for job_id=%s", task_type, job_id)
-            
+
+            self._create_queue_entries(body, success)
+
         except Exception as e:
-            logger.exception("Error processing task_type=%s, job_id=%s: %s", task_type, job_id, str(e))
+            logger.exception(
+                "Error processing task_type=%s, job_id=%s: %s",
+                task_type,
+                job_id,
+                str(e),
+            )
             raise
 
-    # def _create_queue_entries(self,task_body: dict) -> MLProcessingQueue:
+    def _create_queue_entries(
+        self, task_body: dict, success: bool = True
+    ) -> MLProcessingQueue:
+        """
+        Create a metadata entry for the given task body.
+        """
+        story_id = task_body.get("story_id")
+        project_id = task_body.get("project_id")
 
-    #     #STILL NOT READY
-    #     entry = MLProcessingQueue(
-    #                 story = task_body.get("story_id"),
-    #                 project = task_body.get("proj_id"),
-    #                 task_type=task_body.get("task_type"),
-    #                 status='completed',
-    #                 timestamp=datetime.now(datetime.timezone.utc)
+        try:
+            story = Story.objects.get(id=story_id) if story_id else None
+            project = Project.objects.get(id=project_id) if project_id else None
+        except ObjectDoesNotExist as e:
+            logger.error(f"Failed to create queue entry: {str(e)}")
+            raise
 
-    #             )
-            
-    #     return MLProcessingQueue.objects.create(entry)
-    
-    def process_messages(self, use_lambda: bool = False, event: dict = None, context=None):
+        return MLProcessingQueue.objects.create(
+            story=story,
+            project=project,
+            task_type=task_body.get("task_type"),
+            status="completed" if success else "failed",
+            timestamp=datetime.now(datetime.timezone.utc),
+        )
+
+    def process_messages(
+        self, use_lambda: bool = False, event: dict = None, context=None
+    ):
         """
         Entry point for processing ML tasks.
 
@@ -103,18 +123,19 @@ class MLWorkerService:
                     body = json.loads(record.get("body", "{}"))
                     self._dispatch(body)
                 except Exception:
-                    logger.exception("Failed to dispatch Lambda record %s", record.get("messageId"))
+                    logger.exception(
+                        "Failed to dispatch Lambda record %s", record.get("messageId")
+                    )
                     raise
             return {"status": "ok"}
 
-        # Poll mode
-        if not QUEUE_URL:
+        if not CT_SQS_QUEUE_URL:
             logger.error("AWS_SQS_QUEUE_URL not set. Exiting.")
             return
-        logger.info("Starting SQS poll loop on %s", QUEUE_URL)
+        logger.info("Starting SQS poll loop on %s", CT_SQS_QUEUE_URL)
         while True:
             resp = sqs.receive_message(
-                QueueUrl=QUEUE_URL,
+                QueueUrl=CT_SQS_QUEUE_URL,
                 MaxNumberOfMessages=10,
                 WaitTimeSeconds=20,
             )
@@ -124,11 +145,14 @@ class MLWorkerService:
                 try:
                     body = json.loads(msg.get("Body", "{}"))
                     self._dispatch(body)
-                    sqs.delete_message(QueueUrl=QUEUE_URL, ReceiptHandle=receipt)
+                    sqs.delete_message(QueueUrl=CT_SQS_QUEUE_URL, ReceiptHandle=receipt)
                     logger.info("Deleted message job_id=%s", body.get("job_id"))
                 except Exception:
-                    logger.exception("Failed to process message id=%s", msg.get("MessageId"))
+                    logger.exception(
+                        "Failed to process message id=%s", msg.get("MessageId")
+                    )
             time.sleep(1)
+
 
 if __name__ == "__main__":
     MLWorkerService().process_messages()
