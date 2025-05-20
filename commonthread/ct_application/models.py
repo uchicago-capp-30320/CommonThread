@@ -17,17 +17,6 @@ class CustomUser(AbstractUser):
     profile = models.FileField(upload_to="profile_pics/", default="profile_pics/default.jpg")
 
 
-# user-login  ########### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE ###################
-#class UserLogin(models.Model):
-#    user_id = models.OneToOneField(
-#        CustomUser, primary_key=True, on_delete=models.CASCADE
-#    )
-#    username = models.CharField(max_length=255, unique=True)
-#    password = models.CharField(
-#        max_length=255
-#    )  # This probably changes based on PW storage method
-
-
 ###################################### Story Tables ##########################################
 
 
