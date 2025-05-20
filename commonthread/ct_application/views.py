@@ -32,9 +32,14 @@ from .models import (
     StoryTag,
     CustomUser,
 )
+
+import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 import traceback
+import datetime
+import traceback
+from commonthread.settings import JWT_SECRET_KEY
 from functools import wraps
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from .cloud.producer_service import QueueProducer
@@ -231,11 +236,7 @@ def login(request):  # need not pass username and password as query params
     access_token = generate_access_token(authenticated_user.id)
     logger.debug(f"LOGIN ➤ issued access_token={access_token}")
     refresh_token = generate_refresh_token(authenticated_user.id)
-
-    # ───────────────────────────────────────────────────────────────
-    import datetime
-    import jwt
-    from commonthread.settings import JWT_SECRET_KEY
+    
     # decode *without* verifying exp, so we can inspect the claims:
     payload = jwt.decode(
         access_token,
@@ -248,7 +249,6 @@ def login(request):  # need not pass username and password as query params
     # log both as raw seconds and as UTC datetimes
     logger.debug(f"JWT iat (epoch): {iat}, which is {datetime.datetime.fromtimestamp(iat, datetime.timezone.utc).isoformat()}")
     logger.debug(f"JWT exp (epoch): {exp}, which is {datetime.datetime.fromtimestamp(exp, datetime.timezone.utc).isoformat()}")
-    # ───────────────────────────────────────────────────────────────
 
     return JsonResponse(
         {"success": True, 
