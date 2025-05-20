@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def get_story_text(story_id: int) -> Optional[str]:
     try:
         story = Story.objects.get(id=story_id)
@@ -14,6 +15,7 @@ def get_story_text(story_id: int) -> Optional[str]:
     except ObjectDoesNotExist:
         logger.error(f"Story with id {story_id} not found")
         return None
+
 
 class TaggingService:
     def __init__(self, tagging_strategy: TaggingStrategy = HFTaggingStrategy()):
@@ -50,7 +52,7 @@ class TaggingService:
                 created_tags.append(tag)
             logger.info(f"Created {len(created_tags)} tags for story {story_id}")
             return True
-        
+
         except Exception as e:
             logger.error(f"Error processing tags for story {story_id}: {str(e)}")
             return False
