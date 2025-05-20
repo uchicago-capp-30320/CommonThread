@@ -52,7 +52,11 @@ logger = logging.getLogger(__name__)
 ########## Authentication and Authorization ##############
 
 
-def verify_user(view_function, required_access = "user"):
+def verify_user(required_access = "user",
+                org_id = None,
+                project_id = None, 
+                story_id = None, 
+                user_id = None):
     """
     Decorator designed to provide interface that simplifies links & setup for views. The If statement allows for
     individual auth functions that take varieties of input, but a single wrapper for ease of use.
@@ -65,28 +69,68 @@ def verify_user(view_function, required_access = "user"):
         - admin: for some edit and some delete endpoints
         - user: for some edit and all get endpoints
     """
-    @wraps(view_function)
-    def inner(request, *args, **kwargs):
+    def decorator(view_function, org_id = None,
+                project_id = None, 
+                story_id = None, 
+                user_id = None):
+        @wraps(view_function)
+        def inner(request, *args, **kwargs):
 
-        #Verifying the user and storing their user ID for use/passback
-        real_user_id = jwt_authentication(request)
-        kwargs["real_user_id"] = real_user_id
+            #Verifying the user and storing their user ID for use/passback
+            try:
+                # Decode Given Access Token
+                access_token = request.headers.get("Authorization", "")
+                if not access_token or not access_token.startswith("Bearer "):
+                    return JsonResponse(
+                        {"success": False, "error": "Token missing or malformed"}, status=401
+                    )
+                access_token = access_token.split(" ",1)[1]
+                decoded = decode_access_token(access_token)
+                # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
+                real_user_id = decoded["sub"]
 
-        # Identifying what kind of request/auth level the user has for their request
-        auth_level = id_searcher(real_user_id, kwargs)
+            except ExpiredSignatureError:
+                # Expired Token: 299 Code used by front-end to know to request new one
+                return JsonResponse(
+                    {"success": False, "error": "Access Expired"}, status=299
+                )
+            except InvalidTokenError:
+                # Something broke in the process
+                return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
-        auth_level_check(auth_level, required_access)
-        
-        return view_function(request, *args, **kwargs)
-    return inner
+            kwargs["real_user_id"] = decoded["sub"]
+
+            # Identifying what kind of request/auth level the user has for their request
+            auth_level = id_searcher(real_user_id, kwargs, required_access)
+
+            auth_level_check(auth_level, required_access)
+            
+            return view_function(request, *args, **kwargs)
+        return inner
+    return decorator
 
 
-def id_searcher(real_user_id, dict):
+def id_searcher(real_user_id, dict, required_access):
     '''
     dict: keyword dictionary (kwargs)
     '''
     try:
-        if "user_id" not in dict:
+        #Separate out user requests that don't have any additional needs beyond authenticating the user
+        if "user_id" not in dict :
+            #Find the specific component of information that is needed for authorization
+            if "org_id" not in dict:
+                if "project_id" not in dict:
+                    if "story_id" not in dict:
+                        return JsonResponse({"success": False, "error": "No Identifier Provided"}, status=400)
+                    else:
+                        return check_story_auth(real_user_id, dict["story_id"])
+                else:
+                    return check_project_auth(real_user_id, dict["project_id"])
+            else:
+                return check_org_auth(real_user_id, dict["org_id"])
+        elif required_access != "user":
+            # If there's a user id in there but we need admin/creator for some purpose.
+            # This essentially serves as a failsafe against things that might include user ids
             if "org_id" not in dict:
                 if "project_id" not in dict:
                     if "story_id" not in dict:
@@ -98,36 +142,11 @@ def id_searcher(real_user_id, dict):
             else:
                 return check_org_auth(real_user_id, dict["org_id"])
         else:
-            if real_user_id == dict["user_id"]:
-                return "user" #A default result for just user id
-            else:
-                return JsonResponse({"success": False, "error": "Mismatched User ID"}, status=400)
+            return "user"
+
     except:
         return JsonResponse({"success": False, "error": "Identifier read failed"}, status=400)
     
-
-def jwt_authentication(request):
-    try:
-        # Decode Given Access Token
-        access_token = request.headers.get("Authorization", "")
-        if not access_token or not access_token.startswith("Bearer "):
-            return JsonResponse(
-                {"success": False, "error": "Token missing or malformed"}, status=401
-            )
-        access_token = access_token.split(" ",1)[1]
-        decoded = decode_access_token(access_token)
-        # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
-        return decoded["sub"]
-
-    except ExpiredSignatureError:
-        # Expired Token: 299 Code used by front-end to know to request new one
-        return JsonResponse(
-            {"success": False, "error": "Access Expired"}, status=299
-        )
-    except InvalidTokenError:
-        # Something broke in the process
-        return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
-
 
 def check_org_auth(user_id: str, org_id: str):
     # Checks if user has access to an oranization, returns True if the link exists
@@ -452,7 +471,6 @@ def get_stories(request):
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
 @verify_user
-@authorize_user("story", "user")
 # TODO authentication and authorization check
 def get_story(request, story_id=None):
     print(request.headers)
@@ -531,8 +549,7 @@ def get_story(request, story_id=None):
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 @csrf_exempt
-#@verify_user
-#@authorize_user('org','user')
+@verify_user
 @require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
     if request.method == "OPTIONS":
@@ -648,9 +665,8 @@ def create_user(request):
 
 
 @require_POST
-@verify_user
-@authorize_user("org", "admin")
-def add_user_to_org(request):
+@verify_user('admin')
+def add_user_to_org(request, user_id, org_id):
     """
     Receives a request with user_id and org_id its body and registers new user
     user-org relationship in the login table of the db.
@@ -684,8 +700,7 @@ def add_user_to_org(request):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     return JsonResponse({"success": True}, status=201)
 
-#@verify_user
-#@authorize_user('org','admin')
+@verify_user('admin')
 def delete_user_from_org(request):
     pass
 
@@ -704,9 +719,8 @@ def delete_story(request):
 
 ###############################################################################
 @require_POST
-@verify_user
-@authorize_user("org", "admin")
-def create_project(request):
+@verify_user('admin')
+def create_project(request, **kwargs):
 
     try:
         project_data = json.loads(request.body or "{}")
@@ -759,21 +773,19 @@ def create_project(request):
         )
 
 
-#@verify_user
-#@authorize_user('project','admin')
+@verify_user('admin')
 def edit_project(request):
     pass
 
 
-#@verify_user
-#@authorize_user('project','admin')
+@verify_user('admin')
 def delete_project(request):
     pass
 
 
 @require_POST
-@verify_user
-def create_org(request):
+@verify_user('user')
+def create_org(request, **kwargs):
     org_data = json.loads(request.body)
     try:
         org = Organization.objects.create(
@@ -842,8 +854,7 @@ def show_user_dashboard(request, user_id):
 
 
 
-@verify_user
-@authorize_user("org", "admin")
+@verify_user('admin')
 def show_org_admin_dashboard(request, user_id, org_id):
     try:
         requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
@@ -903,10 +914,26 @@ def show_org_admin_dashboard(request, user_id, org_id):
             return HttpResponseBadRequest("Invalid JSON.")
 
 
-@verify_user
-#@authorize_user('org','user')
+@verify_user('user)')
 def get_org_projects(request, org_id):
     #return JUST the list of projects within the organizaton, and a count how many stories are in each.
     pass
 
+def get_user():
+    pass
+
+def get_user_detail():
+    pass
+
+def edit_user():
+    pass
+
+def delete_user():
+    pass
+
+def get_org_admin():
+    pass
+
+def delete_org():
+    pass
 #### EOF. ####
