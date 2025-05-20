@@ -10,6 +10,8 @@
 	import { page } from '$app/state';
 	import { accessToken, refreshToken } from '$lib/store.js';
 
+	const org_id = page.params.org_id;
+
 	let stories = $state([]);
 	let projectsTotal = $state('...');
 	let storiesTotal = $state('...');
@@ -31,7 +33,6 @@
 
 	onMount(async () => {
 		// Fetch the data when the component mounts
-		const org_id = page.params.org_id;
 
 		// Make both requests concurrently using Promise.all
 		const [storiesResponse, orgResponse, userRequest] = await Promise.all([
@@ -144,7 +145,7 @@
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/new" class="button">
+					<a href="/org/{org_id}/stories/new" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>

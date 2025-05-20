@@ -1,34 +1,34 @@
 <script>
-	let { currentStep = $bindable(), storyData = $bindable() } = $props();
-	let wordCount = $derived(() => storyData.content.trim().split(/\s+/).length);
+	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
+	let wordCount = $derived(storyData.content.trim().split(/\s+/).length);
+	let required;
+	let optional;
 
-	// --- Hardcoded tag categories to be removed---
-	const defaultTagCategories = {
-		required: [
-			{ id: 'city', label: 'City' },
-			{ id: 'area', label: 'Area' }
-		],
-		optional: [
-			{ id: 'mood', label: 'Mood' },
-			{ id: 'season', label: 'Season' },
-			{ id: 'topic', label: 'Topic' }
-		]
-	};
+	projects = projects[0];
 
-	let tagCategories = defaultTagCategories;
+	if (projects.required_tags.length === 0) {
+		required = [];
+	} else {
+		required = projects.required_tags.map((tag) => ({
+			id: tag,
+			label: tag
+		}));
+	}
+
+	if (projects.optional_tags.length === 0) {
+		optional = [];
+	} else {
+		optional = projects.optional_tags.map((tag) => ({
+			id: tag,
+			label: tag
+		}));
+	}
+
+	let tagCategories = $state({ required: required, optional: optional });
 	let selectedOptionalCategory = $state(tagCategories.optional[0].id);
 	let optionalTagValue = $state('');
 
-	/* for future
-	$onMount(async () => {
-		const res = await fetch('/api/sdasda/dsadsa');
-		const data = await res.json();
-		tagCategories = {
-			required: data.required_tags,
-			optional: data.optional_tags
-		};
-	});
-	*/
+	$inspect(tagCategories);
 
 	function getTagMap() {
 		return new Map((storyData.tags || []).map((tag) => [tag.category, tag]));
@@ -109,43 +109,62 @@
 	<div class="is-flex is-justify-content-flex-end mb-2">
 		<div class="label mb-0">
 			Word count:
-			<span class="tag is-link word-count-tag">{wordCount()}</span>
+			<span class="tag is-link word-count-tag">{wordCount}</span>
 		</div>
 	</div>
 
 	<!-- Required Tags Section -->
 	<div class="field mt-4">
 		<div class="label">Required Tags</div>
-		{#each tagCategories.required as cat}
-			<div class="required-tag-row mb-2">
-				<label class="label mb-0 required-tag-label"
-					>{cat.label}
-					<input
-						class="input is-rounded is-small required-tag-input compact-input"
-						type="text"
-						placeholder={'Enter ' + cat.label}
-						value={getTagValue(cat.id)}
-						oninput={(e) => setTagValue(cat.id, e.target.value)}
-						required
-					/>
-				</label>
+		{#if Object.keys(tagCategories.required).length === 0}
+			<p class="help">No required tags for this project.</p>
+		{:else}
+			<div class="tags mb-3">
+				{#each storyData.tags as tag, index}
+					{#if tagCategories.required.some((cat) => cat.id === tag.category)}
+						<span class="tag is-medium">
+							<strong class="mr-1">{tag.categoryLabel}:</strong>
+							{tag.value}
+							<button class="delete is-small ml-2" onclick={() => removeTag(index)}></button>
+						</span>
+					{/if}
+				{/each}
 			</div>
-		{/each}
+			{#each tagCategories.required as cat}
+				<div class="required-tag-row mb-2">
+					<label class="label mb-0 required-tag-label"
+						>{cat.label}
+						<input
+							class="input is-rounded is-small required-tag-input compact-input"
+							type="text"
+							placeholder={'Enter ' + cat.label}
+							value={getTagValue(cat.id)}
+							oninput={(e) => setTagValue(cat.id, e.target.value)}
+							required
+						/>
+					</label>
+				</div>
+			{/each}
+		{/if}
 	</div>
 
 	<!-- Optional Tags Section -->
 	<div class="field mt-4">
 		<label class="label">Optional Tags</label>
 		<div class="tags mb-3">
-			{#each storyData.tags as tag, index}
-				{#if tagCategories.optional.some((cat) => cat.id === tag.category)}
-					<span class="tag is-medium">
-						<strong class="mr-1">{tag.categoryLabel}:</strong>
-						{tag.value}
-						<button class="delete is-small ml-2" onclick={() => removeTag(index)}></button>
-					</span>
-				{/if}
-			{/each}
+			{#if Object.keys(tagCategories.optional).length === 0}
+				<p class="">No optional tags for this project.</p>
+			{:else}
+				{#each storyData.tags as tag, index}
+					{#if tagCategories.optional.some((cat) => cat.id === tag.category)}
+						<span class="tag is-medium">
+							<strong class="mr-1">{tag.categoryLabel}:</strong>
+							{tag.value}
+							<button class="delete is-small ml-2" onclick={() => removeTag(index)}></button>
+						</span>
+					{/if}
+				{/each}
+			{/if}
 		</div>
 		<div class="field has-addons">
 			<div class="control is-expanded">
