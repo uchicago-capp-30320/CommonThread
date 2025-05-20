@@ -14,6 +14,7 @@ from pathlib import Path
 
 import os
 from dotenv import load_dotenv
+import logging
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,6 +26,7 @@ load_dotenv(BASE_DIR / ".env")
 # SECURITY WARNING: keep the secret key used in production secret!
 AUTH_USER_MODEL = 'ct_application.CustomUser'
 
+PERPLEXITY_API_KEY = os.getenv("PERPLEXITY_API")
 SECRET_KEY = os.getenv("SECRET_KEY")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
@@ -32,7 +34,7 @@ DATABASE_HOST = os.getenv("DATABASE_HOST")
 DATABASE_PORT = os.getenv("DATABASE_PORT")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_REFRESH_SECRET_KEY = os.getenv("JWT_REFRESH_SECRET_KEY")
-
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 AWS_ACCESS_KEY_ID     = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 AWS_S3_REGION_NAME    = os.getenv("AWS_S3_REGION_NAME")
@@ -41,8 +43,8 @@ CT_BUCKET_USER_PROFILES = os.getenv("CT_BUCKET_USER_PROFILES")
 CT_BUCKET_ORG_PROFILES  = os.getenv("CT_BUCKET_ORG_PROFILES")
 CT_BUCKET_STORY_IMAGES  = os.getenv("CT_BUCKET_STORY_IMAGES")
 CT_BUCKET_STORY_AUDIO   = os.getenv("CT_BUCKET_STORY_AUDIO")
+CT_SQS_QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
 
-SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 # if not SECRET_KEY:
     # raise ImproperlyConfigured("Secret Key not set in .env! Please set SECRET_KEY in an .env file next to your manage.py")
 
@@ -164,6 +166,11 @@ else:
             "PORT": DATABASE_PORT,
         }
     }
+
+    logging.getLogger("botocore").setLevel(logging.WARNING)
+    logging.getLogger("boto3").setLevel(logging.WARNING)
+    logging.getLogger("urllib3").setLevel(logging.WARNING)
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
