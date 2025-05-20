@@ -5,8 +5,10 @@
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
-	let { data } = $props();
-	const { storiesPromise: getDataPromise, params } = data;
+	import { authRequest } from '$lib/authRequest.js';
+	import { onMount } from 'svelte';
+	import { page } from '$app/state';
+	import { accessToken, refreshToken } from '$lib/store.js';
 
 	let stories = $state([]);
 	let projectsTotal = $state('...');
@@ -14,51 +16,65 @@
 	let projects = $state([]);
 	let orgName = $state('Loading...');
 
-	$inspect(getDataPromise);
-	$inspect(params);
+	let params = $state(page.params);
+
 	$inspect(stories);
-	$inspect(projects);
 
-	$effect(() => {
-		getDataPromise
-			.then((loadedData) => {
-				stories = loadedData['stories'];
-				orgName = loadedData['org_name'];
-				projectsTotal = new Set(stories.map((story) => story.project_id)).size;
-				storiesTotal = stories.length;
+	onMount(async () => {
+		// // first make a request to get list of orgs that user is a part of
+		// const orgs = await authRequest(`/org/1`, 'GET', $accessToken, $refreshToken);
+		// console.log('Orgs response:', orgs);
 
-				// Group stories by project_id
-				const projectGroups = {};
-				stories.forEach((story) => {
-					const projectId = story.project_id || 'unknown';
-					if (!projectGroups[projectId]) {
-						projectGroups[projectId] = {
-							id: projectId,
-							name: story.project_name || 'Unnamed Project',
-							description: story.project_description || 'No description available',
-							stories: []
-						};
-					}
-					projectGroups[projectId].stories.push(story);
-				});
+		// if (orgs.newAccessToken) {
+		// 	accessToken.set(orgs.newAccessToken);
+		// }
 
-				// Convert to array and add story count
-				projects = Object.values(projectGroups).map((project) => ({
-					id: project.id,
-					name: project.name,
-					description: project.description,
-					total_stories: project.stories.length
-				}));
-			})
-			.catch((error) => {
-				console.error('Error loading stories:', error);
-			});
+		// const orgsData = await orgs.data;
+		// console.log('Orgs fetched:', orgsData);
+		const defaultOrg = 1;
+		// orgName = orgsData.org_name;
+
+		// Fetch the data when the component mounts
+		const response = await authRequest(`/stories?org_id=${defaultOrg}`, 'GET', $accessToken, $refreshToken);
+		console.log('Response:', response);
+		const loadedData = response.data;
+		console.log('Data fetched:', loadedData);
+
+		if (loadedData.newAccessToken) {
+			accessToken.set(loadedData.newAccessToken);
+		}
+
+		stories = loadedData['stories'];
+		orgName = loadedData['org_name'];
+		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
+		storiesTotal = stories.length;
+
+		// Group stories by project_id
+		const projectGroups = {};
+		stories.forEach((story) => {
+			const projectId = story.project_id || 'unknown';
+			if (!projectGroups[projectId]) {
+				projectGroups[projectId] = {
+					id: projectId,
+					name: story.project_name || 'Unnamed Project',
+					description: story.project_description || 'No description available',
+					stories: []
+				};
+			}
+			projectGroups[projectId].stories.push(story);
+		});
+
+		// Convert to array and add story count
+		projects = Object.values(projectGroups).map((project) => ({
+			id: project.id,
+			name: project.name,
+			description: project.description,
+			total_stories: project.stories.length
+		}));
 	});
 
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
-
-	$inspect(projects);
 </script>
 
 <div class="container">
@@ -91,7 +107,7 @@
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/new?org_id={encodeURIComponent(params.org_name)}" class="button">
+					<a href="/stories/" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>
@@ -123,27 +139,37 @@
 
 	<hr />
 
-	{#if stories.length === 0}
-		<p class="has-text-centered">Loading Stories...</p>
-	{:else if type === 'project'}
-		<div class="columns mt-4 is-multiline">
-			{#each projects as project}
-				<div class="column is-one-third">
-					<ProjectCard {project} />
+	<div class="container">
+		{#if stories.length === 0}
+			{#each [1, 2, 3] as project}
+				<div class="columns mt-4 is-multiline">
+					{#each [1, 2, 3] as _}
+						<div class="column is-one-third">
+							<div class="skeleton-block" style="height: 250px;"></div>
+						</div>
+					{/each}
 				</div>
 			{/each}
-		</div>
-	{:else if type === 'story'}
-		{#each stories as story}
-			<div class="">
-				<StoryPreview {story} />
+		{:else if type === 'project'}
+			<div class="columns mt-4 is-multiline">
+				{#each projects as project}
+					<div class="column is-one-third">
+						<ProjectCard {project} />
+					</div>
+				{/each}
 			</div>
-		{/each}
-	{:else if type === 'dash'}
-		<DataDashboard {stories} />
-	{:else}
-		<p class="has-text-centered">No stories available</p>
-	{/if}
+		{:else if type === 'story'}
+			{#each stories as story}
+				<div class="">
+					<StoryPreview {story} />
+				</div>
+			{/each}
+		{:else if type === 'dash'}
+			<DataDashboard {stories} />
+		{:else}
+			<p class="has-text-centered">No stories available</p>
+		{/if}
+	</div>
 </div>
 
 <style>
