@@ -52,108 +52,81 @@ logger = logging.getLogger(__name__)
 ########## Authentication and Authorization ##############
 
 
-def verify_user(view_function):
-    """
-    Decorator for ensuring the user is allowed to access the application, handling JWT tokens & issues
-    """
-
-    @wraps(view_function)
-    # def inner(view_function, *args, **kwargs): #kwargs has ids, but unused here. Do not remove.
-
-    #    request = args
-    def wrapper(request, *args, **kwargs):
-        try:
-            # Decode Given Access Token
-            access_token = request.headers.get("Authorization", "")
-            if not access_token or not access_token.startswith("Bearer "):
-                return JsonResponse(
-                    {"success": False, "error": "Token missing or malformed"}, status=401
-                )
-            access_token = access_token.split(" ",1)[1]
-            _ = decode_access_token(access_token)
-            # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
-            return view_function(request, *args, **kwargs)
-
-        except ExpiredSignatureError:
-            # Expired Token: 299 Code used by front-end to know to request new one
-            return JsonResponse(
-                {"success": False, "error": "Access Expired"}, status=299
-            )
-        except InvalidTokenError:
-            # Something broke in the process
-            return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
-
-    return wrapper
-
-
-def authorize_user(check_type: str, required_access: str):
+def verify_user(view_function, required_access = "user"):
     """
     Decorator designed to provide interface that simplifies links & setup for views. The If statement allows for
     individual auth functions that take varieties of input, but a single wrapper for ease of use.
 
     view_function: function being called
     request is pulled in via args
-
-    check_type -> information given to get to user_org:
-        - story: story id provided
-        - project: project id provided
-        - org: org id provided (PREFERRED)
     
-    required_access -> level of access needed for an endpoint
+    required_access -> level of access needed for an endpoints
         - creator: for delete endpoints
-        - admit: for some edit and some delete endpoints
+        - admin: for some edit and some delete endpoints
         - user: for some edit and all get endpoints
     """
-    def decorator(view_function):
-        @wraps(view_function)
-        def inner(request, *args, **kwargs):
-            auth_header = request.headers.get("Authorization", "")
-            if not auth_header.startswith("Bearer "):
-                return JsonResponse({"success": False, "error": "No token"}, status=401)
+    @wraps(view_function)
+    def inner(request, *args, **kwargs):
 
-            token = auth_header.split(" ", 1)[1]
-            try:
-                payload = decode_access_token(token)
-                user_id = payload["sub"]
-            except Exception:
-                return JsonResponse({"success": False, "error": "Bad token"}, status=401)
-            
-            # Get the ids from the kwargs
-            ids = kwargs
-            try:
-                # Reach the necessary authentication table based on the information provided by the request
-                if check_type == "story":
-                    logger.debug(
-                        "Auth using info: user_id=%r story_id=%r", user_id, ids["story_id"]
-                    )
-                    auth_level = check_story_auth(user_id, ids["story_id"])
-                elif check_type == "project":
-                    # accept either project_id (new) or legacy proj_id
-                    proj_id = ids.get("project_id") or ids.get("proj_id")
-                    if proj_id is None:
-                        logger.debug("Missing project id in kwargs: %r", ids)
-                        return JsonResponse({"success": False, "error": "Missing project ID"}, status=400)
-                    auth_level = check_project_auth(user_id, proj_id)
-                elif check_type == "org":
-                    logger.debug(
-                        "Auth using info: user_id=%r org_id=%r", user_id, ids["org_id"]
-                    )
-                    auth_level = check_org_auth(user_id, ids["org_id"])
+        #Verifying the user and storing their user ID for use/passback
+        real_user_id = jwt_authentication(request)
+        kwargs["real_user_id"] = real_user_id
+
+        # Identifying what kind of request/auth level the user has for their request
+        auth_level = id_searcher(real_user_id, kwargs)
+
+        auth_level_check(auth_level, required_access)
+        
+        return view_function(request, *args, **kwargs)
+    return inner
+
+
+def id_searcher(real_user_id, dict):
+    '''
+    dict: keyword dictionary (kwargs)
+    '''
+    try:
+        if "user_id" not in dict:
+            if "org_id" not in dict:
+                if "project_id" not in dict:
+                    if "story_id" not in dict:
+                        return JsonResponse({"success": False, "error": "No Identifier Provided"}, status=400)
+                    else:
+                        return check_story_auth(real_user_id, dict["story_id"])
                 else:
-                    logger.debug("Invalid Auth checktype with check_type=%r", check_type)
+                    return check_project_auth(real_user_id, dict["project_id"])
+            else:
+                return check_org_auth(real_user_id, dict["org_id"])
+        else:
+            if real_user_id == dict["user_id"]:
+                return "user" #A default result for just user id
+            else:
+                return JsonResponse({"success": False, "error": "Mismatched User ID"}, status=400)
+    except:
+        return JsonResponse({"success": False, "error": "Identifier read failed"}, status=400)
+    
 
-            except KeyError:
-                logger.debug("KeyError: %r", ids)
-                return JsonResponse(
-                    {"success": False, "error": "Missing required ID"}, status=400
-                )
-            
-            # Checking to see if user has permission for the endpoint
-            auth_level_check(auth_level, required_access)
-            
-            return view_function(request, *args, **kwargs)
-        return inner
-    return decorator
+def jwt_authentication(request):
+    try:
+        # Decode Given Access Token
+        access_token = request.headers.get("Authorization", "")
+        if not access_token or not access_token.startswith("Bearer "):
+            return JsonResponse(
+                {"success": False, "error": "Token missing or malformed"}, status=401
+            )
+        access_token = access_token.split(" ",1)[1]
+        decoded = decode_access_token(access_token)
+        # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
+        return decoded["sub"]
+
+    except ExpiredSignatureError:
+        # Expired Token: 299 Code used by front-end to know to request new one
+        return JsonResponse(
+            {"success": False, "error": "Access Expired"}, status=299
+        )
+    except InvalidTokenError:
+        # Something broke in the process
+        return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
 
 def check_org_auth(user_id: str, org_id: str):
