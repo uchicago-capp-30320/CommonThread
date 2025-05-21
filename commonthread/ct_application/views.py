@@ -1,5 +1,8 @@
+# IMPORTS ----------------------------------------------------------------------
+
 import logging
 import json
+from uuid import uuid4
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -7,6 +10,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie, csrf_exempt
 from django.views.decorators.cache import cache_page
 from django.http import (
     HttpResponse,
+    HttpRequest,
     JsonResponse,
     HttpResponseNotFound,
         # HttpResponseForbidden,
@@ -36,9 +40,17 @@ from django.utils import timezone
 import traceback
 from functools import wraps
 
+# HANDLERES SET UP -------------------------------------------------------------
+
 User = get_user_model()
 # the names of the models may change on a different branch.
 
+logger = logging.getLogger(__name__)
+
+
+# VIEWS ------------------------------------------------------------------------
+
+## Home test -------------------------------------------------------------------
 
 # Create your views here.
 @ensure_csrf_cookie  # Need this for POSTMAN testing purposes. Otherwise
@@ -47,14 +59,13 @@ def home_test(request):
     return HttpResponse("Welcome to the Common Threads Home Page!", status=200)
 
 
-logger = logging.getLogger(__name__)
 
-########## Authentication and Authorization ##############
-
+## Authentication and Authorization --------------------------------------------
 
 def verify_user(view_function):
     """
-    Decorator for ensuring the user is allowed to access the application, handling JWT tokens & issues
+    Decorator for ensuring the user is allowed to access the application, 
+    handling JWT tokens & issues
     """
 
     @wraps(view_function)
@@ -88,8 +99,9 @@ def verify_user(view_function):
 
 def authorize_user(check_type: str):
     """
-    Decorator designed to provide interface that simplifies links & setup for views. The If statement allows for
-    individual auth functions that take varieties of input, but a single wrapper for ease of use.
+    Decorator designed to provide interface that simplifies links & setup for 
+    views. The If statement allows for individual auth functions that take 
+    varieties of input, but a single wrapper for ease of use.
 
     view_function: function being called
     request is pulled in via args, as it is the only
@@ -302,6 +314,8 @@ def get_new_access_token(request):
         return JsonResponse(
             {"success": False, "error": "Unable to refresh token"}, status=400
         )
+
+## GET methods -----------------------------------------------------------------
 
 @require_GET
 def get_project(request, project_id):
@@ -560,6 +574,8 @@ def get_story(request, story_id=None):
             )
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+## POST methods ----------------------------------------------------------------
 
 @csrf_exempt
 #@verify_user('user')
@@ -863,15 +879,52 @@ def delete_project(request, org_id, project_id):
 
 @require_POST
 #@verify_user
-def create_org(request):
+def create_org(request: HttpRequest) -> JsonResponse:
+    """
+    Handle requests for creating new organizations
+
+    input: 
+        request (HTTP request)
+            - name (str): organization's name provided by the user 
+            - description (str): organization's description provided by the user
+            - profile (bool): indicates if the user provided a profile picture
+
+    return (HTTP response)
+        -  Response content
+            - success (bool): indicates if the request was fulfilled 
+            - org_id (): organization's unique identifier 
+            - upload (dict): presigned url metadata provided by AWS for handling
+            picture upload if one was provided
+        - status (int): HTTP status code 
+    """
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JsonResponse({"success": False, "error": "No token"}, status=401)
+    
+    # Parse and validate input data 
     org_data = json.loads(request.body)
+    name = org_data.get("name")
+    description = org_data.get("description")
+    profile = org_data.get("profile")
+
+
+    if not name: 
+       return JsonResponse(
+            {"success": False, "error": "Organization name is required"},
+            status=400,
+        )
+
+    if Organization.objects.filter(name=name).exists():
+        return JsonResponse(
+            {"success": False, "error": "Organization already exists"}, 
+            status=400
+        )
+
     try:
         org = Organization.objects.create(
-            name=org_data["name"],
-            description=org_data["description"],
-            # set default photo
-
-            
+            name=name,
+            description=description,
         )
         user = get_user_model().objects.get(pk=org_data["user_id"])
         OrgUser.objects.create(org_id=org, user_id=user, access="admin")
@@ -882,13 +935,34 @@ def create_org(request):
             {"success": False, "error": f"internal service error{str(e)}"}, status=500
         )
 
-    return JsonResponse(
-        {
+    # Handle upload of profile picture if one submitted
+    if profile: 
+        presign = generate_s3_presigned(
+            bucket_name=settings.CT_BUCKET_ORG_PROFILES, 
+            key = f"orgs/images/{org.id}/{uuid4()}.png", 
+            operation="upload", 
+            content_type="image/png", 
+            expiration=3600, 
+        )
+
+        return JsonResponse({
             "success": True,
             "org_id": org.org_id,
-        },
-        status=201,
-    )
+            "upload": {
+                "url": presign["url"], 
+                "fields": presign["fields"]
+            }
+        }, status=201)
+
+    else: 
+        return JsonResponse(
+            {
+                "success": True,
+                "org_id": org.org_id,
+                "upload": None
+            },
+            status=201,
+        )
 
 
 #@verify_user('admin')
@@ -922,6 +996,9 @@ def delete_org(request, org_id):
         return JsonResponse({"success": True}, status=200)
     except:
         return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)
+
+
+## User methods ----------------------------------------------------------------
 
 @require_GET
 #@verify_user
@@ -1038,6 +1115,7 @@ def delete_user(request, user_id: str):
         return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)
 
 
+## Org methods -----------------------------------------------------------------
 
 @require_http_methods(["GET", "POST"])
 # @verify_user
@@ -1139,4 +1217,4 @@ def get_org_projects(request, org_id):
         logging.error(f"Error in get_org: {e}")
         return JsonResponse({"error": "Something went wrong."}, status=500)
 
-#### EOF. ####
+# EOF. -------------------------------------------------------------------------
