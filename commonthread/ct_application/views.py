@@ -6,7 +6,6 @@ import datetime
 import jwt
 from commonthread.settings import JWT_SECRET_KEY
 from uuid import uuid4
-import boto3
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -40,15 +39,11 @@ from .models import (
     CustomUser,
     MLProcessingQueue
 )
-
-import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
 
 # HANDLERES SET UP -------------------------------------------------------------
-import traceback
-import datetime
 import traceback
 from commonthread.settings import JWT_SECRET_KEY
 from functools import wraps
@@ -539,12 +534,6 @@ def get_stories(request):
                     "summary": story.summary,
                     "audio_path": audio_url,
                     "image_path": image_url,
-                    "audio_path": (
-                        story.audio_content.url if story.audio_content else None
-                    ),
-                    "image_path": (
-                        story.image_content.url if story.image_content else None
-                    ),
                     "text_content": story.text_content,
                     "tags": list(tags),
                 }
