@@ -169,6 +169,7 @@ def test_create_story_ok(client, seed, auth_headers):
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
+    #Curator testing is currently broken.
     p, s, deleto = seed["proj_edit_delete"], seed['story2'], seed["deleto"]
     payload = {"storyteller": "Testy", "curator": deleto.id,
         "text_content": "Content has been Edited", "proj": p.id
@@ -178,6 +179,7 @@ def test_edit_story(client, seed, auth_headers_user3):
     assert r.status_code == 200
 
 def test_edit_project(client, seed, auth_headers_user3):
+    #Curator testing is currently broken.
     p, org3, deleto = seed["proj_edit_delete"], seed['org3'], seed["deleto"]
     payload = {
         "org_id":  org3.id,

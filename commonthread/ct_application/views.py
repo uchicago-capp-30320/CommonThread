@@ -750,22 +750,24 @@ def edit_story(request, story_id):
     
     try:
         story.storyteller = story_updates["storyteller"]
-        #story.curator = curator
+        story.curator = curator
         if "date" in story_updates:
             story.date = story_updates["date"]
         story.text_content = story_updates["text_content"]
+
         if "image_content" in story_updates:
             story.image_content = story_updates["image_content"]
         if "audio_content" in story_updates:
             story.audio_content = story_updates["audio_content"]
-        #story.summary = story_updates["summary"] # Should only be updated via ML?
-    except:
-        return JsonResponse({"success": False, "error": "Data edit failed"}, status=399)
+
+    except Exception as e:
+        logger.debug("error:", e)
+        return JsonResponse({"success": False, "error": "Data edit failed"}, status=400)
     try:
         story.save()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=499)
+        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
 @require_http_methods(['DELETE'])
@@ -780,8 +782,7 @@ def delete_story(request, story_id):
 
 ###############################################################################
 @require_POST
-#@verify_user
-#@authorize_user('org','admin')
+#@verify_user('admin')
 def create_project(request):
 
     try:
@@ -850,13 +851,14 @@ def edit_project(request, org_id, project_id):
     try:
         # Get the project being updated
         project = Project.objects.get(id = project_id)
+        curator = CustomUser.objects.get(id = project_updates.get("curator"))
     except:
         return JsonResponse({"success": False, "error": "Project does not exist"}, status=404)
     
     try:
         #Update fields with new information
         project.name = project_updates["name"]
-        #project.curator = project_updates["curator"]
+        project.curator = curator.id
         project.date = project_updates["date"]
         #project.insight = project_updates["insight"] # Shouldn't be updated here, only through ML?
         project.save()
@@ -1183,7 +1185,7 @@ def get_org_admin(request, org_id):
             return HttpResponseBadRequest("Invalid JSON.")
 
 
-# @verify_user
+#@verify_user
 def get_org_projects(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
