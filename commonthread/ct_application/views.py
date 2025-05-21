@@ -1,5 +1,6 @@
 import logging
 import json
+import boto3
 from datetime import date
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET, require_POST, require_http_methods
@@ -31,10 +32,17 @@ from .models import (
     StoryTag,
     CustomUser,
 )
+
+import jwt
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 import traceback
+import datetime
+import traceback
+from commonthread.settings import JWT_SECRET_KEY
 from functools import wraps
+from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from .cloud.producer_service import QueueProducer
 
 User = get_user_model()
 # the names of the models may change on a different branch.
@@ -50,6 +58,7 @@ def home_test(request):
 logger = logging.getLogger(__name__)
 
 ########## Authentication and Authorization ##############
+
 
 
 def verify_user(required_access = "user",
@@ -73,6 +82,7 @@ def verify_user(required_access = "user",
                 project_id = None, 
                 story_id = None, 
                 user_id = None):
+      
         @wraps(view_function)
         def inner(request, *args, **kwargs):
 
@@ -106,7 +116,9 @@ def verify_user(required_access = "user",
             auth_level_check(auth_level, required_access)
             
             return view_function(request, *args, **kwargs)
+
         return inner
+
     return decorator
 
 
@@ -250,30 +262,25 @@ def login(request):  # need not pass username and password as query params
     logger.debug(f"LOGIN ➤ issued access_token={access_token}")
     refresh_token = generate_refresh_token(authenticated_user.id)
 
-    # ───────────────────────────────────────────────────────────────
-    import datetime
-    import jwt
-    from commonthread.settings import JWT_SECRET_KEY
     # decode *without* verifying exp, so we can inspect the claims:
     payload = jwt.decode(
         access_token,
         JWT_SECRET_KEY,
         algorithms=["HS256"],
-        options={"verify_signature": True, "verify_exp": False}
+        options={"verify_signature": True, "verify_exp": False},
     )
     iat = payload.get("iat")
     exp = payload.get("exp")
     # log both as raw seconds and as UTC datetimes
+
     logger.debug(f"JWT iat (epoch): {iat}, which is {datetime.datetime.fromtimestamp(iat, datetime.timezone.utc).isoformat()}")
     logger.debug(f"JWT exp (epoch): {exp}, which is {datetime.datetime.fromtimestamp(exp, datetime.timezone.utc).isoformat()}")
-    # ───────────────────────────────────────────────────────────────
 
     return JsonResponse(
-        {"success": True, 
-         "access_token": access_token, 
-         "refresh_token": refresh_token},
+        {"success": True, "access_token": access_token, "refresh_token": refresh_token},
         status=200,
     )
+
 
 @csrf_exempt
 @require_POST
@@ -324,18 +331,23 @@ def get_new_access_token(request):
             {"success": False, "error": "Unable to refresh token"}, status=400
         )
 
+
 @require_GET
 def get_project(request, project_id):
     try:
-        project = Project.objects.select_related('org', 'curator').get(id=project_id)
+        project = Project.objects.select_related("org", "curator").get(id=project_id)
         story_count = Story.objects.filter(proj=project).count()
 
         # Get associated ProjectTag objects
         project_tags = ProjectTag.objects.filter(proj=project)
 
         # Filter based on related Tag's `required` field
-        required_tags = project_tags.filter(tag__required=True).values_list("tag__name", flat=True)
-        optional_tags = project_tags.filter(tag__required=False).values_list("tag__name", flat=True)
+        required_tags = project_tags.filter(tag__required=True).values_list(
+            "tag__name", flat=True
+        )
+        optional_tags = project_tags.filter(tag__required=False).values_list(
+            "tag__name", flat=True
+        )
 
         # Construct response
         data = {
@@ -360,7 +372,8 @@ def get_project(request, project_id):
     except Exception as e:
         logger.error(f"Error in get_project: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
-    
+
+
 @require_GET
 @verify_user
 def get_org(request, org_id):
@@ -370,6 +383,8 @@ def get_org(request, org_id):
         # Get all projects in the org
         projects = Project.objects.filter(org=org)
         project_count = projects.count()
+        # get all unique project ids
+        project_ids = projects.values_list("id", flat=True).distinct()
 
         # Get all stories in those projects
         stories = Story.objects.filter(proj__in=projects)
@@ -398,6 +413,7 @@ def get_org(request, org_id):
             "description": org.description,
             "profile_pic_path": org.profile.url if org.profile else "",
             "project_count": project_count,
+            "project_ids": list(project_ids),
             "story_count": story_count,
             "users": users_data,
         }
@@ -408,6 +424,7 @@ def get_org(request, org_id):
         logging.error(f"Error in get_org: {e}")
         return JsonResponse({"error": "Something went wrong."}, status=500)
 
+
 @require_GET
 def get_stories(request):
     try:
@@ -417,11 +434,21 @@ def get_stories(request):
         story_id = request.GET.get("story_id")
         user_id = request.GET.get("user_id")
 
-        filters = {"org_id": org_id, "project_id": project_id, "story_id": story_id, "user_id": user_id}
+        filters = {
+            "org_id": org_id,
+            "project_id": project_id,
+            "story_id": story_id,
+            "user_id": user_id,
+        }
         active_filter = {k: v for k, v in filters.items() if v is not None}
 
         if len(active_filter) != 1:
-            return JsonResponse({"error": "Specify exactly one of org_id, project_id, story_id, or user_id."}, status=400)
+            return JsonResponse(
+                {
+                    "error": "Specify exactly one of org_id, project_id, story_id, or user_id."
+                },
+                status=400,
+            )
 
         id_type, id_value = next(iter(active_filter.items()))
 
@@ -440,21 +467,29 @@ def get_stories(request):
         # Prepare the output
         stories_data = []
         for story in stories.select_related("proj", "curator"):
-            tags = Tag.objects.filter(storytag__story=story).values("name", "value", "created_by")
+            tags = Tag.objects.filter(storytag__story=story).values(
+                "name", "value", "created_by"
+            )
 
-            stories_data.append({
-                "story_id": story.id,
-                "storyteller": story.storyteller,
-                "project_id": story.proj.id,
-                "project_name": story.proj.name,
-                "curator": story.curator.name if story.curator else None,
-                "date": str(story.date),
-                "summary": story.summary,
-                "audio_path": story.audio_content.url if story.audio_content else None,
-                "image_path": story.image_content.url if story.image_content else None,
-                "text_content": story.text_content,
-                "tags": list(tags),
-            })
+            stories_data.append(
+                {
+                    "story_id": story.id,
+                    "storyteller": story.storyteller,
+                    "project_id": story.proj.id,
+                    "project_name": story.proj.name,
+                    "curator": story.curator.name if story.curator else None,
+                    "date": str(story.date),
+                    "summary": story.summary,
+                    "audio_path": (
+                        story.audio_content.url if story.audio_content else None
+                    ),
+                    "image_path": (
+                        story.image_content.url if story.image_content else None
+                    ),
+                    "text_content": story.text_content,
+                    "tags": list(tags),
+                }
+            )
 
         response = {
             "id_type": [id_type],
@@ -468,27 +503,23 @@ def get_stories(request):
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
 
+
 @require_GET
 @cache_page(60 * 15)  # Cache for 15 minutes
+
 @verify_user
-# TODO authentication and authorization check
 def get_story(request, story_id=None):
     print(request.headers)
     if story_id:
         try:
             story = Story.objects.select_related("proj").get(id=story_id)
             project = Project.objects.get(id=story.proj_id)
-            story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                "tag"
-            )
+            story_tags = StoryTag.objects.filter(story_id=story).select_related("tag")
 
             tags = []
             for st in story_tags:
-                tag_obj = Tag.objects.get(id = st.tag_id)
-                tag = {
-                    "name": tag_obj.name,
-                    "value": tag_obj.value
-                }
+                tag_obj = Tag.objects.get(id=st.tag_id)
+                tag = {"name": tag_obj.name, "value": tag_obj.value}
                 tags.append(tag)
 
             return JsonResponse(
@@ -548,6 +579,7 @@ def get_story(request, story_id=None):
         except Exception as e:
             return JsonResponse({"success": False, "error": str(e)}, status=500)
 
+
 @csrf_exempt
 @verify_user
 @require_http_methods(["POST", "OPTIONS"])
@@ -560,28 +592,40 @@ def create_story(request):
         return response
 
     try:
-        print("Received request body:", request.body)
-        story_data = json.loads(request.body)
-        print("Parsed story data:", story_data)
+        audio = None
+        if request.content_type.startswith("multipart/form-data"):
+            # form-data mode: pull fields from POST and FILES
+            storyteller  = request.POST["storyteller"]
+            proj_id      = request.POST["proj_id"]
+            text_content = request.POST.get("text_content", "")
+            curator      = request.POST.get("curator")
+            tags         = json.loads(request.POST.get("tags", "[]"))
+            audio        = request.FILES.get("audio_file")
+        else:
+            # as before
+            payload      = json.loads(request.body)
+            storyteller  = payload["storyteller"]
+            proj_id      = payload["proj_id"]
+            text_content = payload.get("text_content", "")
+            curator      = payload.get("curator")
+            tags         = payload.get("tags", [])
+
+        print("Audio file:", audio)
 
         try:
-            project = Project.objects.get(id=story_data["proj_id"])
-            print("Found project:", project)
+            project = Project.objects.get(id=proj_id)
         except Project.DoesNotExist:
-            print(f"Project with ID {story_data['proj_id']} does not exist")
             return JsonResponse(
-                {"error": f"Project with ID {story_data['proj_id']} does not exist"},
+                {"error": f"Project with ID {proj_id} does not exist"},
                 status=400,
             )
 
-        print("Curator ID:", story_data.get("curator"))
-
         try:
             story = Story.objects.create(
-                storyteller=story_data["storyteller"],
-                curator_id=story_data.get("curator"),
+                storyteller=storyteller,
+                curator_id=curator,
                 date=timezone.now(),
-                text_content=story_data["text_content"],
+                text_content=text_content,
                 proj_id=project.id,
             )
             print("Created story:", story)
@@ -591,20 +635,41 @@ def create_story(request):
             print("Traceback:", traceback.format_exc())
             raise
 
-        if "tags" in story_data:
-            for tag_data in story_data["tags"]:
-                tag, _ = Tag.objects.get_or_create(
-                    name=tag_data["name"], value=tag_data["value"], required=tag_data["required"]
-                )
-                StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
-                print("Created tag:", tag)
+        if audio:
+            import uuid
+            from django.conf import settings
+            s3 = boto3.client(
+                "s3",
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+                region_name=settings.AWS_S3_REGION_NAME,
+            )
+            key = f"story_audio/{uuid.uuid4()}.mp3"
+            s3.upload_fileobj(audio, settings.CT_BUCKET_STORY_AUDIO, key)
+            story.audio_content = key
+            story.save()
+
+        for tag_data in tags:
+            tag, _ = Tag.objects.get_or_create(
+                name=tag_data["name"],
+                value=tag_data["value"],
+                required=tag_data["required"],
+            )
+            StoryTag.objects.create(story_id=story.id, tag_id=tag.id)
+
+        queue_producer = QueueProducer()
+        queue_producer.disable_task("tag")
+        queue_producer.disable_task("insight")
+        queue_producer.process_story(story)
 
         return JsonResponse({"story_id": story.id}, status=200)
+    
     except Exception as e:
         print("Error creating story:", str(e))
         print("Error type:", type(e))
         print("Traceback:", traceback.format_exc())
         return JsonResponse({"error": str(e)}, status=400)
+
 
 @csrf_exempt
 @require_POST
@@ -658,10 +723,13 @@ def create_user(request):
         content_type="image/png",
         expiration=3600,
     )
-    return JsonResponse({"success": True, "upload": {
-            "url": presign["url"],
-            "fields": presign["fields"]
-        }}, status=201)
+    return JsonResponse(
+        {
+            "success": True,
+            "upload": {"url": presign["url"], "fields": presign["fields"]},
+        },
+        status=201,
+    )
 
 
 @require_POST
@@ -700,25 +768,30 @@ def add_user_to_org(request, user_id, org_id):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     return JsonResponse({"success": True}, status=201)
 
+
 @verify_user('admin')
 def delete_user_from_org(request):
     pass
 
+
 ###############################################################################
 
 
-#@verify_user
-#@authorize_user('org','admin')
+# @verify_user
+# @authorize_user('org','admin')
 def edit_story(request):
     pass
 
-#@verify_user
-#@authorize_user('story','admin')
+
+# @verify_user
+# @authorize_user('story','admin')
 def delete_story(request):
     pass
 
+
 ###############################################################################
 @require_POST
+
 @verify_user('admin')
 def create_project(request, **kwargs):
 
@@ -773,9 +846,11 @@ def create_project(request, **kwargs):
         )
 
 
+
 @verify_user('admin')
 def edit_project(request):
     pass
+
 
 
 @verify_user('admin')
@@ -810,14 +885,32 @@ def create_org(request, **kwargs):
     )
 
 
-#@verify_user
-#@authorize_user('org','admin')
+# @verify_user
+# @authorize_user('org','admin')
 def edit_org(request):
     pass
 
 
 @verify_user
-def show_user_dashboard(request, user_id):
+def delete_org(request):
+    pass
+
+
+@require_GET
+@verify_user
+def get_user(request):
+
+    auth_header = request.headers.get("Authorization", "")
+    if not auth_header.startswith("Bearer "):
+        return JsonResponse({"success": False, "error": "No token"}, status=401)
+
+    token = auth_header.split(" ", 1)[1]
+    try:
+        payload = decode_access_token(token)
+        user_id = payload["sub"]
+    except Exception:
+        return JsonResponse({"success": False, "error": "Bad token"}, status=401)
+
     try:
         user = User.objects.get(pk=user_id)
 
@@ -829,7 +922,9 @@ def show_user_dashboard(request, user_id):
             {
                 "org_id": str(org_user.org.id),
                 "org_name": org_user.org.name,
-                "org_profile_pic_path": org_user.org.profile.url if org_user.org.profile else None
+                "org_profile_pic_path": (
+                    org_user.org.profile.url if org_user.org.profile else None
+                ),
             }
             for org_user in org_users
         ]
@@ -844,7 +939,7 @@ def show_user_dashboard(request, user_id):
             "Bio": user.bio,
             "Position": user.position,
             "Profile_pic_path": user.profile.url if user.profile else None,
-            "orgs": orgs
+            "orgs": orgs,
         }
 
         return JsonResponse(user_data, status=200)
@@ -854,8 +949,25 @@ def show_user_dashboard(request, user_id):
 
 
 
-@verify_user('admin')
-def show_org_admin_dashboard(request, user_id, org_id):
+@verify_user
+def get_user_detail(request, user_id):
+    pass
+
+
+@verify_user
+def edit_user(request):
+    pass
+
+
+@verify_user
+def delete_user(request):
+    pass
+
+
+@require_http_methods(["GET", "POST"])
+# @verify_user
+# @authorize_user('org','admin')
+def get_org_admin(request, user_id, org_id):
     try:
         requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
     except OrgUser.DoesNotExist:
@@ -914,10 +1026,11 @@ def show_org_admin_dashboard(request, user_id, org_id):
             return HttpResponseBadRequest("Invalid JSON.")
 
 
-@verify_user('user)')
+@verify_user('user')
 def get_org_projects(request, org_id):
-    #return JUST the list of projects within the organizaton, and a count how many stories are in each.
+    # return JUST the list of projects within the organizaton, and a count how many stories are in each.
     pass
+
 
 def get_user():
     pass
@@ -937,3 +1050,4 @@ def get_org_admin():
 def delete_org():
     pass
 #### EOF. ####
+

@@ -12,3 +12,13 @@
 body {
 	font-family: 'Karla', sans-serif;
 }
+
+.is-primary {
+	background-color: var(--dark-blue) !important;
+	color: var(--white) !important;
+}
+
+.is-secondary {
+	background-color: var(--light-blue) !important;
+	color: var(--white) !important;
+}

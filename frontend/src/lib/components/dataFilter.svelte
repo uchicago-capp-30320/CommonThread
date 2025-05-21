@@ -1,8 +1,5 @@
 <script>
-	let { currentGroupBy, currentProject, uniqueTags, uniqueProjects, updateGroupBy, updateProject } =
-		$props();
-
-	let firstProj = $state(uniqueProjects[0]);
+	let { currentGroupBy, uniqueTags, updateGroupBy } = $props();
 </script>
 
 <div class="sidebar">
@@ -11,14 +8,6 @@
 
 	<div class="filter-section">
 		<div class="filter-options">
-			<div class="label mb-0">FILTER PROJECT</div>
-			<div class="select is-fullwidth">
-				<select bind:value={currentProject} onchange={() => updateProject(currentProject)}>
-					{#each uniqueProjects as proj}
-						<option value={proj} selected={proj === firstProj}>{proj}</option>
-					{/each}
-				</select>
-			</div>
 			<div class="label mb-0">GROUP BY TAG</div>
 			<div class="select is-fullwidth">
 				<select bind:value={currentGroupBy} onchange={() => updateGroupBy(currentGroupBy)}>

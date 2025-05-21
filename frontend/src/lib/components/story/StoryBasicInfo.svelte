@@ -1,5 +1,5 @@
 <script>
-	let { currentStep = $bindable(), storyData = $bindable() } = $props();
+	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
 
 	function handleNext() {
 		console.log('Before click - currentStep:', currentStep);
@@ -10,13 +10,6 @@
 			console.log('After click - currentStep:', currentStep);
 		}
 	}
-
-	// TODO for now
-	let projects = [
-		{ id: 1, name: 'Project A' },
-		{ id: 2, name: 'Project B' },
-		{ id: 3, name: 'Project C' }
-	];
 </script>
 
 <div class="box">
@@ -29,7 +22,7 @@
 				<select id="project" bind:value={storyData.project}>
 					<option value="" disabled selected>Choose the project name</option>
 					{#each projects as project}
-						<option value={project.id}>{project.name}</option>m
+						<option value={project.project_id}>{project.project_name}</option>m
 					{/each}
 
 					<!-- Add more options as needed -->
