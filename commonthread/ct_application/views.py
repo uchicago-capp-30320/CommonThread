@@ -765,7 +765,16 @@ def create_story(request):
             logger.error("Error creating tags for story %s: %s", story.id, str(e))
             story.delete()
             raise
+        
 
+        producer = QueueProducer()
+        queue_result = producer.add_to_queue(story)
+            
+        if not queue_result["success"]:
+            logger.error("Failed to queue ML tasks")
+        else:
+            logger.info("Successfully queued ML tasks for story %s", story.id)
+            
         return JsonResponse({"story_id": story.id}, status=200)
     
     except Exception as e:
