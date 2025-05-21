@@ -61,11 +61,7 @@ logger = logging.getLogger(__name__)
 
 
 
-def verify_user(required_access = "user",
-                org_id = None,
-                project_id = None, 
-                story_id = None, 
-                user_id = None):
+def verify_user(required_access = "user"):
     """
     Decorator designed to provide interface that simplifies links & setup for views. The If statement allows for
     individual auth functions that take varieties of input, but a single wrapper for ease of use.
@@ -78,14 +74,10 @@ def verify_user(required_access = "user",
         - admin: for some edit and some delete endpoints
         - user: for some edit and all get endpoints
     """
-    def decorator(view_function, org_id = None,
-                project_id = None, 
-                story_id = None, 
-                user_id = None):
-      
+    def decorator(view_function):      
         @wraps(view_function)
+        
         def inner(request, *args, **kwargs):
-
             #Verifying the user and storing their user ID for use/passback
             try:
                 # Decode Given Access Token
@@ -108,13 +100,11 @@ def verify_user(required_access = "user",
                 # Something broke in the process
                 return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
-            kwargs["real_user_id"] = decoded["sub"]
-
+            request.real_user_id  = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
             auth_level = id_searcher(real_user_id, kwargs, required_access)
 
             auth_level_check(auth_level, required_access)
-            
             return view_function(request, *args, **kwargs)
 
         return inner
@@ -122,37 +112,38 @@ def verify_user(required_access = "user",
     return decorator
 
 
-def id_searcher(real_user_id, dict, required_access):
+def id_searcher(real_user_id, id_set, required_access):
     '''
-    dict: keyword dictionary (kwargs)
+    id_set: keyword dictionary (kwargs)
     '''
+
     try:
         #Separate out user requests that don't have any additional needs beyond authenticating the user
-        if "user_id" not in dict :
+        if "user_id" not in id_set:
             #Find the specific component of information that is needed for authorization
-            if "org_id" not in dict:
-                if "project_id" not in dict:
-                    if "story_id" not in dict:
+            if "org_id" not in id_set:
+                if "project_id" not in id_set:
+                    if "story_id" not in id_set:
                         return JsonResponse({"success": False, "error": "No Identifier Provided"}, status=400)
                     else:
-                        return check_story_auth(real_user_id, dict["story_id"])
+                        return check_story_auth(real_user_id, id_set["story_id"])
                 else:
-                    return check_project_auth(real_user_id, dict["project_id"])
+                    return check_project_auth(real_user_id, id_set["project_id"])
             else:
-                return check_org_auth(real_user_id, dict["org_id"])
+                return check_org_auth(real_user_id, id_set["org_id"])
         elif required_access != "user":
             # If there's a user id in there but we need admin/creator for some purpose.
             # This essentially serves as a failsafe against things that might include user ids
-            if "org_id" not in dict:
-                if "project_id" not in dict:
-                    if "story_id" not in dict:
+            if "org_id" not in id_set:
+                if "project_id" not in id_set:
+                    if "story_id" not in id_set:
                         return JsonResponse({"success": False, "error": "No Identifier Provided"}, status=400)
                     else:
-                        return check_story_auth(real_user_id, dict["story_id"])
+                        return check_story_auth(real_user_id, id_set["story_id"])
                 else:
-                    return check_project_auth(real_user_id, dict["project_id"])
+                    return check_project_auth(real_user_id, id_set["project_id"])
             else:
-                return check_org_auth(real_user_id, dict["org_id"])
+                return check_org_auth(real_user_id, id_set["org_id"])
         else:
             return "user"
 
@@ -375,7 +366,7 @@ def get_project(request, project_id):
 
 
 @require_GET
-@verify_user
+@verify_user("user")
 def get_org(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
@@ -581,7 +572,7 @@ def get_story(request, story_id=None):
 
 
 @csrf_exempt
-@verify_user
+@verify_user("user")
 @require_http_methods(["POST", "OPTIONS"])
 def create_story(request):
     if request.method == "OPTIONS":
@@ -791,6 +782,7 @@ def delete_story(request):
 
 ###############################################################################
 @require_POST
+@verify_user(required_access = 'admin')
 
 @verify_user('admin')
 def create_project(request, **kwargs):
