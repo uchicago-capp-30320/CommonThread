@@ -693,8 +693,7 @@ def create_user(request):
 
 
 @require_POST
-#@verify_user
-#@authorize_user('org','admin')
+#@verify_user('admin')
 def add_user_to_org(request):
     """
     Receives a request with user_id and org_id its body and registers new user
@@ -718,7 +717,6 @@ def add_user_to_org(request):
             }
         )
 
-    # TODO: Get organization auth
     try:
         OrgUser.objects.create(
             user_id=org_user_data["user_id"],
@@ -729,14 +727,13 @@ def add_user_to_org(request):
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     return JsonResponse({"success": True}, status=201)
 
-#@verify_user
-#@authorize_user('org','admin')
+#@verify_user('creator')
 def delete_user_from_org(request):
     pass
 
 ###############################################################################
 
-
+@require_http_methods(['POST', 'PATCH'])
 #@verify_user('admin')
 def edit_story(request, story_id):
         
@@ -771,6 +768,7 @@ def edit_story(request, story_id):
         return JsonResponse({"success": False, "error": "DB Update Failed"}, status=499)
 
 
+@require_http_methods(['DELETE'])
 #@verify_user('admin')
 def delete_story(request, story_id):
     try:
@@ -837,6 +835,7 @@ def create_project(request):
         )
 
 
+@require_http_methods(['POST', 'PATCH'])
 #@verify_user('admin')
 def edit_project(request, org_id, project_id):
     '''
@@ -866,6 +865,7 @@ def edit_project(request, org_id, project_id):
         return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
+@require_http_methods(['DELETE'])
 #@verify_user('admin')
 def delete_project(request, org_id, project_id):
     try:
@@ -965,6 +965,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
         )
 
 
+@require_http_methods(['POST', 'PATCH'])
 #@verify_user('admin')
 def edit_org(request, org_id):
     
@@ -987,7 +988,7 @@ def edit_org(request, org_id):
         return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
-
+@require_http_methods(['DELETE'])
 #@verify_user('creator')
 def delete_org(request, org_id):
     try:
@@ -1072,8 +1073,8 @@ def get_user(request):
 def get_user_detail(request, user_id):
     pass
 
-@csrf_exempt
-@require_POST
+
+@require_http_methods(['POST', 'PATCH'])
 @verify_user
 def edit_user(request, user_id, **kwargs):
 
@@ -1103,7 +1104,7 @@ def edit_user(request, user_id, **kwargs):
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
-
+@require_http_methods(['DELETE'])
 @verify_user
 def delete_user(request, user_id: str):
 
@@ -1118,8 +1119,7 @@ def delete_user(request, user_id: str):
 ## Org methods -----------------------------------------------------------------
 
 @require_http_methods(["GET", "POST"])
-# @verify_user
-#@authorize_user('org','admin')
+# @verify_user('admin')
 def get_org_admin(request, org_id):
     # try:
     #     requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
