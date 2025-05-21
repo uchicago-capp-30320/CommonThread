@@ -517,6 +517,7 @@ def get_story(request, story_id=None):
                 status=200,
             )
         except Story.DoesNotExist:
+            logging.debug('for art thou hitting this?')
             return HttpResponseNotFound(
                 "Could not find that story. It has been either deleted or misplaced",
                 status=404,
@@ -730,23 +731,28 @@ def edit_story(request, story_id):
     
     try:
         story = Story.objects.get(id = story_id)
+        curator = CustomUser.objects.get(id = story_updates.get("curator"))
     except:
         return JsonResponse({"success": False, "error": "Story does not exist"}, status=404)
     
     try:
-        story.proj = story_updates["name"],
-        story.storyteller = story_updates["description"]
-        story.curator = story_updates["curator"]
-        story.date = story_updates["date"]
+        story.storyteller = story_updates["storyteller"]
+        #story.curator = curator
+        if "date" in story_updates:
+            story.date = story_updates["date"]
         story.text_content = story_updates["text_content"]
-        story.image_content = story_updates["image_content"]
-        story.audio_content = story_updates["audio_content"]
+        if "image_content" in story_updates:
+            story.image_content = story_updates["image_content"]
+        if "audio_content" in story_updates:
+            story.audio_content = story_updates["audio_content"]
         #story.summary = story_updates["summary"] # Should only be updated via ML?
-
+    except:
+        return JsonResponse({"success": False, "error": "Data edit failed"}, status=399)
+    try:
         story.save()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=499)
 
 
 #@verify_user('admin')
@@ -816,7 +822,7 @@ def create_project(request):
 
 
 #@verify_user('admin')
-def edit_project(request, project_id):
+def edit_project(request, org_id, project_id):
     '''
     Takes the full project form from the front-end and updates the Project record with
     the fields passed from the form.
@@ -834,9 +840,8 @@ def edit_project(request, project_id):
     
     try:
         #Update fields with new information
-        project.name = project_updates["name"],
-        project.curator = project_updates["curator"]
-        project.org = project_updates["org"]
+        project.name = project_updates["name"]
+        #project.curator = project_updates["curator"]
         project.date = project_updates["date"]
         #project.insight = project_updates["insight"] # Shouldn't be updated here, only through ML?
         project.save()
@@ -846,10 +851,10 @@ def edit_project(request, project_id):
 
 
 #@verify_user('admin')
-def delete_project(request, project_id):
+def delete_project(request, org_id, project_id):
     try:
-        org_to_delete = Organization.objects.get(id = project_id)
-        org_to_delete.delete()
+        proj_to_delete = Project.objects.get(id = project_id)
+        proj_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
         return JsonResponse({"success": False, "error": "Deletion Unsuccessful"}, status=400)    
@@ -986,12 +991,13 @@ def get_user(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@verify_user()
+@verify_user
 def get_user_detail(request, user_id):
     pass
 
-
-@verify_user()
+@csrf_exempt
+@require_POST
+@verify_user
 def edit_user(request, user_id, **kwargs):
 
     try:
