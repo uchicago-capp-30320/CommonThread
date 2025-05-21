@@ -34,6 +34,7 @@ from .models import (
     ProjectTag,
     StoryTag,
     CustomUser,
+    MLProcessingQueue
 )
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
@@ -206,6 +207,23 @@ def check_story_auth(user_id: str, story_id: str):
     except Story.DoesNotExist:
         return JsonResponse({"Failed": False, "error": "Story not found"}, status=404)
 
+@require_GET
+@csrf_exempt
+def check_ml_status(request, story_id):
+    """
+    Input: story id
+    Output: ML status, task type and timestamp of the story
+    """
+    try:
+        ml_task = MLProcessingQueue.objects.get(story_id=story_id)
+    except MLProcessingQueue.DoesNotExist:
+        return JsonResponse({"success": False, "error": "ML status not found"}, status=404)
+    
+    return JsonResponse({"success": True, 
+                         "task_type":ml_task.task_type, 
+                         "timestamp":ml_task.timestamp, 
+                         "ml_status": ml_task.status}, 
+                         status=200)
 
 @csrf_exempt
 @require_POST
