@@ -12,6 +12,7 @@ import boto3
 import logging
 import time
 from django.core.exceptions import ObjectDoesNotExist
+from django.utils import timezone
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
 django.setup()
@@ -48,44 +49,38 @@ class MLWorkerService:
 
         logger.info("Dispatching job_id=%s, type=%s", job_id, task_type)
 
+        self._create_queue_entries(body, status="processing")
+        success = False
         try:
             if task_type == "transcription":
                 success = self.transcribing_service.process_story_transcription(
                     story_id
                 )
-                if not success:
-                    logger.error(
-                        "Failed to process transcription for story_id=%s", story_id
-                    )
 
             elif task_type == "tag":
-                self.tagging_service.process_story_tags(story_id)
+                success = self.tagging_service.process_story_tags(story_id)
 
             elif task_type == "summarization":
                 success = self.summarizing_service.process_project_summary(project_id)
-                if not success:
-                    logger.error(
-                        "Failed to generate summary for project_id=%s", project_id
-                    )
+
             else:
                 logger.error("Unknown task_type %s for job_id=%s", task_type, job_id)
 
-            self._create_queue_entries(body, success)
-
-        except Exception as e:
+        except Exception:
             logger.exception(
                 "Error processing task_type=%s, job_id=%s: %s",
                 task_type,
                 job_id,
-                str(e),
             )
-            raise
+        self._create_queue_entries(body, status="completed" if success else "failed")
+
 
     def _create_queue_entries(
-        self, task_body: dict, success: bool = True
+        self, task_body: dict, status: str
     ) -> MLProcessingQueue:
         """
-        Create a metadata entry for the given task body.
+        Update or Create a metadata entry for the given task body
+        timestamp and status.
         """
         story_id = task_body.get("story_id")
         project_id = task_body.get("project_id")
@@ -97,13 +92,17 @@ class MLWorkerService:
             logger.error(f"Failed to create queue entry: {str(e)}")
             raise
 
-        return MLProcessingQueue.objects.create(
+        #update the status of the task for existing task
+        entry, _ = MLProcessingQueue.objects.update_or_create(
             story=story,
             project=project,
             task_type=task_body.get("task_type"),
-            status="completed" if success else "failed",
-            timestamp=datetime.now(datetime.timezone.utc),
+            defaults={
+                "status": status,
+                "timestamp": timezone.now(),
+            }
         )
+        return entry
 
     def process_messages(
         self, use_lambda: bool = False, event: dict = None, context=None
