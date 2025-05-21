@@ -29,6 +29,7 @@ def generate_s3_presigned(
         fields = {
             "Content-Type": content_type,
             "success_action_status": "200",
+            "key": key,
         }
         conditions = [
             {"acl": "private"},
