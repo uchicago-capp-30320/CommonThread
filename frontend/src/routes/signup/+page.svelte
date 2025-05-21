@@ -2,6 +2,10 @@
 	import background_texture from '$lib/assets/background_texture.png';
 </script>
 
+<svelte:head>
+	<title>Sign Up</title>
+</svelte:head>
+
 <div id="container">
 	<div class="container is-max-tablet">
 		<div class="notification">

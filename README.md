@@ -100,7 +100,7 @@ CommonThread
 ## Issue Tracker :mag:
 Check our [issue tracker](https://github.com/orgs/uchicago-capp-30320/projects/10/views/1).
 
-## Team :writing_hand:
+## Team and credits :writing_hand:
 This project was built under the supervision of [James Turk](https://github.com/jamesturk) for the [Software Engineering for Civic Tech](https://github.com/uchicago-capp-30320) course, part of the MS in Computational Analysis and Public Policy at the University of Chicago. The developer team (presented in alphabetical order) includes: 
 
 Contributor      | Roles |
@@ -112,5 +112,7 @@ Onur Büyükkalkan | Back-end Lead and Data Engineer
 Paul Soltys      | Chief Architect and Data Engineer
 Praveen Chandar  | ML Specialist, Back-end and Front-end Engineer
 Regina I. Medina | QA Specialist, Back-end and Front-end Engineer
+
+Branding resources and customized illustrations designed by [Pili Medina :cat2:](mailto:pilar.eunice.mr@gmail.com). 
 
 --------------

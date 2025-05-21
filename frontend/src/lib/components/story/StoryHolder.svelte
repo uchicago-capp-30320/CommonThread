@@ -3,6 +3,8 @@
 	import StoryDetails from './StoryDetails.svelte';
 	import StoryMedia from './StoryMedia.svelte';
 
+	let { projects } = $props();
+
 	let currentStep = $state(1);
 	let storyData = $state({
 		storyteller: '',
@@ -84,9 +86,9 @@
 			<div class="box">
 				<pre>Current Step: {currentStep}</pre>
 				{#if currentStep === 1}
-					<StoryBasicInfo bind:currentStep bind:storyData />
+					<StoryBasicInfo bind:currentStep bind:storyData {projects} />
 				{:else if currentStep === 2}
-					<StoryDetails bind:currentStep bind:storyData />
+					<StoryDetails bind:currentStep bind:storyData {projects} />
 				{:else if currentStep === 3}
 					<StoryMedia bind:currentStep bind:storyData />
 				{/if}

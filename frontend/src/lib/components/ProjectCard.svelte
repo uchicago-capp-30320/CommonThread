@@ -1,6 +1,7 @@
 <script>
 	// TODO update with project data
 	// project.name, project.description, project.total_stories
+	import { page } from '$app/stores';
 
 	let { project } = $props();
 </script>
@@ -25,6 +26,14 @@
 			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
 			This is a description placeholder of the project. It can be a bit longer to give more context about
 			the project and its goals.
+		</div>
+		<div class="has-text-right mt-4">
+			<a href="{$page.url.pathname}/project/{project.id}" class="button is-primary">
+				<span>Explore Project</span>
+				<span class="icon">
+					<i class="fa fa-arrow-right"></i>
+				</span>
+			</a>
 		</div>
 	</div>
 </div>

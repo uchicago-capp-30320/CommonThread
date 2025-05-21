@@ -1,5 +1,5 @@
 <script>
-	let { name, email, text } = $props();
+	let { name, email, text_content } = $props();
 </script>
 
 <div class="column is-9">
@@ -19,7 +19,7 @@
 
 		<div class="card-content">
 			<div class="content">
-				{text}
+				{text_content}
 			</div>
 		</div>
 

@@ -28,26 +28,24 @@
 	}
 
 	let currentGroupBy = $state('storyteller');
-	let currentProject = $state(1);
-
-	let uniqueProjects = new Set();
-	stories.forEach((story) => {
-		if (story.project_name) {
-			uniqueProjects.add(story.project_name);
-		}
-	});
-
-	let projectStories = $derived(stories.filter((story) => story.project_name === currentProject));
 
 	let uniqueTags = new Set();
 
-	projectStories.forEach((story) => {
+	// Extract unique tags from stories
+	stories.forEach((story) => {
 		if (story.tags) {
-			story.tags.forEach((tag) => uniqueTags.add(tag));
+			// Handle tags in format { topic: 'health', location: 'chicago' }
+			Object.keys(story.tags).forEach((key) => uniqueTags.add(key));
 		}
 	});
 
-	let barData = $derived(groupStoriesByField(projectStories, currentGroupBy));
+	// Extract unique projects for filter component
+	let uniqueProjects = $state([]);
+	if (stories.length > 0 && stories[0].project) {
+		uniqueProjects = [...new Set(stories.map((story) => story.project))].filter(Boolean);
+	}
+
+	let barData = $derived(groupStoriesByField(stories, currentGroupBy));
 
 	// Function to create running totals data for stories by date
 	function createRunningTotalByDate(stories) {
@@ -90,23 +88,11 @@
 		currentGroupBy = value;
 		//applyFilters(currentFilters);
 	}
-
-	function updateProject(value) {
-		currentProject = value;
-		//applyFilters(currentFilters);
-	}
 </script>
 
 <div class="dashboard p-5">
 	<div class="sidebar-container">
-		<DataFilter
-			{currentGroupBy}
-			{currentProject}
-			{uniqueTags}
-			{updateGroupBy}
-			{updateProject}
-			{uniqueProjects}
-		/>
+		<DataFilter {currentGroupBy} {uniqueTags} {updateGroupBy} {uniqueProjects} />
 	</div>
 
 	<div class="charts-container">

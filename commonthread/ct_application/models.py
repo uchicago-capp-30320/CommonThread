@@ -14,18 +14,7 @@ class CustomUser(AbstractUser):
     city = models.CharField(max_length=100, blank=True)
     bio = models.TextField(blank=True)
     position = models.CharField(max_length=100, blank=True)
-    profile = models.FileField(upload_to="profile_pics/", default="profile_pics/default.jpg")
-
-
-# user-login  ########### SUNSET IN FAVOR OF DJANGO PASSWORD STORAGE ###################
-#class UserLogin(models.Model):
-#    user_id = models.OneToOneField(
-#        CustomUser, primary_key=True, on_delete=models.CASCADE
-#    )
-#    username = models.CharField(max_length=255, unique=True)
-#    password = models.CharField(
-#        max_length=255
-#    )  # This probably changes based on PW storage method
+    profile = models.FileField(upload_to="profile_pics/", default="user_default.jpg")
 
 
 ###################################### Story Tables ##########################################
@@ -35,9 +24,7 @@ class CustomUser(AbstractUser):
 class Organization(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(default="")
-    profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
-    description = models.TextField(default="")
-    profile = models.FileField(upload_to="org_pics/", default="org_pics/default.jpg")
+    profile = models.FileField(upload_to="org_pics/", default="org_default.jpg")
 
 
 # project
@@ -61,6 +48,7 @@ class Story(models.Model):
     audio_content = models.FileField(upload_to="audio/", null=True, blank=True)
     image_content = models.FileField(upload_to="images/", null=True, blank=True)
     summary = models.TextField(null=True, blank=True)
+    is_transcript = models.BooleanField(null=True, blank=False)
 
 
 ####################################### TAG TABLES #######################################
