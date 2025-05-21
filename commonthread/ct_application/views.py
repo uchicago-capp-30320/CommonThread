@@ -2,6 +2,9 @@
 
 import logging
 import json
+import datetime
+import jwt
+from commonthread.settings import JWT_SECRET_KEY
 from uuid import uuid4
 from datetime import date
 from django.shortcuts import get_object_or_404
@@ -13,7 +16,7 @@ from django.http import (
     HttpRequest,
     JsonResponse,
     HttpResponseNotFound,
-    # HttpResponseForbidden,
+    HttpResponseForbidden,
     HttpResponseBadRequest,
 )
 from django.conf import settings
@@ -179,7 +182,7 @@ def authorize_user(check_type: str):
 
 
 def check_org_auth(user_id: str, org_id: str):
-    # Checks if user has access to an oranization, returns True if the link exists
+    # Checks if user has access to an organization, returns True if the link exists
     try:
         _ = OrgUser.objects.get(user_id=user_id, org_id=org_id)
         return True
@@ -254,11 +257,6 @@ def login(request):  # need not pass username and password as query params
     access_token = generate_access_token(authenticated_user.id)
     logger.debug(f"LOGIN ➤ issued access_token={access_token}")
     refresh_token = generate_refresh_token(authenticated_user.id)
-
-    # ───────────────────────────────────────────────────────────────
-    import datetime
-    import jwt
-    from commonthread.settings import JWT_SECRET_KEY
 
     # decode *without* verifying exp, so we can inspect the claims:
     payload = jwt.decode(
@@ -1249,6 +1247,14 @@ def delete_user(request, user_id: str):
 @require_http_methods(["GET", "POST"])
 # @verify_user('admin')
 def get_org_admin(request, org_id):
+
+    # try:
+    #     user_data = json.loads(request.body or "{}")
+    # except json.JSONDecodeError:
+    #     return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+
+    # user_id = user_data.get("user_id")
+
     # try:
     #     requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
     # except OrgUser.DoesNotExist:
@@ -1257,7 +1263,6 @@ def get_org_admin(request, org_id):
     # get method for seeing users in org
     if request.method == "GET":
         org_members = OrgUser.objects.filter(org_id=org_id).select_related("user")
-        print(org_members)
 
         data = [
             {
@@ -1268,10 +1273,11 @@ def get_org_admin(request, org_id):
             for member in org_members
         ]
 
-        # return JsonResponse(
-        # {"org_id": org_id, "requested_by": user_id, "organization_users": data}
-        # )
-        return JsonResponse({"org_id": org_id, "organization_users": data})
+        return JsonResponse(
+        {"org_id": org_id, "organization_users": data}
+        )
+    
+        #"requested_by": user_id,
 
     # post method for updating access level
     elif request.method == "POST":
