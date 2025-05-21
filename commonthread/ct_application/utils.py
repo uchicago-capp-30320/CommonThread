@@ -25,15 +25,22 @@ def generate_s3_presigned(
     if operation == "upload":
         if not content_type:
             raise ValueError("content_type is required for upload")
+        
+        fields = {
+            "Content-Type": content_type,
+            "success_action_status": "200",
+        }
+        conditions = [
+            {"acl": "private"},
+            ["eq", "$key", key],
+            ["eq", "$Content-Type", content_type],
+            ["eq", "$success_action_status", "200"],
+        ]
         return client.generate_presigned_post(
             Bucket=bucket_name,
             Key=key,
-            Fields={"Content-Type": content_type},
-            Conditions=[
-                {"acl": "private"},
-                {"Content-Type": content_type},
-                ["eq", "$key", key],
-            ],
+            Fields=fields,
+            Conditions=conditions,
             ExpiresIn=expiration,
         )
 
