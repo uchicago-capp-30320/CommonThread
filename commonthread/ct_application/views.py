@@ -117,7 +117,7 @@ def verify_user(required_access = "user"):
                 # Something broke in the process
                 return JsonResponse({"success": False, "error": "Login Failed"}, status=401)
 
-            request.real_user_id  = decoded["sub"]
+            request.user_id  = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
             auth_level = id_searcher(real_user_id, kwargs, required_access)
 
@@ -713,7 +713,7 @@ def create_story(request):
             logger.error("Project with ID %s does not exist", story_data["proj_id"])
 
             return JsonResponse(
-                {"error": f"Project with ID {proj_id} does not exist"},
+                {"error": f"Project with ID {story_data["proj_id"]} does not exist"},
                 status=400,
             )
 
@@ -721,13 +721,13 @@ def create_story(request):
 
         try:
             story = Story.objects.create(
-                storyteller=storyteller,
-                curator_id=curator,
+                storyteller=story_data.get("storyteller"),
+                curator_id=story_data.get("curator"),
                 date=timezone.now(),
-                text_content=text_content,
+                text_content=story_data.get("text_content"),
                 proj_id=project.id,
-                audio_content=story_data["audio_content"],
-                image_content=story_data["image_content"],
+                audio_content=story_data.get("audio_content"),
+                image_content=story_data.get("image_content"),
             )
             logger.debug("Created story: %s", story)
         except Exception as e:
