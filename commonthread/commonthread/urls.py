@@ -50,7 +50,7 @@ urlpatterns = [
     path("", home_test, name="home"),  # GET /
     path("login", login, name="login"),
     path("create_access", get_new_access_token, name="access-create"),
-    path("story/<int:story_id>/ml-status/", check_ml_status, name="check-ml-status"),
+    path("story/<int:story_id>/ml-status", check_ml_status, name="check-ml-status"),
 
     #User Related Endpoints
     path("user/create", create_user, name="user-create"),
