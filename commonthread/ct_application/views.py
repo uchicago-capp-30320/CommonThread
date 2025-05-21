@@ -626,7 +626,7 @@ def create_story(request):
 
     if request.method == "GET":
         try:
-            user_id = request.user_id
+            user_id = request.GET.get("user_id")
             if not user_id:
                 return JsonResponse(
                     {"success": False, "error": "Missing user_id"}, status=400
