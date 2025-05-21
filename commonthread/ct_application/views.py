@@ -1016,8 +1016,6 @@ def create_org(request: HttpRequest) -> JsonResponse:
         -  Response content
             - success (bool): indicates if the request was fulfilled
             - org_id (): organization's unique identifier
-            - upload (dict): presigned url metadata provided by AWS for handling
-            picture upload if one was provided
         - status (int): HTTP status code
     """
 
@@ -1029,7 +1027,6 @@ def create_org(request: HttpRequest) -> JsonResponse:
     org_data = json.loads(request.body)
     name = org_data.get("name")
     description = org_data.get("description")
-    profile = org_data.get("profile")
 
     if not name:
         return JsonResponse(
@@ -1055,29 +1052,12 @@ def create_org(request: HttpRequest) -> JsonResponse:
         return JsonResponse(
             {"success": False, "error": f"internal service error{str(e)}"}, status=500
         )
-
-    # Handle upload of profile picture if one submitted
-    if profile:
-        presign = generate_s3_presigned(
-            bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-            key=f"orgs/images/{org.id}/{uuid4()}.png",
-            operation="upload",
-            content_type="image/png",
-            expiration=3600,
-        )
-
-        return JsonResponse(
+    
+    return JsonResponse(
             {
                 "success": True,
                 "org_id": org.org_id,
-                "upload": {"url": presign["url"], "fields": presign["fields"]},
             },
-            status=201,
-        )
-
-    else:
-        return JsonResponse(
-            {"success": True, "org_id": org.org_id, "upload": None},
             status=201,
         )
 
