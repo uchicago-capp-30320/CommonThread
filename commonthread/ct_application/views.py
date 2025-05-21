@@ -37,6 +37,7 @@ from .models import (
     ProjectTag,
     StoryTag,
     CustomUser,
+    MLProcessingQueue
 )
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
@@ -209,6 +210,23 @@ def check_story_auth(user_id: str, story_id: str):
     except Story.DoesNotExist:
         return JsonResponse({"Failed": False, "error": "Story not found"}, status=404)
 
+@require_GET
+@csrf_exempt
+def check_ml_status(request, story_id):
+    """
+    Input: story id
+    Output: ML status, task type and timestamp of the story
+    """
+    try:
+        ml_task = MLProcessingQueue.objects.get(story_id=story_id)
+    except MLProcessingQueue.DoesNotExist:
+        return JsonResponse({"success": False, "error": "ML status not found"}, status=404)
+    
+    return JsonResponse({"success": True, 
+                         "task_type":ml_task.task_type, 
+                         "timestamp":ml_task.timestamp, 
+                         "ml_status": ml_task.status}, 
+                         status=200)
 
 @csrf_exempt
 @require_POST
@@ -1014,8 +1032,6 @@ def create_org(request: HttpRequest) -> JsonResponse:
         -  Response content
             - success (bool): indicates if the request was fulfilled
             - org_id (): organization's unique identifier
-            - upload (dict): presigned url metadata provided by AWS for handling
-            picture upload if one was provided
         - status (int): HTTP status code
     """
 
@@ -1027,7 +1043,6 @@ def create_org(request: HttpRequest) -> JsonResponse:
     org_data = json.loads(request.body)
     name = org_data.get("name")
     description = org_data.get("description")
-    profile = org_data.get("profile")
 
     if not name:
         return JsonResponse(
@@ -1053,29 +1068,12 @@ def create_org(request: HttpRequest) -> JsonResponse:
         return JsonResponse(
             {"success": False, "error": f"internal service error{str(e)}"}, status=500
         )
-
-    # Handle upload of profile picture if one submitted
-    if profile:
-        presign = generate_s3_presigned(
-            bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-            key=f"orgs/images/{org.id}/{uuid4()}.png",
-            operation="upload",
-            content_type="image/png",
-            expiration=3600,
-        )
-
-        return JsonResponse(
+    
+    return JsonResponse(
             {
                 "success": True,
                 "org_id": org.org_id,
-                "upload": {"url": presign["url"], "fields": presign["fields"]},
             },
-            status=201,
-        )
-
-    else:
-        return JsonResponse(
-            {"success": True, "org_id": org.org_id, "upload": None},
             status=201,
         )
 
