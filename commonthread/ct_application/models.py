@@ -48,7 +48,7 @@ class Story(models.Model):
     audio_content = models.FileField(upload_to="audio/", null=True, blank=True)
     image_content = models.FileField(upload_to="images/", null=True, blank=True)
     summary = models.TextField(null=True, blank=True)
-    transcription = models.TextField(null=True, blank=True)
+    is_transcript = models.BooleanField(null=True, blank=False)
 
 
 ####################################### TAG TABLES #######################################
