@@ -218,7 +218,7 @@ class QueueProducer:
                         story=story if task.story_level else None,
                         project=story.proj,
                         task_type=task.task_type,
-                        status="processing",
+                        status="initialized",
                         timestamp=datetime.now(datetime.UTC),
                     )
                 )
