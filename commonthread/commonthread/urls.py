@@ -32,11 +32,13 @@ from ct_application.views import (
     delete_user,
     create_org,
     get_org_admin,
+    get_org,
     edit_org,
     delete_org,
     add_user_to_org,
     delete_user_from_org,
     create_project,
+    get_project,
     edit_project,
     delete_project,
     create_story,
@@ -66,6 +68,7 @@ urlpatterns = [
         get_org_admin,
         name="org-admin-dashboard",
     ),
+    path("org/<int:org_id>", get_org, name="get-org"),
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
     path("org/<int:org_id>/add-user", add_user_to_org, name="add-user-to-org"),
@@ -76,6 +79,7 @@ urlpatterns = [
 
     #Project Related Endpoints
     path("project/create", create_project, name="project-create"),
+    path("project/<int:project_id>", get_project, name="get-project"),
     path("project/<int:org_id>/<int:project_id>/edit", edit_project, name="project-edit"),
     path("project/<int:org_id>/<int:project_id>/delete", delete_project, name="project-delete"),
     
