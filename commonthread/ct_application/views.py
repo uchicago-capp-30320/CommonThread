@@ -831,8 +831,8 @@ def create_user(request):
 
 
 @require_POST
-# @verify_user('admin')
-def add_user_to_org(request):
+# @verify_user('creator')
+def add_user_to_org(request, org_id):
 
     """
     Receives a request with user_id and org_id its body and registers new user
@@ -844,22 +844,18 @@ def add_user_to_org(request):
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    # Check that all required keys are in the request
-    required_keys = ["user_id", "org_id"]
-    missing_keys = [key for key in required_keys if key not in org_user_data]
-
-    if missing_keys:
+    if not org_user_data['user_id']:
         return JsonResponse(
             {
                 "success": False,
-                "error": f"The following required keys are missing: {missing_keys}",
+                "error": f"User ID is missing",
             }
         )
 
     try:
         OrgUser.objects.create(
             user_id=org_user_data["user_id"],
-            org_id=org_user_data["org_id"],
+            org_id=org_id,
             access=org_user_data["access"],
         )
     except Exception as e:
@@ -867,11 +863,31 @@ def add_user_to_org(request):
     return JsonResponse({"success": True}, status=201)
 
 
+@require_http_methods(["DELETE"])
 # @verify_user('creator')
-def delete_user_from_org(request):
-    pass
+def delete_user_from_org(request, org_id):
+    try:
+        org_user_data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
+    if not org_user_data['user_id']:
+        return JsonResponse(
+            {
+                "success": False,
+                "error": f"User ID is missing",
+            }
+        )
 
+    try:
+        user_to_delete = OrgUser.objects.get(org_id=org_id, user_id=org_user_data["user_id"])
+        user_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse(
+            {"success": False, "error": "Deletion Unsuccessful"}, status=400
+        )
+    
 ###############################################################################
 
 
@@ -1258,20 +1274,15 @@ def delete_user(request, user_id: str):
 
 
 @require_http_methods(["GET", "POST"])
-# @verify_user('admin')
+@verify_user('admin')
 def get_org_admin(request, org_id):
 
-    # try:
-    #     user_data = json.loads(request.body or "{}")
-    # except json.JSONDecodeError:
-    #     return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    try:
+        user_data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    # user_id = user_data.get("user_id")
-
-    # try:
-    #     requester_membership = OrgUser.objects.get(user_id=user_id, org_id=org_id)
-    # except OrgUser.DoesNotExist:
-    #     return HttpResponseForbidden("User is not a member of the organization.")
+    user_id = user_data.get("user_id")
 
     # get method for seeing users in org
     if request.method == "GET":
@@ -1287,15 +1298,12 @@ def get_org_admin(request, org_id):
         ]
 
         return JsonResponse(
-        {"org_id": org_id, "organization_users": data}
+        {"org_id": org_id, "requested_by": user_id, "organization_users": data}
         )
-    
-        #"requested_by": user_id,
+
 
     # post method for updating access level
     elif request.method == "POST":
-        # if requester_membership.access != "admin":
-        #     return HttpResponseForbidden("Only admins can change access levels.")
 
         try:
             body = json.loads(request.body)
