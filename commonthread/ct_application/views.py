@@ -94,6 +94,7 @@ def verify_user(required_access = "user"):
             try:
                 # Decode Given Access Token
                 access_token = request.headers.get("Authorization", "")
+                print('access token', access_token)
                 if not access_token or not access_token.startswith("Bearer "):
                     return JsonResponse(
                         {"success": False, "error": "Token missing or malformed"}, status=401
@@ -550,82 +551,6 @@ def get_stories(request):
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
-
-
-@require_GET
-@cache_page(60 * 15)  # Cache for 15 minutes
-@verify_user
-def get_story(request, story_id=None):
-    print(request.headers)
-    if story_id:
-        try:
-            story = Story.objects.select_related("proj").get(id=story_id)
-            project = Project.objects.get(id=story.proj_id)
-            story_tags = StoryTag.objects.filter(story_id=story).select_related("tag")
-
-            tags = []
-            for st in story_tags:
-                tag_obj = Tag.objects.get(id=st.tag_id)
-                tag = {"name": tag_obj.name, "value": tag_obj.value}
-                tags.append(tag)
-
-            return JsonResponse(
-                {
-                    "story_id": story.id,
-                    "project_id": story.proj_id,
-                    "project_name": project.name,
-                    "storyteller": story.storyteller,
-                    "curator": story.curator.id if story.curator else None,
-                    "date": story.date,
-                    "text_content": story.text_content,
-                    "tags": tags,
-                },
-                status=200,
-            )
-        except Story.DoesNotExist:
-            logging.debug("for art thou hitting this?")
-            return HttpResponseNotFound(
-                "Could not find that story. It has been either deleted or misplaced",
-                status=404,
-            )
-    else:
-        try:
-            # Get all stories with their tags and projects
-            stories = (
-                Story.objects.select_related("proj")
-                .prefetch_related("storytag_set__tag_id")
-                .all()
-            )
-            stories_data = []
-
-            for story in stories:
-                story_tags = StoryTag.objects.filter(story_id=story).select_related(
-                    "tag"
-                )
-                tags = [
-                    {"name": st.tag_id.name, "value": st.tag_id.value}
-                    for st in story.storytag_set.all()
-                ]
-
-                stories_data.append(
-                    {
-                        "story_id": story.id,
-                        "storyteller": story.storyteller,
-                        "project_id": story.proj_id.id,
-                        "project_name": story.proj_id.name,
-                        "curator": story.curator.id if story.curator else None,
-                        "date": story.date,
-                        "text_content": story.text_content,
-                        "tags": tags,
-                    }
-                )
-
-            return JsonResponse(
-                {"stories": stories_data},
-                status=200,
-            )
-        except Exception as e:
-            return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
 ## POST methods ----------------------------------------------------------------
@@ -1274,7 +1199,7 @@ def delete_user(request, user_id: str):
 
 
 @require_http_methods(["GET", "POST"])
-@verify_user('admin')
+@verify_user('user')
 def get_org_admin(request, org_id):
 
     try:
