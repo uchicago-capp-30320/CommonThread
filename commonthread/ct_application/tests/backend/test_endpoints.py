@@ -441,6 +441,38 @@ def test_create_org_ok(client, seed, auth_headers):
     # make sure it actually hit the DB
     assert Organization.objects.filter(id=data["org_id"], name="New Org").exists()
 
+@pytest.mark.django_db
+def test_get_stories_by_story_id(client, seed):
+    """
+    If you call /stories/?story_id=<id>, you get back exactly that story
+    and the correct id_type/id_value metadata.
+    """
+    story1 = seed["story1"]
+    tag     = seed["tag"]
+
+    resp = client.get(f"/stories/?story_id={story1.id}")
+    assert resp.status_code == 200
+
+    data = resp.json()
+    # metadata
+    assert data["id_type"]  == ["story_id"]
+    assert data["id_value"] == [str(story1.id)]
+
+    # exactly one story returned, matching seed["story1"]
+    assert len(data["stories"]) == 1
+    s = data["stories"][0]
+    assert s["story_id"]     == story1.id
+    assert s["storyteller"]  == story1.storyteller
+    assert s["project_id"]   == story1.proj.id
+    assert s["project_name"] == story1.proj.name
+    assert s["curator"]      == story1.curator.name
+    assert s["date"]         == str(story1.date)
+    assert s["summary"]      == story1.summary
+    assert s["text_content"] == story1.text_content
+
+    # tags were serialized properly
+    assert isinstance(s["tags"], list)
+    assert any(t["name"] == tag.name and t["value"] == tag.value for t in s["tags"])
 #-----------error tests-------------------
 
 def test_create_user_conflict(client, seed):
@@ -596,6 +628,33 @@ def test_get_user_ok(client, seed, auth_headers):
     org_prefix = f"https://{settings.CT_BUCKET_ORG_PROFILES}.s3.amazonaws.com/"
     assert isinstance(org_entry["org_profile_pic_path"], str)
     assert org_entry["org_profile_pic_path"].startswith(org_prefix)
+
+@pytest.mark.django_db
+def test_get_stories_no_filter(client):
+    """
+    If you call /stories/ with no query params, 
+    you must get a 400 and the correct error message.
+    """
+    resp = client.get("/stories/")
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "error": "Specify exactly one of org_id, project_id, story_id, or user_id."
+    }
+
+@pytest.mark.django_db
+def test_get_stories_multiple_filters(client, seed):
+    """
+    If you call /stories/ with more than one filter (e.g. org_id + project_id),
+    you must get a 400 and the same error message.
+    """
+    org1    = seed["org1"]
+    proj1   = seed["proj1"]
+    resp = client.get(f"/stories/?org_id={org1.id}&project_id={proj1.id}")
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "error": "Specify exactly one of org_id, project_id, story_id, or user_id."
+    }
+
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
