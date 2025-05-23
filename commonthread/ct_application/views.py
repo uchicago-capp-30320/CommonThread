@@ -95,7 +95,7 @@ def verify_user(required_access="user"):
                 # Decode Given Access Token
                 logger.debug("Request Headers: ", request.headers)
                 access_token = request.headers.get("Authorization", "")
-                logger.debug("Access Token: ", access_token)
+                #logger.debug("Access Token: ", access_token)
                 if not access_token or not access_token.startswith("Bearer "):
                     return JsonResponse(
                         {"success": False, "error": "Token missing or malformed"},
@@ -103,7 +103,6 @@ def verify_user(required_access="user"):
                     )
                 access_token = access_token.split(" ", 1)[1]
                 decoded = decode_access_token(access_token)
-                # request.user_id = decoded["sub"] #we could return this so decoding does not happen twice
                 real_user_id = decoded["sub"]
 
             except ExpiredSignatureError:
@@ -119,9 +118,12 @@ def verify_user(required_access="user"):
 
             request.user_id = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
-            auth_level = id_searcher(real_user_id, kwargs, required_access)
-
-            auth_level_check(auth_level, required_access)
+            auth_level, search_success = id_searcher(real_user_id, kwargs, required_access)
+            
+            if search_success:
+                auth_level_check(auth_level, required_access)
+            else:
+                return auth_level
             return view_function(request, *args, **kwargs)
 
         return inner
@@ -144,7 +146,7 @@ def id_searcher(real_user_id, id_set, required_access):
                         return JsonResponse(
                             {"success": False, "error": "No Identifier Provided"},
                             status=400,
-                        )
+                        ), False
                     else:
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
@@ -160,7 +162,7 @@ def id_searcher(real_user_id, id_set, required_access):
                         return JsonResponse(
                             {"success": False, "error": "No Identifier Provided"},
                             status=400,
-                        )
+                        ), False
                     else:
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
@@ -168,41 +170,42 @@ def id_searcher(real_user_id, id_set, required_access):
             else:
                 return check_org_auth(real_user_id, id_set["org_id"])
         else:
-            return "user"
+            return "user", True
 
     except:
         return JsonResponse(
             {"success": False, "error": "Identifier read failed"}, status=400
-        )
+        ), False
 
 
 def check_org_auth(user_id: str, org_id: str):
     # Checks if user has access to an organization, returns True if the link exists
     try:
         row = OrgUser.objects.get(user_id=user_id, org_id=org_id)
-        return row.access
+        return row.access, True
     except OrgUser.DoesNotExist:
         return JsonResponse(
             {"success": False, "error": "Not authorized to access page"}, status=403
-        )
+        ), False
 
 
 def check_project_auth(user_id: str, proj_id: str):
     # Checks if user has access through proj->org link, returns True if the link exists
     try:
-        project = Project.objects.get(proj_id=proj_id)
+        project = Project.objects.get(id = proj_id)
+        logger.debug("Found Project, looking for ")
         return check_org_auth(user_id, project.org_id)
     except Project.DoesNotExist:
-        return JsonResponse({"Failed": False, "error": "Project not found"}, status=404)
+        return JsonResponse({"Failed": False, "error": "Project not found"}, status=404), False
 
 
 def check_story_auth(user_id: str, story_id: str):
     # Checks if user has access through story->proj->org link, returns True if the link exists
     try:
-        story = Story.objects.get(story_id=story_id)
+        story = Story.objects.get(id = story_id)
         return check_project_auth(user_id, story.id)
     except Story.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Story not found"}, status=404)
+        return JsonResponse({"success": False, "error": "Story not found"}, status=404), False
 
 
 def auth_level_check(user_level: str, required_level: str):
@@ -214,6 +217,14 @@ def auth_level_check(user_level: str, required_level: str):
     auth_dict = {"creator": 3, "admin": 2, "user": 1, "visitor": 0}
     try:
         if auth_dict[user_level] >= auth_dict[required_level]:
+            logger.debug(
+            "Required Access Level: %r",
+            auth_dict[required_level],
+            )
+            logger.debug(
+                "Given Access Level: %r",
+                auth_dict[user_level],
+            )
             return True
         elif auth_dict[user_level] < auth_dict[required_level]:
             return JsonResponse(
@@ -224,8 +235,12 @@ def auth_level_check(user_level: str, required_level: str):
             "Improperly Listed Permission Level?" "Required Access Level: %r",
             auth_dict[required_level],
         )
+        logger.debug(
+            "Given Access Level: %r",
+            auth_dict[user_level],
+        )
         return JsonResponse(
-            {"success": False, "error": "Authorization Check Failed"}, status=404
+            {"success": False, "error": "Authorization Check Failed"}, status=401
         )
 
 
@@ -377,6 +392,7 @@ def get_new_access_token(request):
 
 
 @require_GET
+@verify_user('user')
 def get_project(request, project_id):
     try:
         project = Project.objects.select_related("org", "curator").get(id=project_id)
@@ -553,7 +569,7 @@ def get_stories(request):
 
 
 @require_GET
-# @verify_user('user')
+@verify_user('user')
 @cache_page(60 * 15)  # Cache for 15 minutes
 def get_story(request, story_id):
     print(request.headers)
@@ -846,13 +862,13 @@ def add_user_to_org(request, org_id):
 
 @require_http_methods(["DELETE"])
 @verify_user('creator')
-def delete_user_from_org(request, org_id):
+def delete_user_from_org(request, org_id, del_user_id):
     try:
         org_user_data = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    if not org_user_data["user_id"]:
+    if not del_user_id:
         return JsonResponse(
             {
                 "success": False,
@@ -862,7 +878,7 @@ def delete_user_from_org(request, org_id):
 
     try:
         user_to_delete = OrgUser.objects.get(
-            org_id=org_id, user_id=org_user_data["user_id"]
+            org_id=org_id, user_id=del_user_id
         )
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
@@ -1071,7 +1087,8 @@ def create_org(request: HttpRequest) -> JsonResponse:
     name = org_data.get("name")
     description = org_data.get("description")
 
-    logger.debug("Parsed organization data: %s", name, description)
+    logger.debug("Parsed organization name: %s,", name)
+    logger.debug("Parsed organization desc: %s,", description)
 
     if not name:
         return JsonResponse(
