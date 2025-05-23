@@ -42,6 +42,7 @@ from .models import (
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Prefetch
 
 # HANDLERES SET UP -------------------------------------------------------------
 import traceback
@@ -481,6 +482,10 @@ def get_org(request, org_id):
 
 @require_GET
 def get_stories(request):
+
+    if request.method != "GET":
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
     try:
         # Existing filter logic remains the same
         org_id = request.GET.get("org_id")
@@ -518,12 +523,27 @@ def get_stories(request):
         else:
             return JsonResponse({"error": "Invalid query parameter."}, status=400)
 
+        # Optimize tag fetching
+        stories = stories.select_related("proj", "curator").prefetch_related(
+            Prefetch(
+                "storytag_set",
+                queryset=StoryTag.objects.select_related("tag"),
+                to_attr="prefetched_story_tags"
+            )
+        )
+
         # Prepare the output with presigned URLs
         stories_data = []
         for story in stories.select_related("proj", "curator"):
-            tags = Tag.objects.filter(storytag__story=story).values(
-                "name", "value", "created_by"
-            )
+            tag_list = [
+                {
+                    "name": st.tag.name,
+                    "value": st.tag.value,
+                    "created_by": st.tag.created_by,
+                }
+                for st in getattr(story, "prefetched_story_tags", [])
+                if st.tag  # ensure tag exists
+            ]
             stories_data.append(
                 {
                     "story_id": story.id,
@@ -534,7 +554,7 @@ def get_stories(request):
                     "date": str(story.date),
                     "summary": story.summary,
                     "text_content": story.text_content,
-                    "tags": list(tags),
+                    "tags": tag_list,
                 }
             )
 
@@ -549,7 +569,6 @@ def get_stories(request):
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
-
 
 @require_GET
 # @verify_user('user')
