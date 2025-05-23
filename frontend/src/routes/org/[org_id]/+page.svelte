@@ -46,7 +46,7 @@
 			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
 		]);
 
-		console.log('orgResponse', userRequest);
+		console.log('orgResponse', orgResponse.data);
 
 		orgData = orgResponse.data;
 

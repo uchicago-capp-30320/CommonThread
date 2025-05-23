@@ -892,6 +892,7 @@ def delete_story(request, story_id):
 
 
 ###############################################################################
+@csrf_exempt
 @require_POST
 @verify_user("admin")
 def create_project(request):
@@ -917,16 +918,24 @@ def create_project(request):
 
     try:
         project = Project.objects.create(
-            name=project_data["name"],
-            curator_id=project_data["curator"],
+            name=project_data["project_name"],
+            curator_id=request.user_id,
             org_id=org.id,
             date=project_data.get("date", str(date.today())),
         )
 
         # move the tag loop inside the try
-        tags = project_data.get("tags", [])
-        for tag_name in tags:
-            tag = Tag.objects.create(name=tag_name)
+        required_tags = project_data.get("required_tags", [])
+        optional_tags = project_data.get("optional_tags", [])
+
+        for rtag in required_tags:
+            tag = Tag.objects.create(name=rtag, required=True)
+            ProjectTag.objects.create(
+                tag_id=tag.id,
+                proj_id=project.id,
+            )
+        for otag in optional_tags:
+            tag = Tag.objects.create(name=otag, required=False)
             ProjectTag.objects.create(
                 tag_id=tag.id,
                 proj_id=project.id,
