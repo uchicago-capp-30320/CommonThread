@@ -1,6 +1,46 @@
 <script>
 	import background_texture from '$lib/assets/background_texture.png';
-	let formData = {}; 
+	import { fail, redirect } from '@sveltejs/kit';
+	import { accessToken, refreshToken, ipAddress, userExpirationTimestamp } from '$lib/store.js';
+
+	let formData = $state({
+		name: "", 
+		username: "", 
+		email: "", 
+		password: "", 
+	}); 
+
+	$inspect(formData)
+
+	async function signup(data) {
+		console.log('Signup request sent');
+		const response = await fetch(`${ipAddress}/user/create`, {
+			method: 'POST',
+			body: JSON.stringify(data),
+			headers: {
+				'Content-Type': 'application/json'
+			}
+		});
+
+		let response_data = {};
+
+		await response.json().then((d) => {
+			response_data = d;
+		});
+
+		console.log(response_data);
+
+		// handle redirect if need
+		if (response.ok) {
+			// TODO: replace harcoded org-austin with variable from db
+			window.prompt('New user was sucessfully created! Now please login.');
+			return redirect(303, '/login');
+		} else {
+			window.prompt('Invalid user or password, please try again.');
+		}
+	}
+
+
 </script>
 
 <svelte:head>
@@ -10,15 +50,20 @@
 <div id="container">
 	<div class="container is-max-tablet">
 		<div class="notification">
-			<form method="POST">
+			<form onsubmit={() => signup(formData)}>
 				<div class="title has-text-centered">SIGN UP</div>
 
 				<div class="field">
 					<label class="label" for="name">Name</label>
 					<div class="control has-icons-left has-icons-right">
-						<input class="input" type="text" id="name" placeholder="Your name" 
-					name="name"
-						bind:value={formData.name}/>
+						<input 
+						class="input" 
+						type="text" 
+						name="name"
+						id="name" 
+						placeholder="Your name" 
+						bind:value={formData.name}
+						/>
 						<span class="icon is-small is-left">
 							<i class="fa fa-user"></i>
 						</span>
@@ -28,10 +73,14 @@
 				<div class="field">
 					<label class="label" for="username">Username</label>
 					<div class="control has-icons-left has-icons-right">
-						<input class="input is-success" type="text" id="username" 
-						placeholder="Your username" 
+						<input 
+						class="input is-success" 
+						type="text" 
+						id="username" 
 						name="username"
-						bind:value={formData.username}/>
+						placeholder="Your username" 
+						bind:value={formData.username}
+						/>
 						<span class="icon is-small is-left">
 							<i class="fa fa-user"></i>
 						</span>
@@ -45,8 +94,15 @@
 				<div class="field">
 					<label class="label" for="email">Email</label>
 					<div class="control has-icons-left has-icons-right">
-						<input class="input is-danger" type="email" id="email" placeholder="your@email.org" 
-						name="email"/>
+						<input 
+						class="input is-danger" 
+						type="email" 
+						name="email"
+						id="email"						 
+						placeholder="your@email.org" 
+						bind:value={formData.email}
+						/>
+
 						<span class="icon is-small is-left">
 							<i class="fa fa-envelope"></i>
 						</span>
@@ -63,12 +119,11 @@
 						<input
 							class="input is-success"
 							type="password"
+							name="password"
 							id="password"
 							placeholder="********"
-							value=""
-							name="email"
-
-						/>
+							bind:value={formData.password}
+							/>
 						<span class="icon is-small is-left">
 							<i class="fa fa-lock"></i>
 						</span>
@@ -86,7 +141,6 @@
 							type="password"
 							id="confirm-password"
 							placeholder="********"
-							value=""
 						/>
 						<span class="icon is-small is-left">
 							<i class="fa fa-lock"></i>
