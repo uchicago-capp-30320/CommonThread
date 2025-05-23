@@ -166,6 +166,22 @@ def test_create_story_ok(client, seed, auth_headers):
                     content_type="application/json", **auth_headers())
     assert r.status_code == 200
 
+def test_add_user_to_org(client, seed, auth_headers_user3):
+    brenda = seed["brenda"]
+    org1 = seed["org1"]
+    payload = {
+        "user_id": brenda.id,
+        "access": "user"
+    }
+    r = client.post(
+        f"/org/{org1.id}/add-user",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **auth_headers_user3()
+    )
+    assert r.status_code == 201
+    assert OrgUser.objects.filter(user_id=brenda.id, org_id=org1.id).exists()
+
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
@@ -227,6 +243,10 @@ def test_delete_user(client, seed, auth_headers_user3):
     r = client.delete(f"/user/{deleto.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
+def test_delete_user_from_org(client, seed, auth_headers_user3):
+    deleto = seed["deleto"]
+    r = client.delete(f"/org/{deleto.id}/delete-user", **auth_headers_user3())
+    assert r.status_code == 200
 
 # ───────── auth / permission edges ─────────
 def test_no_token_401(client):
