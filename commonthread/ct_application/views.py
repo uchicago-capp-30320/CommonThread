@@ -529,7 +529,7 @@ def get_stories(request):
             audio_url = ""
             if story.audio_content:
                 audio_presign = generate_s3_presigned(
-                    bucket_name=settings.CT_BUCKET_AUDIO,
+                    bucket_name=settings.CT_BUCKET_STORY_AUDIO,
                     key=story.audio_content.name,
                     operation="download",
                     expiration=3600,
@@ -539,7 +539,7 @@ def get_stories(request):
             image_url = ""
             if story.image_content:
                 image_presign = generate_s3_presigned(
-                    bucket_name=settings.CT_BUCKET_IMAGES,
+                    bucket_name=settings.CT_BUCKET_STORY_IMAGES,
                     key=story.image_content.name,
                     operation="download",
                     expiration=3600,
@@ -663,8 +663,8 @@ def create_story(request):
                 date=timezone.now(),
                 text_content=story_data.get("text_content"),
                 proj_id=project.id,
-                audio_content=story_data.get("audio_content"),
-                image_content=story_data.get("image_content"),
+                audio_content=story_data.get("audio_path"),
+                image_content=story_data.get("image_path"),
             )
             logger.debug("Created story: %s", story)
         except Exception as e:

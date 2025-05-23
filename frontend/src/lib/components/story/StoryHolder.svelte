@@ -13,9 +13,10 @@
 		text_content: '',
 		tags: [],
 		image: null,
+		audio: null,
 		proj_id: '',
-		audio_content: null,
-		image_content: null
+		audio_path: null,
+		image_path: null
 	});
 
 	$inspect(storyData);
