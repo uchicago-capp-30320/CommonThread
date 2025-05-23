@@ -1076,6 +1076,11 @@ def create_org(request: HttpRequest) -> JsonResponse:
             {"success": False, "error": "Organization name is required"},
             status=400,
         )
+    if not description:
+        return JsonResponse(
+            {"success": False, "error": "Organization description is required"},
+            status=400,
+        )
 
     if Organization.objects.filter(name=name).exists():
         logger.debug(

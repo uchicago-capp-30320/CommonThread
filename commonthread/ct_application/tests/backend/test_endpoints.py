@@ -416,17 +416,30 @@ def test_create_user_ok(client):
     # And the user really exists in the DB
     assert CustomUser.objects.filter(username="newtester").exists()
 
+@pytest.mark.django_db
 def test_create_org_ok(client, seed, auth_headers):
     alice = seed["alice"]
     payload = {
         "name":        "New Org",
         "description": "This is a new org",
-        "creator":     alice.id
+        # note: the view ignores a “creator” field and uses request.user_id 
+        # so you don’t need to include it here
     }
-    r = client.post("/org/create", json.dumps(payload),
-                    content_type="application/json", **auth_headers())
-    assert r.status_code == 201
-    assert Organization.objects.filter(name="New Org").exists()
+    resp = client.post(
+        "/org/create",
+        json.dumps(payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    assert resp.status_code == 201
+
+    data = resp.json()
+    assert data["success"] is True
+    assert isinstance(data.get("org_id"), int)
+
+    # make sure it actually hit the DB
+    assert Organization.objects.filter(id=data["org_id"], name="New Org").exists()
+
 #-----------error tests-------------------
 def test_create_user_conflict(client, seed):
     # 'alice' was created by seed fixture
@@ -498,9 +511,25 @@ def test_get_org_unauthorized(client, seed):
         "error": "Token missing or malformed"
     }
 
-def test_create_org_missing_fields(client, auth_headers):
-    # No name or description
-    payload = {}
+@pytest.mark.django_db
+def test_create_org_missing_name(client, auth_headers):
+    # no name or description → first validation error is missing name
+    resp = client.post(
+        "/org/create",
+        json.dumps({}),
+        content_type="application/json",
+        **auth_headers()
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "success": False,
+        "error": "Organization name is required"
+    }
+
+@pytest.mark.django_db
+def test_create_org_missing_description(client, auth_headers):
+    # name present but description missing
+    payload = {"name": "Test Org"}
     resp = client.post(
         "/org/create",
         json.dumps(payload),
@@ -510,7 +539,7 @@ def test_create_org_missing_fields(client, auth_headers):
     assert resp.status_code == 400
     assert resp.json() == {
         "success": False,
-        "error": "Name and description are required"
+        "error": "Organization description is required"
     }
 
 
@@ -607,11 +636,6 @@ def test_create_project_missing_org_400(client, auth_headers):
 
 def test_create_story_bad_json_400(client, auth_headers):
     r = client.post("/story/create", "not‑json",
-                    content_type="application/json", **auth_headers())
-    assert r.status_code == 400
-
-def test_create_org_missing_fields_400(client, auth_headers):
-    r = client.post("/org/create", json.dumps({}),
                     content_type="application/json", **auth_headers())
     assert r.status_code == 400
 
