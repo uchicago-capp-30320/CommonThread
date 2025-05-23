@@ -12,9 +12,7 @@
 	<div class="content">
 		<h1>Story by <span class="storyteller"><b>{story.storyteller}</b></span></h1>
 		{#each story.tags as tag}
-			<div class="tags are-medium m-2">
-				<span class="tag">{tag.name}</span>
-			</div>
+			<span class="tag is-medium m-1">{tag.value}</span>
 		{/each}
 
 		<!-- Row of tags  -->

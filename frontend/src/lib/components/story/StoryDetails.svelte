@@ -4,28 +4,28 @@
 	let required;
 	let optional;
 
-	projects = projects[0];
+	let project = $derived(projects.filter((project) => project.project_id === storyData.proj_id)[0]);
 
-	if (projects.required_tags.length === 0) {
+	if (project.required_tags.length === 0) {
 		required = [];
 	} else {
-		required = projects.required_tags.map((tag) => ({
+		required = project.required_tags.map((tag) => ({
 			id: tag,
 			label: tag
 		}));
 	}
 
-	if (projects.optional_tags.length === 0) {
+	if (project.optional_tags.length === 0) {
 		optional = [];
 	} else {
-		optional = projects.optional_tags.map((tag) => ({
+		optional = project.optional_tags.map((tag) => ({
 			id: tag,
 			label: tag
 		}));
 	}
 
 	let tagCategories = $state({ required: required, optional: optional });
-	let selectedOptionalCategory = $state(tagCategories.optional[0].id);
+	let selectedOptionalCategory = $state(optional[0]?.id || '');
 	let optionalTagValue = $state('');
 
 	$inspect(tagCategories);
@@ -84,7 +84,7 @@
 	}
 
 	function handleNext() {
-		if (storyData.text_content && hasAllRequiredTags()) {
+		if ((storyData.text_content || storyData.audio) && hasAllRequiredTags()) {
 			currentStep = 3;
 		}
 	}
@@ -271,7 +271,7 @@
 			<button
 				class="button is-primary"
 				onclick={handleNext}
-				disabled={!storyData.text_content ||
+				disabled={(!storyData.text_content && !storyData.audio) ||
 					!tagCategories.required.every((cat) =>
 						(storyData.tags || []).some((tag) => tag.category === cat.id && tag.value.trim())
 					)}

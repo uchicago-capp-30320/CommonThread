@@ -10,6 +10,7 @@
 	let imagePreview = $state(storyData.image ? URL.createObjectURL(storyData.image) : null);
 	let submitted = $state(false);
 	let error = $state(null);
+	let isUploading = $state(false);
 
 	let project = $derived(projects.filter((project) => project.project_id === storyData.proj_id)[0]);
 
@@ -135,18 +136,22 @@
 		delete storyDataToSubmit.image;
 		delete storyDataToSubmit.audio;
 
-		const uploadStory = await authRequest(
+		const uploadStory = authRequest(
 			`/story/create`,
 			'POST',
 			$accessToken,
 			$refreshToken,
 			storyDataToSubmit
 		);
+		isUploading = true;
 
-		console.log('uploadStory', uploadStory);
+		const uploadResponse = await uploadStory;
 
-		// for testing turned off
-		//submitted = true;
+		console.log('uploadStory', uploadResponse);
+
+		if (uploadResponse.data) {
+			submitted = true;
+		}
 	}
 </script>
 
@@ -183,11 +188,17 @@
 			</div>
 		{/if}
 
-		<div class="field mt-5 is-flex is-justify-content-flex-end">
-			<div class="control">
-				<button class="button is-primary" onclick={handleSubmit}> Submit </button>
+		{#if !isUploading}
+			<div class="field mt-5 is-flex is-justify-content-flex-end">
+				<div class="control">
+					<button class="button is-primary" onclick={handleSubmit}> Submit </button>
+				</div>
 			</div>
-		</div>
+		{:else}
+			<div class="field mt-5">
+				<p class="help">Submitting your story...</p>
+			</div>
+		{/if}
 	</div>
 {:else}
 	<div class="field mt-5">
