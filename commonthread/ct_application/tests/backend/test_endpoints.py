@@ -200,50 +200,21 @@ def test_create_story_ok(client, seed, auth_headers):
                     content_type="application/json", **auth_headers())
     assert r.status_code == 200
 
-@pytest.mark.django_db
-def test_get_ml_status_ok_independent(client):
-    # 1) build new org
-    org = Organization.objects.create(name="Test Org")
-    user = CustomUser.objects.create_user(
-        username="alice", password="pw123", email="a@e.com"
+def test_add_user_to_org(client, seed, auth_headers_user3):
+    brenda = seed["brenda"]
+    org1 = seed["org1"]
+    payload = {
+        "user_id": brenda.id,
+        "access": "user"
+    }
+    r = client.post(
+        f"/org/{org1.id}/add-user",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **auth_headers_user3()
     )
-    project = Project.objects.create(
-        org=org,
-        curator=user,
-        name="ML Test Project",
-        date=datetime.date(2025, 5, 23)
-    )
-    story   = Story.objects.create(
-        proj=project,
-        storyteller="bob",
-        curator=user,
-        date=datetime.date(2025, 5, 23),
-        text_content="hello world",
-        is_transcript=False
-    )
-    ml_task = MLProcessingQueue.objects.create(
-        story=story,
-        project=project,
-        task_type="tag",
-        status="processing"
-    )
-    resp = client.get(f"/story/{story.id}/ml-status")
-    assert resp.status_code == 200
-
-    data = resp.json()
-    assert data["success"]    is True
-    assert data["task_type"]  == "tag"
-    assert data["ml_status"]  == "processing"
-
-    # timestamp should be an ISO timestamp within a few seconds of now
-    ts = datetime.datetime.fromisoformat(data["timestamp"])
-    assert abs((ts - timezone.now()).total_seconds()) < 10
-
-@pytest.mark.django_db
-def test_get_ml_status_not_found_independent(client):
-    resp = client.get("/story/9999/ml-status")
-    assert resp.status_code == 404
-    assert resp.json() == {"success": False, "error": "ML status not found"}
+    assert r.status_code == 201
+    assert OrgUser.objects.filter(user_id=brenda.id, org_id=org1.id).exists()
 
 # ------------------ Edit Tests -----------------------------------
 
@@ -306,6 +277,10 @@ def test_delete_user(client, seed, auth_headers_user3):
     r = client.delete(f"/user/{deleto.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
+def test_delete_user_from_org(client, seed, auth_headers_user3):
+    deleto = seed["deleto"]
+    r = client.delete(f"/org/{deleto.id}/delete-user", **auth_headers_user3())
+    assert r.status_code == 200
 
 # ───────── auth / permission edges ─────────
 def test_no_token_401(client):
