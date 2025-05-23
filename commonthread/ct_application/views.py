@@ -1058,10 +1058,11 @@ def create_org(request: HttpRequest) -> JsonResponse:
             name=name,
             description=description,
         )
-        logger.debug("Created organization: %s", org)
-        user = get_user_model().objects.get(pk=org_data["user_id"])
 
-        OrgUser.objects.create(org_id=org, user=user, access="admin")
+        user = get_user_model().objects.get(pk=request.user_id)
+
+        OrgUser.objects.create(org=org, user=user, access="admin")
+
     except KeyError as e:
         logger.error("KeyError: %s", str(e))
         return JsonResponse({"success": False, "error": str(e)}, status=400)
@@ -1073,7 +1074,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
     return JsonResponse(
         {
             "success": True,
-            "org_id": org.org_id,
+            "org_id": org.id,
         },
         status=201,
     )
