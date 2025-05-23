@@ -1,11 +1,30 @@
 <script>
     import OrgHeader from '$lib/components/OrgHeader.svelte';
     import AudioPlayer from '$lib/components/AudioPlayer_v1.svelte';
+    // import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte'
+	import { accessToken, refreshToken } from '$lib/store.js';
+	import { onMount } from 'svelte';
+	import { authRequest } from '$lib/authRequest.js';
+	import { page } from '$app/stores';
+    
+    import StoryFullView from '$lib/components/StoryFullView.svelte'
+	import thread3 from '$lib/assets/illustrations/thread3.png';
+    // import sampleImage from '$lib/assets/sample/popol-vuh.jpg'
+    import sampleImage from '$lib/assets/sample/Popol-Vuh.webp'
 
-    // Get org data 
-    const story = {
+
+	let themeColor = $state('#133335');
+	let saveResponse = $state('...');
+	let orgData = $state({
+		orgName: 'Loading...',
+		description: 'Loading...',
+		projectsTotal: 0,
+		storiesTotal: 0
+	});
+
+    let story = $state({
         "story_id": 1, 
-        "storyteller": "Colel", 
+        "storyteller": "Chimalmat", 
         "project_id": 1, 
         "project_name": "Popol Vuh", 
         "curator": "Francisco Ximénez", 
@@ -17,24 +36,92 @@
             {"name": "Nation", "value": "Mayan"}, 
             {"name": "Regions", "value": "Quintana Roo, Guatemala, El Salvador"}
         ]
-    }
+    })
 
+	
+    let projectResponses = $state([]);
+
+	$inspect(orgData);
+    
+    const org_id = $page.params.org_id;
 
 </script>
 
+<div class="breadcrumb-nav mb-5 mt-3">
+    <nav class="breadcrumb nav-color" aria-label="breadcrumbs">
+        <ul>
+            <li><a href="/">Home</a></li>
+            <li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+            <li class="is-active">
+                <a href="/org/{orgData.org_id}/admin" aria-current="page">Admin Page</a>
+            </li>
+        </ul>
+    </nav>
+</div>
 
-<div class="container-is-fullhd">
-    <h1>Story Page</h1>
+<div id="container">
+    <div class="container-is-fullhd">
+        <div class="columns">
+            <div class="column is-1">
+            </div>
+            <div class="column is-6"> 
+                <StoryFullView story={story}></StoryFullView>
+            </div>
 
-    <div class="audio">
-        <AudioPlayer></AudioPlayer>
+            <div class="column">
+                <!-- Are we displaying a single image or multiple? -->
+                <div class="row">
+                    <div class="media">
+                        <div class = "media-right" id = "audio">
+                            <div class="audio">
+                                <AudioPlayer></AudioPlayer>
+                            </div>
+                        </div>
+                    </div>
+                    <div class = "media-right" id="images">
+                        <figure>
+                            <img src={sampleImage} alt="Thread illustration 3" />
+                            <figcaption>Figure 1</figcaption>
+                        </figure>
+                        
+                    </div>
+                </div>
+            </div>
+
+            <div class="column is-1">
+            </div>
+        </div>  
     </div>
-    
 </div>
 
 
 <style>
-    .audio {
-        width: 30%; 
+
+    p {
+        padding: 10%;
     }
+
+
+    #container {
+		margin-top: 50px;
+		width: 90%;
+        height: 90%;
+		margin-left: auto;
+		margin-right: auto;
+		justify-content: center;
+	}
+
+    img {
+        /* max-height: 300px; */
+        /* width: auto; */
+        width: 80%;
+
+        /* margin: 0 10px; */
+        object-fit: contain;
+    }
+    .audio {
+        object-fit: contain;
+    }
+
+
 </style>
