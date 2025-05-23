@@ -1,6 +1,6 @@
 import { ipAddress } from '$lib/store.js';
 
-export async function authRequest(url, method, accessToken, refreshToken) {
+export async function authRequest(url, method, accessToken, refreshToken, postData) {
 	let data;
 	// Get the access token from cookies
 	//console.log('ipAddress', ipAddress + url);
@@ -10,7 +10,9 @@ export async function authRequest(url, method, accessToken, refreshToken) {
 		headers: {
 			'Content-Type': 'application/json',
 			Authorization: `Bearer ${accessToken}`
-		}
+		},
+		// if data is not null, send it as the body
+		body: postData ? JSON.stringify(postData) : null
 	});
 	if (ogResponse.status === 200) {
 		data = await ogResponse.json();
