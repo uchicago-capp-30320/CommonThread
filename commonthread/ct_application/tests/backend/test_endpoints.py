@@ -265,7 +265,7 @@ def basic_story_payload(seed):
         "storyteller": "Test Storyteller",
         "curator": alice.id,
         "text_content": "Test story content",
-        "proj_id": p.id,
+        "project_id": p.id,
         "required_tags": [{"name": "tag1", "value": "value1", "created_by": "human"}],
         "optional_tags": [{"name": "tag2", "value": "value2", "created_by": "human"}]
     }
@@ -331,7 +331,7 @@ def test_create_story_with_media(client, auth_headers, basic_story_payload):
 
 def test_create_story_invalid_project(client, auth_headers, basic_story_payload):
     payload = basic_story_payload.copy()
-    payload["proj_id"] = 99999  
+    payload["project_id"] = 99999  
     
     response = client.post(
         "/story/create",
@@ -381,7 +381,8 @@ def test_create_story_queue_failure(mock_queue_producer, client, auth_headers, b
     assert response.status_code == 200
     assert "story_id" in response.json()
 
-def test_add_user_to_org(client, seed, auth_headers_user3):
+def test_add_user_to_org(client, seed, auth_headers):
+    alice = seed['alice']
     brenda = seed["brenda"]
     org1 = seed["org1"]
     payload = {
@@ -389,10 +390,10 @@ def test_add_user_to_org(client, seed, auth_headers_user3):
         "access": "user"
     }
     r = client.post(
-        f"/org/{org1.id}/add-user",
+        f"/org/{org1.id}/add-user/{brenda.id}",
         data=json.dumps(payload),
         content_type="application/json",
-        **auth_headers_user3()
+        **auth_headers()
     )
     assert r.status_code == 201
     assert OrgUser.objects.filter(user_id=brenda.id, org_id=org1.id).exists()
@@ -424,7 +425,7 @@ def test_create_user_ok(client):
 def test_create_org_ok(client, seed, auth_headers):
     alice = seed["alice"]
     payload = {
-        "name":        "New Org",
+        "name": "New Org",
         "description": "This is a new org",
         # note: the view ignores a “creator” field and uses request.user_id 
         # so you don’t need to include it here
@@ -807,22 +808,25 @@ def test_delete_user_from_org(client, seed, auth_headers_user3):
     assert r.status_code == 200
 
 # ───────── auth / permission edges ─────────
-def test_no_token_401(client):
-    assert client.get("/story/1").status_code == 401
+def test_no_token_401(client, seed):
+    s = seed['story1']
+    assert client.get(f"/story/{s.id}").status_code == 401
 
-def test_malformed_token_401(client):
+def test_malformed_token_401(client, seed):
+    s = seed['story1']
     hdrs = {"HTTP_AUTHORIZATION": "Bearer bad.token"}
-    assert client.get("/story/1", **hdrs).status_code == 401
+    assert client.get(f"/story/{s.id}", **hdrs).status_code == 401
 
 def test_expired_token_299(client, seed):
+    s, alice = seed['story1'], seed['alice']
     hdrs = {"HTTP_AUTHORIZATION":
-            f"Bearer {expired_access_token(seed['alice'].id)}"}
-    assert client.get("/story/1", **hdrs).status_code == 299
+            f"Bearer {expired_access_token(alice.id)}"}
+    assert client.get(f"/story/{s.id}", **hdrs).status_code == 299
 
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
     hdrs = auth_headers("brenda", "secret456")
-    r = client.get(f"/project/{p.org_id}/{p.id}",
+    r = client.get(f"/project/{p.id}",
                    **hdrs)
     assert r.status_code == 403
 
