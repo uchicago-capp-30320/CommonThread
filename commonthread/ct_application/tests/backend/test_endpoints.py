@@ -13,6 +13,7 @@ from ct_application.models import (
     Project, Story, Tag, StoryTag, ProjectTag
 )
 from commonthread.settings import JWT_SECRET_KEY
+from unittest.mock import patch, MagicMock
 
 pytestmark = pytest.mark.django_db
 
@@ -229,7 +230,7 @@ def test_create_project_ok(client, seed, auth_headers):
     org1, alice = seed["org1"], seed["alice"]
     payload = {
         "org_id":  org1.id,
-        "name":    "New Project",
+        "name":    "New Project",
         "curator": alice.id,
         "date":    "2025-05-01"
     }
@@ -237,16 +238,139 @@ def test_create_project_ok(client, seed, auth_headers):
                     content_type="application/json", **auth_headers())
     assert r.status_code == 201
 
-def test_create_story_ok(client, seed, auth_headers):
-    p, alice = seed["proj1"], seed["alice"]
-    payload = {
-        "storyteller": "Testy", "curator": alice.id,
-        "text_content": "Hi!", "proj_id": p.id,
-        "tags": [{"name": "tagX", "value": 1, "required": False}],
-    }
-    r = client.post("/story/create", json.dumps(payload),
-                    content_type="application/json", **auth_headers())
+def test_create_story_get_url(client, seed, auth_headers):
+    r = client.get("/story/create", **auth_headers())
     assert r.status_code == 200
+
+@pytest.fixture
+def mock_s3_presigned():
+    return {
+        "url": "https://fake-s3-url.com",
+        "fields": {"key": "value"}
+    }
+
+@pytest.fixture
+def basic_story_payload(seed):
+    p, alice = seed["proj1"], seed["alice"]
+    return {
+        "storyteller": "Test Storyteller",
+        "curator": alice.id,
+        "text_content": "Test story content",
+        "proj_id": p.id,
+        "required_tags": [{"name": "tag1", "value": "value1", "created_by": "human"}],
+        "optional_tags": [{"name": "tag2", "value": "value2", "created_by": "human"}]
+    }
+
+@patch('ct_application.views.generate_s3_presigned')
+def test_create_story_get_presigned_urls(mock_generate_presigned, client, auth_headers):
+    mock_generate_presigned.return_value = {
+        "url": "https://fake-s3-url.com",
+        "fields": {"key": "value"}
+    }
+    
+    response = client.get("/story/create", **auth_headers())
+    assert response.status_code == 200
+    
+    data = response.json()
+    assert data["success"] is True
+    assert "audio_upload" in data
+    assert "image_upload" in data
+    assert data["audio_upload"]["url"] == "https://fake-s3-url.com"
+    assert data["image_upload"]["url"] == "https://fake-s3-url.com"
+
+def test_create_story_get_unauthorized(client):
+    response = client.get("/story/create")
+    assert response.status_code == 401
+
+def test_create_story_basic(client, auth_headers, basic_story_payload):
+    response = client.post(
+        "/story/create",
+        data=json.dumps(basic_story_payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert "story_id" in data
+    
+    story = Story.objects.get(id=data["story_id"])
+    assert story.storyteller == basic_story_payload["storyteller"]
+    assert story.text_content == basic_story_payload["text_content"]
+    
+    story_tags = StoryTag.objects.filter(story_id=story.id)
+    assert story_tags.count() == 2
+
+def test_create_story_with_media(client, auth_headers, basic_story_payload):
+    payload = basic_story_payload.copy()
+    payload.update({
+        "audio_path": "user/123/audio.mp3",
+        "image_path": "user/123/image.jpg"
+    })
+    
+    response = client.post(
+        "/story/create",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    
+    assert response.status_code == 200
+    story = Story.objects.get(id=response.json()["story_id"])
+    assert story.audio_content == "user/123/audio.mp3"
+    assert story.image_content == "user/123/image.jpg"
+
+def test_create_story_invalid_project(client, auth_headers, basic_story_payload):
+    payload = basic_story_payload.copy()
+    payload["proj_id"] = 99999  
+    
+    response = client.post(
+        "/story/create",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    
+    assert response.status_code == 400
+    assert "Project with ID" in response.json()["error"]
+
+def test_create_story_missing_required_fields(client, auth_headers):
+    payload = {"storyteller": "Test"}  
+    
+    response = client.post(
+        "/story/create",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    
+    assert response.status_code == 400
+
+def test_create_story_invalid_json(client, auth_headers):
+    response = client.post(
+        "/story/create",
+        data="invalid json",
+        content_type="application/json",
+        **auth_headers()
+    )
+    
+    assert response.status_code == 400
+
+@patch('ct_application.views.QueueProducer')
+def test_create_story_queue_failure(mock_queue_producer, client, auth_headers, basic_story_payload):
+    mock_producer = MagicMock()
+    mock_producer.add_to_queue.return_value = {"success": False}
+    mock_queue_producer.return_value = mock_producer
+    
+    response = client.post(
+        "/story/create",
+        data=json.dumps(basic_story_payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    
+    assert response.status_code == 200
+    assert "story_id" in response.json()
 
 def test_add_user_to_org(client, seed, auth_headers_user3):
     brenda = seed["brenda"]
