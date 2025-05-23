@@ -8,11 +8,11 @@
     </header>
     <div class="content">
         <h1>Story by <span class="storyteller"><b>{story.storyteller}</b></span></h1>
-        <div class="tags are-medium m-2">
-            <span class="tag is-info">Tag 1</span>
-            <span class="tag is-success">Tag 2</span>
-            <span class="tag is-warning">Tag 3</span>
-        </div>
+        {#each story.tags as tag}
+            <div class="tags are-medium m-2">
+                <span class="tag">{tag.name}</span>
+            </div>
+        {/each}
 
         <!-- Row of tags  -->
         <p>{story.text_content}</p>
@@ -28,7 +28,13 @@
     .content {
         padding: 25px;
     }
-/* 
+
+    .tag {
+        background-color: #d0fdb9;
+    }
+
+
+    /* 
     span.storyteller {
         color: #56bcb3;
     } */
