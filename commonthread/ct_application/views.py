@@ -383,15 +383,21 @@ def get_project(request, project_id):
         story_count = Story.objects.filter(proj=project).count()
 
         # Get associated ProjectTag objects
-        project_tags = ProjectTag.objects.filter(proj=project)
+        project_tags = (
+            ProjectTag.objects
+            .filter(proj=project)
+            .select_related("tag")  # Pull tag in same query
+            .only("tag__name", "tag__required")
+        )
 
-        # Filter based on related Tag's `required` field
-        required_tags = project_tags.filter(tag__required=True).values_list(
-            "tag__name", flat=True
-        )
-        optional_tags = project_tags.filter(tag__required=False).values_list(
-            "tag__name", flat=True
-        )
+        required_tags = []
+        optional_tags = []
+
+        for pt in project_tags:
+            if pt.tag.required:
+                required_tags.append(pt.tag.name)
+            else:
+                optional_tags.append(pt.tag.name)
 
         # Construct response
         data = {
