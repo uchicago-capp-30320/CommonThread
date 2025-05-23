@@ -1181,11 +1181,6 @@ def get_user(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@verify_user
-def get_user_detail(request, user_id):
-    pass
-
-
 @require_http_methods(["POST", "PATCH"])
 @verify_user
 def edit_user(request, user_id, **kwargs):
@@ -1232,70 +1227,6 @@ def delete_user(request, user_id: str):
 
 
 ## Org methods -----------------------------------------------------------------
-
-
-@require_http_methods(["GET", "POST"])
-@verify_user('user')
-def get_org_admin(request, org_id):
-
-    try:
-        user_data = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
-
-    user_id = user_data.get("user_id")
-
-    # get method for seeing users in org
-    if request.method == "GET":
-        org_members = OrgUser.objects.filter(org_id=org_id).select_related("user")
-
-        data = [
-            {
-                "user_id": member.user.id,
-                "user_name": member.user.name,
-                "access": member.access,
-            }
-            for member in org_members
-        ]
-
-        return JsonResponse(
-        {"org_id": org_id, "requested_by": user_id, "organization_users": data}
-        )
-
-
-    # post method for updating access level
-    elif request.method == "POST":
-
-        try:
-            body = json.loads(request.body)
-            target_user_id = body.get("target_user_id")
-            new_access = body.get("new_access")
-
-            if not target_user_id or not new_access:
-                return HttpResponseBadRequest("Missing target_user_id or new_access.")
-
-            target_membership = OrgUser.objects.get(
-                user_id=target_user_id, org_id=org_id
-            )
-            target_membership.access = new_access
-            target_membership.save()
-
-            return JsonResponse(
-                {
-                    "message": "Access level updated.",
-                    "user_id": target_user_id,
-                    "new_access": new_access,
-                },
-                status=200,
-            )
-
-        except OrgUser.DoesNotExist:
-            return HttpResponseNotFound(
-                "Target user is not a member of this organization."
-            )
-        except json.JSONDecodeError:
-            return HttpResponseBadRequest("Invalid JSON.")
-
 
 # @verify_user
 def get_org_projects(request, org_id):

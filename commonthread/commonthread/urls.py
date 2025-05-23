@@ -27,11 +27,9 @@ from ct_application.views import (
     get_new_access_token,
     create_user,
     get_user,
-    get_user_detail,
     edit_user,
     delete_user,
     create_org,
-    get_org_admin,
     get_org,
     edit_org,
     delete_org,
@@ -57,18 +55,12 @@ urlpatterns = [
 
     #User Related Endpoints
     path("user/create", create_user, name="user-create"),
-    path("user/<int:user_id>/admin", get_user_detail, name="user-details"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
     path("user/<int:user_id>/delete", delete_user, name="user-delete"),
     path("user/", get_user, name="get_user"),
 
     #Org Related Endpoints
     path("org/create", create_org, name="org-create"),
-    path(
-        "org/<int:org_id>/admin",
-        get_org_admin,
-        name="org-admin-dashboard",
-    ),
     path("org/<int:org_id>", get_org, name="get-org"),
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
