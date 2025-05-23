@@ -1069,7 +1069,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
     name = org_data.get("name")
     description = org_data.get("description")
 
-    logger.debug("Parsed organization data: %s", name, description)
+    logger.debug("Parsed organization data: name=%s, description=%s", name, description)
 
     if not name:
         return JsonResponse(
