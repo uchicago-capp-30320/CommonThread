@@ -13,7 +13,7 @@
 		data_added: 'Loading...'
 	});
 	let orgData = $state({
-		orgName: 'Loading...',
+		name: 'Loading...',
 		description: 'Loading...',
 		project_count: 0,
 		story_count: 0,
@@ -52,6 +52,20 @@
 		});
 		orgLoaded = true;
 	});
+
+	async function addOrg(org) {
+		// logic to add the project
+		console.log('Adding org:', org);
+
+		const addOrgResponse = await authRequest(
+			'/org/create',
+			'POST',
+			$accessToken,
+			$refreshToken,
+			org
+		);
+		console.log('org added:', addOrgResponse);
+	}
 </script>
 
 <svelte:head>
@@ -81,12 +95,14 @@
 				class="button is-primary is-medium"
 				style="background-color: #56BDB3;"
 				onclick={() => {
-					orgs = [
+					orgData = [
 						{
-							project_name: 'New Org',
-							description: 'Description of new org'
+							name: 'New Org',
+							description: 'Description of new org',
+							isOpen: true,
+							isNew: true
 						},
-						...orgs
+						...orgData
 					];
 				}}
 			>
@@ -140,6 +156,27 @@
 								<label class="label">Description</label>
 								<div class="control">
 									<textarea class="textarea" bind:value={org.description}></textarea>
+								</div>
+							</div>
+							<div class="field is-grouped mt-4">
+								<div class="control">
+									<button
+										class="button is-success"
+										onclick={() => {
+											// logic to save the project
+											org.isOpen = false;
+											// Example: saveProject(project);
+											console.log('org added!');
+											org.isNew ? addOrg(org) : editOrg(org);
+										}}
+									>
+										{org.isNew ? 'Add Organization' : 'Save Changes'}
+									</button>
+								</div>
+								<div class="control">
+									<button class="button is-light" onclick={() => (project.isOpen = false)}>
+										Cancel
+									</button>
 								</div>
 							</div>
 						</div>

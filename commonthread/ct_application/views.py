@@ -1002,8 +1002,9 @@ def delete_project(request, org_id, project_id):
         )
 
 
+@csrf_exempt
 @require_POST
-# @verify_user
+@verify_user("admin")
 def create_org(request: HttpRequest) -> JsonResponse:
     """
     Handle requests for creating new organizations
@@ -1025,11 +1026,16 @@ def create_org(request: HttpRequest) -> JsonResponse:
     if not auth_header.startswith("Bearer "):
         return JsonResponse({"success": False, "error": "No token"}, status=401)
 
-    # Parse and validate input data
+        # Parse and validate input data
+    logger.debug("Received request body: %s", request.body)
 
     org_data = json.loads(request.body)
+
+    logger.debug("Parsed organization data: %s", org_data)
     name = org_data.get("name")
     description = org_data.get("description")
+
+    logger.debug("Parsed organization data: %s", name, description)
 
     if not name:
         return JsonResponse(
@@ -1038,6 +1044,11 @@ def create_org(request: HttpRequest) -> JsonResponse:
         )
 
     if Organization.objects.filter(name=name).exists():
+        logger.debug(
+            "Organization already exists: %s",
+            Organization.objects.filter(name=name).first(),
+        )
+        logger.debug("Organization with name %s already exists", name)
         return JsonResponse(
             {"success": False, "error": "Organization already exists"}, status=400
         )
@@ -1047,9 +1058,12 @@ def create_org(request: HttpRequest) -> JsonResponse:
             name=name,
             description=description,
         )
+        logger.debug("Created organization: %s", org)
         user = get_user_model().objects.get(pk=org_data["user_id"])
-        OrgUser.objects.create(org_id=org, user_id=user, access="admin")
+
+        OrgUser.objects.create(org_id=org, user=user, access="admin")
     except KeyError as e:
+        logger.error("KeyError: %s", str(e))
         return JsonResponse({"success": False, "error": str(e)}, status=400)
     except Exception as e:
         return JsonResponse(
