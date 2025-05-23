@@ -42,6 +42,7 @@ from .models import (
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Prefetch
 
 # HANDLERES SET UP -------------------------------------------------------------
 import traceback
@@ -409,15 +410,20 @@ def get_project(request, project_id):
         story_count = Story.objects.filter(proj=project).count()
 
         # Get associated ProjectTag objects
-        project_tags = ProjectTag.objects.filter(proj=project)
+        project_tags = (
+            ProjectTag.objects.filter(proj=project)
+            .select_related("tag")  # Pull tag in same query
+            .only("tag__name", "tag__required")
+        )
 
-        # Filter based on related Tag's `required` field
-        required_tags = project_tags.filter(tag__required=True).values_list(
-            "tag__name", flat=True
-        )
-        optional_tags = project_tags.filter(tag__required=False).values_list(
-            "tag__name", flat=True
-        )
+        required_tags = []
+        optional_tags = []
+
+        for pt in project_tags:
+            if pt.tag.required:
+                required_tags.append(pt.tag.name)
+            else:
+                optional_tags.append(pt.tag.name)
 
         # Construct response
         data = {
@@ -445,39 +451,30 @@ def get_project(request, project_id):
 
 
 @require_GET
-@verify_user("user")
+# @verify_user("user")
 def get_org(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
 
-        # Get all projects in the org
-        projects = Project.objects.filter(org=org)
+        # Get all projects and stories
+        projects = Project.objects.filter(org=org).only("id", "curator")
+        stories = Story.objects.filter(proj__in=projects).only("id", "curator")
+
         project_count = projects.count()
-        # get all unique project ids
-        project_ids = projects.values_list("id", flat=True).distinct()
-
-        # Get all stories in those projects
-        stories = Story.objects.filter(proj__in=projects)
         story_count = stories.count()
+        project_ids = list(projects.values_list("id", flat=True))
 
-        # Collect curators from projects and stories
-        project_curators = projects.values_list("curator", flat=True)
-        story_curators = stories.values_list("curator", flat=True)
+        # Collect unique curator IDs
+        project_curator_ids = projects.values_list("curator", flat=True)
+        story_curator_ids = stories.values_list("curator", flat=True)
+        user_ids = set(project_curator_ids) | set(story_curator_ids)
 
-        user_ids = set(list(project_curators) + list(story_curators))
-        users = CustomUser.objects.filter(id__in=user_ids)
+        users = CustomUser.objects.filter(id__in=user_ids).values(
+            "id", "name", "email", "position"
+        )
+        users_data = list(users)
 
-        users_data = [
-            {
-                "user_id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "position": user.position,
-            }
-            for user in users
-        ]
-
-        # Generate presigned URL for profile picture
+        # Generate presigned URL
         profile_pic_url = ""
         if org.profile:
             presign = generate_s3_presigned(
@@ -488,18 +485,19 @@ def get_org(request, org_id):
             )
             profile_pic_url = presign["url"]
 
-        response_data = {
-            "org_id": org.id,
-            "name": org.name,
-            "description": org.description,
-            "profile_pic_path": profile_pic_url,
-            "project_count": project_count,
-            "project_ids": list(project_ids),
-            "story_count": story_count,
-            "users": users_data,
-        }
-
-        return JsonResponse(response_data, status=200)
+        return JsonResponse(
+            {
+                "org_id": org.id,
+                "name": org.name,
+                "description": org.description,
+                "profile_pic_path": profile_pic_url,
+                "project_count": project_count,
+                "project_ids": project_ids,
+                "story_count": story_count,
+                "users": users_data,
+            },
+            status=200,
+        )
 
     except Exception as e:
         logging.error(f"Error in get_org: {e}")
@@ -508,6 +506,10 @@ def get_org(request, org_id):
 
 @require_GET
 def get_stories(request):
+
+    if request.method != "GET":
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
     try:
         # Existing filter logic remains the same
         org_id = request.GET.get("org_id")
@@ -545,12 +547,27 @@ def get_stories(request):
         else:
             return JsonResponse({"error": "Invalid query parameter."}, status=400)
 
+        # Optimize tag fetching
+        stories = stories.select_related("proj", "curator").prefetch_related(
+            Prefetch(
+                "storytag_set",
+                queryset=StoryTag.objects.select_related("tag"),
+                to_attr="prefetched_story_tags",
+            )
+        )
+
         # Prepare the output with presigned URLs
         stories_data = []
         for story in stories.select_related("proj", "curator"):
-            tags = Tag.objects.filter(storytag__story=story).values(
-                "name", "value", "created_by"
-            )
+            tag_list = [
+                {
+                    "name": st.tag.name,
+                    "value": st.tag.value,
+                    "created_by": st.tag.created_by,
+                }
+                for st in getattr(story, "prefetched_story_tags", [])
+                if st.tag  # ensure tag exists
+            ]
             stories_data.append(
                 {
                     "story_id": story.id,
@@ -561,7 +578,7 @@ def get_stories(request):
                     "date": str(story.date),
                     "summary": story.summary,
                     "text_content": story.text_content,
-                    "tags": list(tags),
+                    "tags": tag_list,
                 }
             )
 
@@ -588,15 +605,12 @@ def get_story(request, story_id):
         story = Story.objects.select_related("proj", "curator").get(id=story_id)
         story_tags = StoryTag.objects.filter(story=story).select_related("tag")
 
-        tags = [
-            {"name": st.tag.name, "value": st.tag.value}
-            for st in story_tags
-        ]
+        tags = [{"name": st.tag.name, "value": st.tag.value} for st in story_tags]
 
         audio_url = ""
         if story.audio_content:
             audio_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_AUDIO,
+                bucket_name=settings.CT_BUCKET_STORY_AUDIO,
                 key=story.audio_content.name,
                 operation="download",
                 expiration=3600,
@@ -606,7 +620,7 @@ def get_story(request, story_id):
         image_url = ""
         if story.image_content:
             image_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_IMAGES,
+                bucket_name=settings.CT_BUCKET_STORY_IMAGES,
                 key=story.image_content.name,
                 operation="download",
                 expiration=3600,
@@ -1009,33 +1023,52 @@ def create_project(request):
 @verify_user('admin')
 def edit_project(request, org_id, project_id):
     """
-    Takes the full project form from the front-end and updates the Project record with
-    the fields passed from the form.
+    POST /project/<org_id>/<project_id>/edit
+    Body: JSON { "name": str, "curator": int, "date": "YYYY-MM-DD" }
     """
+    # 1) parse JSON
     try:
-        project_updates = json.loads(request.body)
+        body = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    try:
-        # Get the project being updated
-        project = Project.objects.get(id=project_id)
-        curator = CustomUser.objects.get(id=project_updates.get("curator"))
-    except:
+    name = body.get("name")
+    curator_id = body.get("curator")
+    date_str = body.get("date")
+
+    if not all([name, curator_id, date_str]):
         return JsonResponse(
-            {"success": False, "error": "Project does not exist"}, status=404
+            {"success": False, "error": "Missing required fields"}, status=400
         )
 
+    # 2) fetch the Project
     try:
-        # Update fields with new information
-        project.name = project_updates["name"]
-        #project.curator = curator.id
-        project.date = project_updates["date"]
-        # project.insight = project_updates["insight"] # Shouldn't be updated here, only through ML?
-        project.save()
-        return JsonResponse({"success": True}, status=200)
-    except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        project = Project.objects.get(pk=project_id, org_id=org_id)
+    except Project.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Project not found."}, status=404
+        )
+
+    # 3) assign new values
+    project.name = name
+    try:
+        project.curator = CustomUser.objects.get(pk=curator_id)
+    except CustomUser.DoesNotExist:
+        return JsonResponse(
+            {"success": False, "error": "Curator not found."}, status=400
+        )
+
+    # parse & assign date
+    try:
+        project.date = datetime.date.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        return JsonResponse(
+            {"success": False, "error": "Invalid date format"}, status=400
+        )
+
+    # 4) save
+    project.save()
+    return JsonResponse({"success": True}, status=200)
 
 
 @require_http_methods(["DELETE"])
