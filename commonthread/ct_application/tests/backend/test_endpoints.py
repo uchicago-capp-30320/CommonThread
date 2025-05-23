@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 from django.test import Client
 from ct_application.models import (
+    MLProcessingQueue,
     CustomUser, Organization, OrgUser,
     Project, Story, Tag, StoryTag, ProjectTag
 )
@@ -18,57 +19,90 @@ pytestmark = pytest.mark.django_db
 # ────────────── seed data ──────────────
 @pytest.fixture
 def seed():
-    alice  = CustomUser.objects.create_user(
-        "alice", email="alice@example.com",
-        password="pass123", name="Alice"
+    # ─── Users ───
+    alice = CustomUser.objects.create_user(
+        username="alice",
+        email="alice@example.com",
+        password="pass123",
+        name="Alice"
     )
     brenda = CustomUser.objects.create_user(
-        "brenda", email="brenda@example.com",
-        password="secret456", name="Brenda"
+        username="brenda",
+        email="brenda@example.com",
+        password="secret456",
+        name="Brenda"
     )
     deleto = CustomUser.objects.create_user(
-        "deleto", email="deleto@example.com",
-        password="editdeletetester", name="Delly"
+        username="deleto",
+        email="deleto@example.com",
+        password="editdeletetester",
+        name="Delly"
     )
 
-    org1, org2, org3 = (
-        Organization.objects.create(name="UChicago"),
-        Organization.objects.create(name="HP Hist Soc"),
-        Organization.objects.create(name="Edit Delete Tester"),
-    )
+    # ─── Organizations ───
+    org1 = Organization.objects.create(name="UChicago")
+    org2 = Organization.objects.create(name="HP Hist Soc")
+    org3 = Organization.objects.create(name="Edit Delete Tester")
+
+    # ─── Memberships ───
     OrgUser.objects.bulk_create([
-        OrgUser(user_id=alice.id,  org_id=org1.id, access="admin"),
-        OrgUser(user_id=brenda.id, org_id=org2.id, access="admin"),
-        OrgUser(user_id=deleto.id, org_id=org3.id, access="creator"),
+        OrgUser(user=alice,  org=org1, access="admin"),
+        OrgUser(user=brenda, org=org2, access="admin"),
+        OrgUser(user=deleto, org=org3, access="creator"),
     ])
 
+    # ─── Projects ───
     proj1 = Project.objects.create(
-        org_id=org1.id, name="Campus Tales",
-        curator=alice, date=datetime.date(2025, 4, 1)
+        org=org1,
+        name="Campus Tales",
+        curator=alice,
+        date=datetime.date(2025, 4, 1)
     )
     proj_edit_delete = Project.objects.create(
-        org_id=org3.id, name="To Be Edited",
-        curator=deleto, date=datetime.date(2025, 4, 7)
+        org=org3,
+        name="To Be Edited",
+        curator=deleto,
+        date=datetime.date(2025, 4, 7)
     )
 
+    # ─── Stories ───
     story1 = Story.objects.create(
-        proj_id=proj1.id, storyteller="Alice",
-        curator=alice, date=datetime.date(2025, 4, 5),
-        text_content="Hello!"
+        proj=proj1,
+        storyteller="Alice",
+        curator=alice,
+        date=datetime.date(2025, 4, 5),
+        text_content="Hello!",
+        is_transcript=False
     )
     story2 = Story.objects.create(
-        proj_id=proj_edit_delete.id, storyteller="Delly",
-        curator=deleto, date=datetime.date(2025, 4, 7),
-        text_content="To be edited and deleted"
+        proj=proj_edit_delete,
+        storyteller="Delly",
+        curator=deleto,
+        date=datetime.date(2025, 4, 7),
+        text_content="To be edited and deleted",
+        is_transcript=False
     )
+
+    # ─── Tagging ───
     tag = Tag.objects.create(name="fun", value="yes", required=False)
-    StoryTag.objects.create(story_id=story1.id, tag_id=tag.id)
-    ProjectTag.objects.create(proj_id=proj1.id, tag_id=tag.id)
+    StoryTag.objects.create(story=story1, tag=tag)
+    ProjectTag.objects.create(proj=proj1, tag=tag)
+    StoryTag.objects.create(story=story2, tag=tag)
+    ProjectTag.objects.create(proj=proj_edit_delete, tag=tag)
 
-    StoryTag.objects.create(story_id=story2.id, tag_id=tag.id)
-    ProjectTag.objects.create(proj_id=proj_edit_delete.id, tag_id=tag.id)
-
-    return locals()
+    return {
+        "alice": alice,
+        "brenda": brenda,
+        "deleto": deleto,
+        "org1": org1,
+        "org2": org2,
+        "org3": org3,
+        "proj1": proj1,
+        "proj_edit_delete": proj_edit_delete,
+        "story1": story1,
+        "story2": story2,
+        "tag": tag,
+    }
 
 @pytest.fixture
 def client():
