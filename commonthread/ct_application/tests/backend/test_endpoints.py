@@ -15,6 +15,8 @@ from ct_application.models import (
 from commonthread.settings import JWT_SECRET_KEY
 from unittest.mock import patch, MagicMock
 from django.conf import settings
+from django.urls import reverse
+from ct_application import views
 
 pytestmark = pytest.mark.django_db
 
@@ -473,6 +475,80 @@ def test_get_stories_by_story_id(client, seed):
     # tags were serialized properly
     assert isinstance(s["tags"], list)
     assert any(t["name"] == tag.name and t["value"] == tag.value for t in s["tags"])
+
+@pytest.mark.django_db
+def test_get_story_ok(client, seed):
+    """
+    Retrieving an existing story with no audio/image content
+    should return status 200 with empty audio_path and image_path.
+    """
+    story = seed["story1"]
+
+    resp = client.get(f"/story/{story.id}")
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert data["story_id"]     == story.id
+    assert data["project_id"]   == story.proj.id
+    assert data["project_name"] == story.proj.name
+    assert data["storyteller"]  == story.storyteller
+    assert data["curator"]      == story.curator.id
+    assert data["date"]         == str(story.date)
+    assert data["text_content"] == story.text_content
+
+    # tags should be a list of {name,value} dicts
+    assert isinstance(data["tags"], list)
+    for t in data["tags"]:
+        assert "name" in t and "value" in t
+
+    # no media on seed → empty strings
+    assert data["audio_path"] == ""
+    assert data["image_path"] == ""
+
+@pytest.mark.django_db
+def test_get_story_with_media(client, seed, monkeypatch):
+    """
+    If story.audio_content and story.image_content are set, 
+    the view should call generate_s3_presigned with the right
+    bucket names and return its URL in both audio_path and image_path.
+    """
+    # Arrange: pick a seeded story and give it “files”
+    story = seed["story1"]
+    story.audio_content.name = "foo.mp3"
+    story.image_content.name = "bar.png"
+    story.save()
+
+    # Patch the actual buckets your view expects to match your env
+    monkeypatch.setattr(
+        settings,
+        "CT_BUCKET_AUDIO",
+        settings.CT_BUCKET_STORY_AUDIO,
+        raising=False
+    )
+    monkeypatch.setattr(
+        settings,
+        "CT_BUCKET_IMAGES",
+        settings.CT_BUCKET_STORY_IMAGES,
+        raising=False
+    )
+
+    # Stub out presigning so we know exactly what URL comes back
+    monkeypatch.setattr(
+        views,
+        "generate_s3_presigned",
+        lambda **kwargs: {"url": "http://example.com/media"}
+    )
+
+    # Act
+    resp = client.get(f"/story/{story.id}")
+    assert resp.status_code == 200
+
+    data = resp.json()
+    # Assert both paths use our dummy URL
+    assert data["audio_path"] == "http://example.com/media"
+    assert data["image_path"] == "http://example.com/media"
+
+
 #-----------error tests-------------------
 
 def test_create_user_conflict(client, seed):
@@ -576,7 +652,6 @@ def test_create_org_missing_description(client, auth_headers):
         "error": "Organization description is required"
     }
 
-
 @pytest.mark.django_db
 def test_get_user_no_token(client):
     # No Authorization header → 401 + “No token”
@@ -655,6 +730,17 @@ def test_get_stories_multiple_filters(client, seed):
         "error": "Specify exactly one of org_id, project_id, story_id, or user_id."
     }
 
+@pytest.mark.django_db
+def test_get_story_not_found(client):
+    """
+    Requesting a non-existent story ID should return the custom
+    HttpResponseNotFound message with status 404.
+    """
+    resp = client.get("/story/9999")
+    assert resp.status_code == 404
+
+    text = resp.content.decode()
+    assert "Could not find that story" in text
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
