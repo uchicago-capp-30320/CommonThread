@@ -176,6 +176,54 @@ def test_story_detail_ok(client, seed, auth_headers):
     r = client.get(f"/story/{s.id}", **auth_headers())
     assert r.status_code == 200 and r.json()["story_id"] == s.id
 
+@pytest.mark.django_db
+def test_get_ml_status_ok_independent(client):
+    # 1) build your own Org → User → Project → Story → MLTask chain
+    org     = Organization.objects.create(name="Test Org")
+    user    = CustomUser.objects.create_user(
+        username="alice", password="pw123", email="a@e.com"
+    )
+    project = Project.objects.create(
+        org=org,
+        curator=user,
+        name="ML Test Project",
+        date=datetime.date(2025, 5, 23)
+    )
+    story   = Story.objects.create(
+        proj=project,
+        storyteller="bob",
+        curator=user,
+        date=datetime.date(2025, 5, 23),
+        text_content="hello world",
+        is_transcript=False
+    )
+    ml_task = MLProcessingQueue.objects.create(
+        story=story,
+        project=project,
+        task_type="tag",
+        status="processing"
+    )
+
+    # 2) call the endpoint
+    resp = client.get(f"/story/{story.id}/ml-status")
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert data["success"]    is True
+    assert data["task_type"]  == "tag"
+    assert data["ml_status"]  == "processing"
+
+    # timestamp should be an ISO timestamp within a few seconds of now
+    ts = datetime.datetime.fromisoformat(data["timestamp"])
+    assert abs((ts - timezone.now()).total_seconds()) < 10
+
+@pytest.mark.django_db
+def test_get_ml_status_not_found_independent(client):
+    # no MLProcessingQueue exists for story=9999
+    resp = client.get("/story/9999/ml-status")
+    assert resp.status_code == 404
+    assert resp.json() == {"success": False, "error": "ML status not found"}
+
 # ───────── create happy‑paths ─────────
 def test_create_project_ok(client, seed, auth_headers):
     org1, alice = seed["org1"], seed["alice"]
