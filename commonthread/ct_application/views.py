@@ -417,41 +417,31 @@ def get_project(request, project_id):
         logger.error(f"Error in get_project: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
 
-
 @require_GET
-@verify_user("user")
+# @verify_user("user")
 def get_org(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
 
-        # Get all projects in the org
-        projects = Project.objects.filter(org=org)
+        # Get all projects and stories
+        projects = Project.objects.filter(org=org).only("id", "curator")
+        stories = Story.objects.filter(proj__in=projects).only("id", "curator")
+
         project_count = projects.count()
-        # get all unique project ids
-        project_ids = projects.values_list("id", flat=True).distinct()
-
-        # Get all stories in those projects
-        stories = Story.objects.filter(proj__in=projects)
         story_count = stories.count()
+        project_ids = list(projects.values_list("id", flat=True))
 
-        # Collect curators from projects and stories
-        project_curators = projects.values_list("curator", flat=True)
-        story_curators = stories.values_list("curator", flat=True)
+        # Collect unique curator IDs
+        project_curator_ids = projects.values_list("curator", flat=True)
+        story_curator_ids = stories.values_list("curator", flat=True)
+        user_ids = set(project_curator_ids) | set(story_curator_ids)
 
-        user_ids = set(list(project_curators) + list(story_curators))
-        users = CustomUser.objects.filter(id__in=user_ids)
+        users = CustomUser.objects.filter(id__in=user_ids).values(
+            "id", "name", "email", "position"
+        )
+        users_data = list(users)
 
-        users_data = [
-            {
-                "user_id": user.id,
-                "name": user.name,
-                "email": user.email,
-                "position": user.position,
-            }
-            for user in users
-        ]
-
-        # Generate presigned URL for profile picture
+        # Generate presigned URL
         profile_pic_url = ""
         if org.profile:
             presign = generate_s3_presigned(
@@ -462,18 +452,16 @@ def get_org(request, org_id):
             )
             profile_pic_url = presign["url"]
 
-        response_data = {
+        return JsonResponse({
             "org_id": org.id,
             "name": org.name,
             "description": org.description,
             "profile_pic_path": profile_pic_url,
             "project_count": project_count,
-            "project_ids": list(project_ids),
+            "project_ids": project_ids,
             "story_count": story_count,
             "users": users_data,
-        }
-
-        return JsonResponse(response_data, status=200)
+        }, status=200)
 
     except Exception as e:
         logging.error(f"Error in get_org: {e}")
