@@ -384,8 +384,7 @@ def get_project(request, project_id):
 
         # Get associated ProjectTag objects
         project_tags = (
-            ProjectTag.objects
-            .filter(proj=project)
+            ProjectTag.objects.filter(proj=project)
             .select_related("tag")  # Pull tag in same query
             .only("tag__name", "tag__required")
         )
@@ -423,6 +422,7 @@ def get_project(request, project_id):
         logger.error(f"Error in get_project: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
 
+
 @require_GET
 # @verify_user("user")
 def get_org(request, org_id):
@@ -458,16 +458,19 @@ def get_org(request, org_id):
             )
             profile_pic_url = presign["url"]
 
-        return JsonResponse({
-            "org_id": org.id,
-            "name": org.name,
-            "description": org.description,
-            "profile_pic_path": profile_pic_url,
-            "project_count": project_count,
-            "project_ids": project_ids,
-            "story_count": story_count,
-            "users": users_data,
-        }, status=200)
+        return JsonResponse(
+            {
+                "org_id": org.id,
+                "name": org.name,
+                "description": org.description,
+                "profile_pic_path": profile_pic_url,
+                "project_count": project_count,
+                "project_ids": project_ids,
+                "story_count": story_count,
+                "users": users_data,
+            },
+            status=200,
+        )
 
     except Exception as e:
         logging.error(f"Error in get_org: {e}")
@@ -478,7 +481,7 @@ def get_org(request, org_id):
 def get_stories(request):
 
     if request.method != "GET":
-        return JsonResponse({'error': 'Method not allowed'}, status=405)
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
     try:
         # Existing filter logic remains the same
@@ -522,7 +525,7 @@ def get_stories(request):
             Prefetch(
                 "storytag_set",
                 queryset=StoryTag.objects.select_related("tag"),
-                to_attr="prefetched_story_tags"
+                to_attr="prefetched_story_tags",
             )
         )
 
@@ -564,6 +567,7 @@ def get_stories(request):
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
 
+
 @require_GET
 # @verify_user('user')
 @cache_page(60 * 15)  # Cache for 15 minutes
@@ -574,15 +578,12 @@ def get_story(request, story_id):
         story = Story.objects.select_related("proj", "curator").get(id=story_id)
         story_tags = StoryTag.objects.filter(story=story).select_related("tag")
 
-        tags = [
-            {"name": st.tag.name, "value": st.tag.value}
-            for st in story_tags
-        ]
+        tags = [{"name": st.tag.name, "value": st.tag.value} for st in story_tags]
 
         audio_url = ""
         if story.audio_content:
             audio_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_AUDIO,
+                bucket_name=settings.CT_BUCKET_STORY_AUDIO,
                 key=story.audio_content.name,
                 operation="download",
                 expiration=3600,
@@ -592,7 +593,7 @@ def get_story(request, story_id):
         image_url = ""
         if story.image_content:
             image_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_IMAGES,
+                bucket_name=settings.CT_BUCKET_STORY_IMAGES,
                 key=story.image_content.name,
                 operation="download",
                 expiration=3600,
@@ -860,7 +861,9 @@ def add_user_to_org(request, org_id):
 @verify_user()
 def delete_user(request, user_id):
     try:
-        user_to_delete = CustomUser.objects.get(id=request.user_id)  # kwargs['real_user_id']
+        user_to_delete = CustomUser.objects.get(
+            id=request.user_id
+        )  # kwargs['real_user_id']
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
@@ -868,13 +871,12 @@ def delete_user(request, user_id):
             {"success": False, "error": "Deletion Unsuccessful"}, status=400
         )
 
+
 @require_http_methods(["DELETE"])
-@verify_user('creator')
+@verify_user("creator")
 def delete_user_from_org(request, org_id, del_user_id):
     try:
-        user_to_delete = OrgUser.objects.get(
-            org_id=org_id, user_id=del_user_id
-        )
+        user_to_delete = OrgUser.objects.get(org_id=org_id, user_id=del_user_id)
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
@@ -1016,31 +1018,39 @@ def edit_project(request, org_id, project_id):
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    name       = body.get("name")
+    name = body.get("name")
     curator_id = body.get("curator")
-    date_str   = body.get("date")
+    date_str = body.get("date")
 
     if not all([name, curator_id, date_str]):
-        return JsonResponse({"success": False, "error": "Missing required fields"}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "Missing required fields"}, status=400
+        )
 
     # 2) fetch the Project
     try:
         project = Project.objects.get(pk=project_id, org_id=org_id)
     except Project.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Project not found."}, status=404)
+        return JsonResponse(
+            {"success": False, "error": "Project not found."}, status=404
+        )
 
     # 3) assign new values
     project.name = name
     try:
         project.curator = CustomUser.objects.get(pk=curator_id)
     except CustomUser.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Curator not found."}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "Curator not found."}, status=400
+        )
 
     # parse & assign date
     try:
         project.date = datetime.date.fromisoformat(date_str)
     except (ValueError, TypeError):
-        return JsonResponse({"success": False, "error": "Invalid date format"}, status=400)
+        return JsonResponse(
+            {"success": False, "error": "Invalid date format"}, status=400
+        )
 
     # 4) save
     project.save()
@@ -1298,7 +1308,6 @@ def delete_user(request, user_id):
 
     u.delete()
     return JsonResponse({"success": True}, status=200)
-
 
 
 ## Org methods -----------------------------------------------------------------
