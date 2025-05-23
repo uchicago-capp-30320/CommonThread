@@ -44,7 +44,8 @@ from ct_application.views import (
     create_story,
     edit_story,
     delete_story,
-    get_stories
+    get_stories,
+    get_story
 
 )
 
@@ -88,4 +89,5 @@ urlpatterns = [
     path("story/<int:story_id>/edit", edit_story, name="story-edit"),
     path("story/<int:story_id>/delete", delete_story, name="story-delete"),
     path("stories/", get_stories, name="get_stories"),
+    path("story/<int:story_id>", get_story, name="get_story"),
 ]

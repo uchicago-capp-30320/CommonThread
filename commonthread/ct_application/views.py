@@ -503,27 +503,6 @@ def get_stories(request):
                 "name", "value", "created_by"
             )
 
-            # Generate presigned URLs for media content
-            audio_url = ""
-            if story.audio_content:
-                audio_presign = generate_s3_presigned(
-                    bucket_name=settings.CT_BUCKET_AUDIO,
-                    key=story.audio_content.name,
-                    operation="download",
-                    expiration=3600,
-                )
-                audio_url = audio_presign["url"] if audio_presign else ""
-
-            image_url = ""
-            if story.image_content:
-                image_presign = generate_s3_presigned(
-                    bucket_name=settings.CT_BUCKET_IMAGES,
-                    key=story.image_content.name,
-                    operation="download",
-                    expiration=3600,
-                )
-                image_url = image_presign["url"] if image_presign else ""
-
             stories_data.append(
                 {
                     "story_id": story.id,
@@ -533,8 +512,6 @@ def get_stories(request):
                     "curator": story.curator.name if story.curator else None,
                     "date": str(story.date),
                     "summary": story.summary,
-                    "audio_path": audio_url,
-                    "image_path": image_url,
                     "text_content": story.text_content,
                     "tags": list(tags),
                 }
@@ -551,6 +528,65 @@ def get_stories(request):
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
         return JsonResponse({"error": "Internal server error."}, status=500)
+
+
+@require_GET
+# @verify_user('user')
+@cache_page(60 * 15)  # Cache for 15 minutes
+def get_story(request, story_id):
+    print(request.headers)
+
+    try:
+        story = Story.objects.select_related("proj", "curator").get(id=story_id)
+        story_tags = StoryTag.objects.filter(story=story).select_related("tag")
+
+        tags = [
+            {"name": st.tag.name, "value": st.tag.value}
+            for st in story_tags
+        ]
+
+        audio_url = ""
+        if story.audio_content:
+            audio_presign = generate_s3_presigned(
+                bucket_name=settings.CT_BUCKET_AUDIO,
+                key=story.audio_content.name,
+                operation="download",
+                expiration=3600,
+            )
+            audio_url = audio_presign["url"] if audio_presign else ""
+
+        image_url = ""
+        if story.image_content:
+            image_presign = generate_s3_presigned(
+                bucket_name=settings.CT_BUCKET_IMAGES,
+                key=story.image_content.name,
+                operation="download",
+                expiration=3600,
+            )
+            image_url = image_presign["url"] if image_presign else ""
+
+        return JsonResponse(
+            {
+                "story_id": story.id,
+                "project_id": story.proj.id,
+                "project_name": story.proj.name,
+                "storyteller": story.storyteller,
+                "curator": story.curator.id if story.curator else None,
+                "date": story.date,
+                "text_content": story.text_content,
+                "tags": tags,
+                "audio_path": audio_url,
+                "image_path": image_url,
+            },
+            status=200,
+        )
+
+    except Story.DoesNotExist:
+        logging.debug("Story not found with ID: %s", story_id)
+        return HttpResponseNotFound(
+            "Could not find that story. It may have been deleted or never existed.",
+            status=404,
+        )
 
 
 ## POST methods ----------------------------------------------------------------
