@@ -849,7 +849,116 @@ def test_refresh_invalid_token_401(client):
                     content_type="application/json")
     assert r.status_code == 401
 
-# ───────── count guard ─────────
-def test_have_at_least_18_tests():
-    assert sum(n.startswith("test_")
-               for n, _ in inspect.getmembers(sys.modules[__name__])) >= 18
+@pytest.fixture
+def refresh_token(seed, client):
+    """Fixture to get a valid refresh token through login"""
+    body = {"post_data": {"username": "alice", "password": "pass123"}}
+    res = client.post("/login", json.dumps(body), content_type="application/json")
+    assert res.status_code == 200
+    return res.json()["refresh_token"]
+
+def test_access_token_success(client, refresh_token):
+    """Test successful token refresh"""
+    response = client.post(
+        "/create_access",
+        data=json.dumps({"refresh_token": refresh_token}),
+        content_type="application/json"
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert "access_token" in data
+
+def test_refresh_token_missing(client):
+    """Test error when refresh token is missing"""
+    response = client.post(
+        "/create_access",
+        data=json.dumps({}),
+        content_type="application/json"
+    )
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"] == "Refresh token required"
+
+def test_refresh_token_invalid_json(client):
+    """Test error when request body is not valid JSON"""
+    response = client.post(
+        "/create_access",
+        data="not-json-data",
+        content_type="application/json"
+    )
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"] == "Invalid JSON"
+
+def test_refresh_token_expired(client):
+    """Test error when refresh token is expired"""
+    # Create an expired token
+    past = timezone.now() - datetime.timedelta(days=8)  # Assuming refresh tokens expire after 7 days
+    payload = {"sub": "1", "iat": past, "exp": past}
+    expired_token = jwt.encode(payload, JWT_SECRET_KEY, algorithm="HS256")
+    
+    response = client.post(
+        "/create_access",
+        data=json.dumps({"refresh_token": expired_token}),
+        content_type="application/json"
+    )
+    
+    assert response.status_code == 401
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"] == "Refresh token expired"
+
+def test_refresh_token_invalid(client):
+    """Test error when refresh token is invalid"""
+    response = client.post(
+        "/create_access",
+        data=json.dumps({"refresh_token": "invalid.token.here"}),
+        content_type="application/json"
+    )
+    
+    assert response.status_code == 401
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"] == "Invalid refresh token"
+
+def test_refresh_token_form_data(client, refresh_token):
+    """Test token refresh with form data instead of JSON"""
+    response = client.post(
+        "/create_access",
+        data={"refresh_token": refresh_token},
+        content_type="application/x-www-form-urlencoded"
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["success"] is True
+    assert "access_token" in data
+
+@patch('ct_application.views.decode_refresh_token')
+def test_refresh_token_unexpected_error(mock_decode, client, refresh_token):
+    """Test handling of unexpected errors during token refresh"""
+    mock_decode.side_effect = Exception("Unexpected error")
+    
+    response = client.post(
+        "/create_access",
+        data=json.dumps({"refresh_token": refresh_token}),
+        content_type="application/json"
+    )
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert data["success"] is False
+    assert data["error"] == "Unable to refresh token"
+
+def test_refresh_token_wrong_method(client, refresh_token):
+    """Test that only POST method is allowed"""
+    response = client.get("/create_access")
+    assert response.status_code == 405
+
+
