@@ -53,7 +53,7 @@
 				formImage.append(key, value);
 			}
 		}
-
+		formImage.append('acl','private');
 		formImage.append('file', storyData.image);
 
 		console.log('image_upload.url', image_upload.url);
@@ -61,9 +61,6 @@
 		// upload image to S3
 		const uploadResponse = await fetch(image_upload.url, {
 			method: 'POST',
-			headers: {
-				'Content-Type': 'image/png'
-			},
 			body: formImage
 		});
 
