@@ -93,7 +93,6 @@ def verify_user(required_access="user"):
             # Verifying the user and storing their user ID for use/passback
             try:
                 # Decode Given Access Token
-                logger.debug(request.body.get("project_id"))
                 logger.debug("Request Headers: %r", request.headers)
                 access_token = request.headers.get("Authorization", "")
                 logger.debug("Access Token: %r", access_token)
@@ -119,7 +118,11 @@ def verify_user(required_access="user"):
 
             request.user_id = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
-            auth_level, search_success = id_searcher(real_user_id, kwargs, required_access)
+            if kwargs:
+                auth_level, search_success = id_searcher(real_user_id, kwargs, required_access)
+            else:
+                body = json.loads(request.body)
+                auth_level, search_success = id_searcher(real_user_id, body, required_access)
             
             if search_success:
                 auth_level_check(auth_level, required_access)
@@ -716,7 +719,7 @@ def create_story(request):
                 curator_id=request.user_id,
                 date=timezone.now(),
                 text_content=story_data.get("text_content"),
-                proj=project.id,
+                proj=project,
                 audio_content=story_data.get("audio_path"),
                 image_content=story_data.get("image_path"),
             )
@@ -876,23 +879,6 @@ def delete_user_from_org(request, org_id, del_user_id):
         return JsonResponse(
             {"success": False, "error": "Deletion Unsuccessful"}, status=400
         )
-
-
-@require_http_methods(["DELETE"])
-# @verify_user('creator')
-def delete_user_from_org(request, org_id, user_id,):
-
-    try:
-        user_to_delete = OrgUser.objects.get(
-            org_id=org_id, user_id=del_user_id
-        )
-        user_to_delete.delete()
-        return JsonResponse({"success": True}, status=200)
-    except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
-
 
 ###############################################################################
 
