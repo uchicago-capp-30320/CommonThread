@@ -4,7 +4,7 @@
 	let {
 		org_name,
 		description,
-		orgImage = 'https://bulma.io/assets/images/placeholders/96x96.png',
+		profile_pic_path = 'https://bulma.io/assets/images/placeholders/96x96.png',
 		background_color = 'blue',
 		numProjects = 0,
 		numStories = 0,
@@ -31,7 +31,7 @@
 	<div class="card columns column is-half">
 		<div class="card-image column is-one-fifth">
 			<figure class="image is-4by3">
-				<img src={orgImage} alt="Placeholder" />
+				<img src={profile_pic_path} alt="Placeholder" />
 			</figure>
 		</div>
 		<div class="card-content column">

@@ -1,6 +1,12 @@
 <script>
 	import { submitStory } from '$lib/components/story/StoryPoster.js';
-	let { currentStep = $bindable(), storyData = $bindable() } = $props();
+
+	import { authRequest } from '$lib/authRequest.js';
+	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { accessToken, refreshToken } from '$lib/store.js';
+
+	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
 	let imagePreview = $state(storyData.image ? URL.createObjectURL(storyData.image) : null);
 	let submitted = $state(false);
 	let error = $state(null);
@@ -19,10 +25,75 @@
 	}
 
 	async function handleSubmit() {
+		// first get presigned link for image upload
+		const presignedResponse = await authRequest(
+			`/story/create`,
+			'GET',
+			$accessToken,
+			$refreshToken
+		);
+
+		console.log('presignedResponse', presignedResponse);
+
+		if (presignedResponse.newAccessToken) {
+			accessToken.set(presignedResponse.newAccessToken);
+		}
+
+		const audio_upload = presignedResponse.data.audio_upload;
+		const image_upload = presignedResponse.data.image_upload;
+
+		// create a new FormData object
+		const formAudio = new FormData();
+
+		const formImage = new FormData();
+
+		if (image_upload && image_upload.fields) {
+			// For image upload form data
+			for (const [key, value] of Object.entries(image_upload.fields)) {
+				formImage.append(key, value);
+			}
+		}
+
+		formImage.append('file', storyData.image);
+
+		console.log('image_upload.url', image_upload.url);
+
+		// upload image to S3
+		const uploadResponse = await fetch(image_upload.url, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'image/png'
+			},
+			body: formImage
+		});
+
+		console.log('uploadResponse', uploadResponse);
+
+		// then submit the story
+		if (uploadResponse.status !== 200) {
+			error = 'Error uploading image';
+		} else {
+			// change tag format to match backend
+			// create list of requried tags
+			const requiredTags = storyData.tags.filter((tag) =>
+				storyData.required_tags.includes(tag.category)
+			);
+
+			const storyDataToSubmit = {
+				...storyData,
+				image: image_upload.fields.key,
+				audio: audio_upload.fields.key
+			};
+
+			console.log('storyDataToSubmit', storyDataToSubmit);
+
+			await submitStory(storyDataToSubmit);
+			submitted = true;
+		}
 		try {
 			error = null;
-			const response = await submitStory(storyData);
-			submitted = true;
+			//const response = await submitStory(storyData);
+			//submitted = true;
 		} catch (err) {
 			error = err.message;
 		}

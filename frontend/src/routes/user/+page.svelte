@@ -21,6 +21,7 @@
 	});
 	let orgLoaded = $state(false);
 	let themeColor = $state('#133335');
+	$inspect(userData);
 
 	onMount(async () => {
 		// first get user data
