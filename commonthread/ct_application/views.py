@@ -121,8 +121,13 @@ def verify_user(required_access="user"):
             if kwargs:
                 auth_level, search_success = id_searcher(real_user_id, kwargs, required_access)
             else:
-                body = json.loads(request.body)
-                auth_level, search_success = id_searcher(real_user_id, body, required_access)
+                try:
+                    body = json.loads(request.body)
+                    auth_level, search_success = id_searcher(real_user_id, body, required_access)
+                except:
+                    return JsonResponse(
+                    {"success": False, "error": "Body not loaded"}, status=400
+                )
             
             if search_success:
                 auth_level_check(auth_level, required_access)
@@ -963,8 +968,8 @@ def create_project(request):
     try:
         project = Project.objects.create(
             name=project_data["project_name"],
-            curator_id=request.user_id,
-            org_id=org.id,
+            curator_id = project_data["curator"],
+            org = org.id,
             date=project_data.get("date", str(date.today())),
         )
 

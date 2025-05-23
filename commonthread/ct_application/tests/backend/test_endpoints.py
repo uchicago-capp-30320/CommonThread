@@ -387,7 +387,7 @@ def test_add_user_to_org(client, seed, auth_headers):
         "access": "user"
     }
     r = client.post(
-        f"/org/{org1.id}/add-user{brenda.id}",
+        f"/org/{org1.id}/add-user/{brenda.id}",
         data=json.dumps(payload),
         content_type="application/json",
         **auth_headers()
@@ -422,7 +422,7 @@ def test_create_user_ok(client):
 def test_create_org_ok(client, seed, auth_headers):
     alice = seed["alice"]
     payload = {
-        "name":        "New Org",
+        "name": "New Org",
         "description": "This is a new org",
         # note: the view ignores a “creator” field and uses request.user_id 
         # so you don’t need to include it here
