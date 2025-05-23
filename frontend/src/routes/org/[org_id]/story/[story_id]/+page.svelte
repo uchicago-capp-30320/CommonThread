@@ -15,7 +15,10 @@
     const org_id = $page.params.org_id;
     const story_id = $page.params.story_id
     let media = $state(false);
-
+    let includesAudio = $state(false)
+    let includesImage = $state(false)
+    $inspect(includesImage)
+    
     // Org state 
     let orgData = $state({
 		orgName: 'Loading...',
@@ -52,8 +55,8 @@
 		orgData = orgResponse.data;
         storyData = storyResponse.data;
 
-        let includesAudio = (storyData.audio_path != "")
-        let includesImage = (storyData.image_path != "")
+        includesAudio = (storyData.audio_path != "")
+        includesImage = (storyData.image_path != "")
         if (includesAudio || includesImage) media = true; 
 
 	});
@@ -95,16 +98,16 @@
                             <div class="media">
                                 <div class = "media-right" id = "audio">
                                     <div class="audio">
-                                        <AudioPlayer></AudioPlayer>
+                                        <AudioPlayer src={storyData.audio_path}></AudioPlayer>
                                     </div>
                                 </div>
                             </div>
                         {/if}
-                        {#if includesAudio}
+                        {#if includesImage}
                             <div class="media">
                                 <div class = "media-right" id="images">
                                     <figure>
-                                        <img src={sampleImage} alt="Thread illustration 3" />
+                                        <img src={storyData.image_path} alt="" />
                                         <figcaption>Figure 1</figcaption>
                                     </figure>
                                 </div>
@@ -134,12 +137,12 @@
 
 	img {
 		/* max-height: 300px; */
-		/* width: auto; */
-		width: 80%;
-
+		width: auto;
+		/* width: 80%; */
 		/* margin: 0 10px; */
 		object-fit: contain;
 	}
+
 	.audio {
 		object-fit: contain;
 	}
