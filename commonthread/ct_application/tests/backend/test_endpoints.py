@@ -262,7 +262,7 @@ def basic_story_payload(seed):
         "storyteller": "Test Storyteller",
         "curator": alice.id,
         "text_content": "Test story content",
-        "proj_id": p.id,
+        "project_id": p.id,
         "required_tags": [{"name": "tag1", "value": "value1", "created_by": "human"}],
         "optional_tags": [{"name": "tag2", "value": "value2", "created_by": "human"}]
     }
@@ -328,7 +328,7 @@ def test_create_story_with_media(client, auth_headers, basic_story_payload):
 
 def test_create_story_invalid_project(client, auth_headers, basic_story_payload):
     payload = basic_story_payload.copy()
-    payload["proj_id"] = 99999  
+    payload["project_id"] = 99999  
     
     response = client.post(
         "/story/create",

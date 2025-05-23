@@ -93,9 +93,10 @@ def verify_user(required_access="user"):
             # Verifying the user and storing their user ID for use/passback
             try:
                 # Decode Given Access Token
-                logger.debug("Request Headers: ", request.headers)
+                logger.debug(request.body.get("project_id"))
+                logger.debug("Request Headers: %r", request.headers)
                 access_token = request.headers.get("Authorization", "")
-                #logger.debug("Access Token: ", access_token)
+                logger.debug("Access Token: %r", access_token)
                 if not access_token or not access_token.startswith("Bearer "):
                     return JsonResponse(
                         {"success": False, "error": "Token missing or malformed"},
@@ -137,6 +138,7 @@ def id_searcher(real_user_id, id_set, required_access):
     """
 
     try:
+        logger.debug("request? %r", id_set)
         # Separate out user requests that don't have any additional needs beyond authenticating the user
         if "user_id" not in id_set:
             # Find the specific component of information that is needed for authorization
@@ -189,10 +191,10 @@ def check_org_auth(user_id: str, org_id: str):
         ), False
 
 
-def check_project_auth(user_id: str, proj_id: str):
+def check_project_auth(user_id: str, project_id: str):
     # Checks if user has access through proj->org link, returns True if the link exists
     try:
-        project = Project.objects.get(id = proj_id)
+        project = Project.objects.get(id = project_id)
         logger.debug("Found Project, looking for ")
         return check_org_auth(user_id, project.org_id)
     except Project.DoesNotExist:
@@ -631,8 +633,8 @@ def get_story(request, story_id):
 
 
 @csrf_exempt
-@verify_user("user")
 @require_http_methods(["POST", "GET", "OPTIONS"])
+@verify_user("user")
 def create_story(request):
     if request.method == "OPTIONS":
         response = HttpResponse()
@@ -696,13 +698,13 @@ def create_story(request):
         logger.debug("Parsed story data: %s", story_data)
 
         try:
-            project = Project.objects.get(id=story_data["proj_id"])
+            project = Project.objects.get(id=story_data["project_id"])
             logger.debug("Found project: %s", project)
         except Project.DoesNotExist:
-            logger.error("Project with ID %s does not exist", story_data["proj_id"])
+            logger.error("Project with ID %s does not exist", story_data["project_id"])
 
             return JsonResponse(
-                {"error": f"Project with ID {story_data["proj_id"]} does not exist"},
+                {"error": f"Project with ID {story_data["project_id"]} does not exist"},
                 status=400,
             )
 
@@ -714,7 +716,7 @@ def create_story(request):
                 curator_id=request.user_id,
                 date=timezone.now(),
                 text_content=story_data.get("text_content"),
-                proj_id=project.id,
+                proj=project.id,
                 audio_content=story_data.get("audio_path"),
                 image_content=story_data.get("image_path"),
             )
@@ -987,14 +989,14 @@ def create_project(request):
         for rtag in required_tags:
             tag = Tag.objects.create(name=rtag, required=True)
             ProjectTag.objects.create(
-                tag_id=tag.id,
-                proj_id=project.id,
+                tag = tag.id,
+                proj = project.id,
             )
         for otag in optional_tags:
             tag = Tag.objects.create(name=otag, required=False)
             ProjectTag.objects.create(
-                tag_id=tag.id,
-                proj_id=project.id,
+                tag = tag.id,
+                proj = project.id,
             )
 
         return JsonResponse(
