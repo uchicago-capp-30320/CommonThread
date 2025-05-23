@@ -264,6 +264,99 @@ def test_add_user_to_org(client, seed, auth_headers_user3):
     assert r.status_code == 201
     assert OrgUser.objects.filter(user_id=brenda.id, org_id=org1.id).exists()
 
+def test_create_user_ok(client):
+    payload = {
+        "username":   "newtester",
+        "password":   "securePass123",
+        "first_name": "New",
+        "last_name":  "Tester",
+        "email":      "new@test.com",
+        "city":       "Testville"
+    }
+    resp = client.post(
+        "/user/create",
+        json.dumps(payload),
+        content_type="application/json"
+    )
+    assert resp.status_code == 201
+    data = resp.json()
+    # Should return success + an auto-generated user_id
+    assert data["success"] is True
+    assert isinstance(data.get("user_id"), int)
+
+    # And the user really exists in the DB
+    assert CustomUser.objects.filter(username="newtester").exists()
+
+#-----------error tests-------------------
+def test_create_user_conflict(client, seed):
+    # 'alice' was created by seed fixture
+    payload = {"username": "alice", "password": "whatever"}
+    resp = client.post(
+        "/user/create",
+        json.dumps(payload),
+        content_type="application/json"
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "success": False,
+        "error": "Username already exists"
+    }
+
+def test_create_user_missing_fields(client):
+    # No username or password
+    resp = client.post(
+        "/user/create",
+        json.dumps({}),
+        content_type="application/json"
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "success": False,
+        "error": "Username and password are required"
+    }
+
+def test_create_user_invalid_json(client):
+    resp = client.post(
+        "/user/create",
+        "this-is-not-json",
+        content_type="application/json"
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "success": False,
+        "error": "Invalid JSON"
+    }
+
+@pytest.mark.django_db
+def test_get_project_method_not_allowed(client, seed):
+    # GET-only endpoint (require_GET) should reject POST with 405
+    p = seed["proj1"]
+    r = client.post(f"/project/{p.id}")
+    assert r.status_code == 405
+
+@pytest.mark.django_db
+def test_get_project_not_found(client):
+    # no project with id=9999 → should return 404 & correct JSON
+    r = client.get("/project/9999")
+    assert r.status_code == 404
+    assert r.json() == {"error": "Project not found."}
+
+@pytest.mark.django_db
+def test_get_org_not_found(client, auth_headers):
+    # get_object_or_404 raises Http404, but view catches Exception → 500
+    r = client.get("/org/9999", **auth_headers())
+    assert r.status_code == 500
+    assert r.json() == {"error": "Something went wrong."}
+
+@pytest.mark.django_db
+def test_get_org_unauthorized(client, seed):
+    org1 = seed["org1"]
+    resp = client.get(f"/org/{org1.id}")
+    assert resp.status_code == 401
+    assert resp.json() == {
+        "success": False,
+        "error": "Token missing or malformed"
+    }
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
@@ -308,7 +401,6 @@ def test_delete_story(client, seed, auth_headers_user3):
     s, deleto = seed['story2'], seed["deleto"]
     r = client.delete(f"/story/{s.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
-
 
 def test_delete_project(client, seed, auth_headers_user3):
     o, p, deleto = seed['org3'], seed['proj_edit_delete'], seed["deleto"]
