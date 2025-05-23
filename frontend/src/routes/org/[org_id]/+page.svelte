@@ -1,7 +1,6 @@
 <script>
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
-	import StoryCard from '$lib/components/StoryCard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 

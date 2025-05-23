@@ -61,15 +61,15 @@
 </script>
 
 <div class="breadcrumb-nav mb-5 mt-3">
-    <nav class="breadcrumb nav-color" aria-label="breadcrumbs">
-        <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
-            <li class="is-active">
-                <a href="/org/{orgData.org_id}/admin" aria-current="page">Admin Page</a>
-            </li>
-        </ul>
-    </nav>
+	<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
+		<ul>
+			<li><a href="/">Home</a></li>
+			<li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+			<li class="is-active">
+				<a href="/org/{orgData.org_id}/admin" aria-current="page">Admin Page</a>
+			</li>
+		</ul>
+	</nav>
 </div>
 
 <div id="container">
@@ -113,41 +113,34 @@
                     </div>
                 </div>  
             {/if}
-
-            <div class="column is-1">
-            </div>
-        </div>  
-    </div>
+			<div class="column is-1"></div>
+		</div>
+	</div>
 </div>
 
-
 <style>
+	p {
+		padding: 10%;
+	}
 
-    p {
-        padding: 10%;
-    }
-
-
-    #container {
+	#container {
 		margin-top: 50px;
 		width: 90%;
-        height: 90%;
+		height: 90%;
 		margin-left: auto;
 		margin-right: auto;
 		justify-content: center;
 	}
 
-    img {
-        /* max-height: 300px; */
-        /* width: auto; */
-        width: 80%;
+	img {
+		/* max-height: 300px; */
+		/* width: auto; */
+		width: 80%;
 
-        /* margin: 0 10px; */
-        object-fit: contain;
-    }
-    .audio {
-        object-fit: contain;
-    }
-
-
+		/* margin: 0 10px; */
+		object-fit: contain;
+	}
+	.audio {
+		object-fit: contain;
+	}
 </style>
