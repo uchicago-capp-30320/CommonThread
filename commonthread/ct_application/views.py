@@ -863,18 +863,22 @@ def add_user_to_org(request, org_id):
 @require_http_methods(["DELETE"])
 @verify_user('creator')
 def delete_user_from_org(request, org_id, del_user_id):
+    
     try:
-        org_user_data = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
-
-    if not del_user_id:
-        return JsonResponse(
-            {
-                "success": False,
-                "error": f"User ID is missing",
-            }
+        user_to_delete = OrgUser.objects.get(
+            org_id=org_id, user_id=del_user_id
         )
+        user_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse(
+            {"success": False, "error": "Deletion Unsuccessful"}, status=400
+        )
+
+
+@require_http_methods(["DELETE"])
+# @verify_user('creator')
+def delete_user_from_org(request, org_id, user_id,):
 
     try:
         user_to_delete = OrgUser.objects.get(
@@ -1093,6 +1097,11 @@ def create_org(request: HttpRequest) -> JsonResponse:
     if not name:
         return JsonResponse(
             {"success": False, "error": "Organization name is required"},
+            status=400,
+        )
+    if not description:
+        return JsonResponse(
+            {"success": False, "error": "Organization description is required"},
             status=400,
         )
 
