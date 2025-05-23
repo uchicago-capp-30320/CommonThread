@@ -147,10 +147,15 @@ def test_login_ok(client, seed):
     assert r.status_code == 200 and "access_token" in r.json()
 
 def test_login_bad_pwd(client, seed):
-    body = {"post_data": {"username": "alice", "password": "bad"}}
+    body = {"post_data": {"username": "alice", "password": "badbadbad"}}
     assert client.post("/login", json.dumps(body),
                        content_type="application/json").status_code == 403
 
+def test_login_no_password(client, seed):
+    body = {"post_data": {"username": "alice"}}
+    assert client.post("/login", json.dumps(body),
+                       content_type="application/json").status_code == 400
+    
 def test_refresh_ok(client, seed):
     body = {"post_data": {"username": "alice", "password": "pass123"}}
     res  = client.post("/login", json.dumps(body), content_type="application/json")
