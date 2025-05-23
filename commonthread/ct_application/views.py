@@ -862,10 +862,11 @@ def add_user_to_org(request, org_id):
     return JsonResponse({"success": True}, status=201)
 
 
-def delete_user(request, user_id: str):
-
+@require_http_methods(["DELETE"])
+@verify_user()
+def delete_user(request, user_id):
     try:
-        user_to_delete = CustomUser.objects.get(id=user_id)  # kwargs['real_user_id']
+        user_to_delete = CustomUser.objects.get(id=request.user_id)  # kwargs['real_user_id']
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
@@ -874,12 +875,11 @@ def delete_user(request, user_id: str):
         )
 
 @require_http_methods(["DELETE"])
-# @verify_user('creator')
-def delete_user_from_org(request, org_id, user_id,):
-
+@verify_user('creator')
+def delete_user_from_org(request, org_id, del_user_id):
     try:
         user_to_delete = OrgUser.objects.get(
-            org_id=org_id, user_id=user_id
+            org_id=org_id, user_id=del_user_id
         )
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
@@ -1013,33 +1013,44 @@ def create_project(request):
 # @verify_user('admin')
 def edit_project(request, org_id, project_id):
     """
-    Takes the full project form from the front-end and updates the Project record with
-    the fields passed from the form.
+    POST /project/<org_id>/<project_id>/edit
+    Body: JSON { "name": str, "curator": int, "date": "YYYY-MM-DD" }
     """
+    # 1) parse JSON
     try:
-        project_updates = json.loads(request.body)
+        body = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    try:
-        # Get the project being updated
-        project = Project.objects.get(id=project_id)
-        curator = CustomUser.objects.get(id=project_updates.get("curator"))
-    except:
-        return JsonResponse(
-            {"success": False, "error": "Project does not exist"}, status=404
-        )
+    name       = body.get("name")
+    curator_id = body.get("curator")
+    date_str   = body.get("date")
 
+    if not all([name, curator_id, date_str]):
+        return JsonResponse({"success": False, "error": "Missing required fields"}, status=400)
+
+    # 2) fetch the Project
     try:
-        # Update fields with new information
-        project.name = project_updates["name"]
-        project.curator = curator.id
-        project.date = project_updates["date"]
-        # project.insight = project_updates["insight"] # Shouldn't be updated here, only through ML?
-        project.save()
-        return JsonResponse({"success": True}, status=200)
-    except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        project = Project.objects.get(pk=project_id, org_id=org_id)
+    except Project.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Project not found."}, status=404)
+
+    # 3) assign new values
+    project.name = name
+    try:
+        project.curator = CustomUser.objects.get(pk=curator_id)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Curator not found."}, status=400)
+
+    # parse & assign date
+    try:
+        project.date = datetime.date.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        return JsonResponse({"success": False, "error": "Invalid date format"}, status=400)
+
+    # 4) save
+    project.save()
+    return JsonResponse({"success": True}, status=200)
 
 
 @require_http_methods(["DELETE"])
@@ -1282,16 +1293,18 @@ def edit_user(request, user_id, **kwargs):
 
 @require_http_methods(["DELETE"])
 @verify_user
-def delete_user(request, user_id: str):
-
+def delete_user(request, user_id):
+    """
+    DELETE /user/<user_id>/delete
+    """
     try:
-        user_to_delete = CustomUser.objects.get(id=user_id)  # kwargs['real_user_id']
-        user_to_delete.delete()
-        return JsonResponse({"success": True}, status=200)
-    except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        u = CustomUser.objects.get(pk=user_id)
+    except CustomUser.DoesNotExist:
+        return JsonResponse({"success": False, "error": "User not found."}, status=404)
+
+    u.delete()
+    return JsonResponse({"success": True}, status=200)
+
 
 
 ## Org methods -----------------------------------------------------------------

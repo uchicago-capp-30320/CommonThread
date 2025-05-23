@@ -53,6 +53,7 @@ def seed():
         OrgUser(user=alice,  org=org1, access="admin"),
         OrgUser(user=brenda, org=org2, access="admin"),
         OrgUser(user=deleto, org=org3, access="creator"),
+        OrgUser(user=alice, org=org3, access="user"),
     ])
 
     # ─── Projects ───
@@ -800,10 +801,9 @@ def test_delete_user(client, seed, auth_headers_user3):
     deleto = seed["deleto"]
     r = client.delete(f"/user/{deleto.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
-
 def test_delete_user_from_org(client, seed, auth_headers_user3):
-    deleto = seed["deleto"]
-    r = client.delete(f"/org/{deleto.id}/delete-user", **auth_headers_user3())
+    deleto, alice, org = seed["deleto"], seed["alice"], seed["org3"]
+    r = client.delete(f"/org/{org.id}/delete-user/{alice.id}", **auth_headers_user3())
     assert r.status_code == 200
 
 # ───────── auth / permission edges ─────────

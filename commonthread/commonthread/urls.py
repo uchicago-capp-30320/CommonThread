@@ -64,10 +64,10 @@ urlpatterns = [
     path("org/<int:org_id>", get_org, name="get-org"),
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
-    path("org/<int:org_id>/add-user", add_user_to_org, name="add-user-to-org"),
+    path("org/<int:org_id>/add-user/<int:add_user_id>", add_user_to_org, name="add-user-to-org"),
     path(
-        "org/<int:org_id>/delete-user/<int:user_id>", 
-         delete_user_from_org, 
+        "org/<int:org_id>/delete-user/<int:del_user_id>",
+         delete_user_from_org,
          name="delete-user-from-org"),
 
     #Project Related Endpoints
