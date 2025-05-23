@@ -95,15 +95,85 @@
 
 	<div class="field">
 		<label class="label" for="story-text">Your Story</label>
-		<div class="control">
-			<textarea
-				class="textarea"
-				id="story-text"
-				bind:value={storyData.text_content}
-				placeholder="Share your story here..."
-				rows="6"
-				required
-			></textarea>
+		<p class="help mb-2">Share your story in your own words. Share either text or an audio file.</p>
+
+		<div class="tabs is-boxed">
+			<ul>
+				<li class={!storyData.audio ? 'is-active' : ''}>
+					<a
+						onclick={() => {
+							if (storyData.audio) {
+								storyData = {
+									...storyData,
+									audio: null
+								};
+							}
+						}}
+					>
+						<span class="icon is-small"><i class="fa fa-font"></i></span>
+						<span>Text</span>
+					</a>
+				</li>
+				<li class={storyData.audio ? 'is-active' : ''}>
+					<a
+						onclick={() => {
+							storyData = {
+								...storyData,
+								audio: storyData.audio || new File([], '')
+							};
+						}}
+					>
+						<span class="icon is-small"><i class="fa fa-microphone"></i></span>
+						<span>Audio</span>
+					</a>
+				</li>
+			</ul>
+		</div>
+
+		<div class="tab-content">
+			<!-- Text Tab Content -->
+			{#if !storyData.audio}
+				<div class="control">
+					<textarea
+						class="textarea"
+						id="story-text"
+						bind:value={storyData.text_content}
+						placeholder="Share your story here..."
+						rows="6"
+						required
+					></textarea>
+				</div>
+			{:else}
+				<!-- Audio Tab Content -->
+				<div class="control">
+					<div class="file has-name is-fullwidth">
+						<label class="file-label">
+							<input
+								class="file-input"
+								type="file"
+								accept="audio/*"
+								onchange={(e) => {
+									if (e.target.files.length > 0) {
+										storyData = {
+											...storyData,
+											audio: e.target.files[0]
+										};
+									}
+								}}
+							/>
+							<span class="file-cta">
+								<span class="file-icon">
+									<i class="fa fa-upload"></i>
+								</span>
+								<span class="file-label">Choose an audio file...</span>
+							</span>
+							<span class="file-name">
+								{storyData.audio?.name || 'No file selected'}
+							</span>
+						</label>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 	<div class="is-flex is-justify-content-flex-end mb-2">

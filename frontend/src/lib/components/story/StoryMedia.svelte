@@ -108,7 +108,7 @@
 					console.log('Audio uploaded successfully');
 					storyDataToSubmit = {
 						...storyDataToSubmit,
-						audio_path: image_upload.fields.key
+						audio_path: audio_upload.fields.key
 					};
 				} else {
 					console.error('Error uploading audio:', audioUploadResponse.statusText);
