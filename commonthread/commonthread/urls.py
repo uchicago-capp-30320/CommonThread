@@ -66,7 +66,7 @@ urlpatterns = [
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
     path("org/<int:org_id>/add-user", add_user_to_org, name="add-user-to-org"),
     path(
-        "org/<int:org_id>/delete-user", 
+        "org/<int:org_id>/delete-user/<int:user_id>", 
          delete_user_from_org, 
          name="delete-user-from-org"),
 

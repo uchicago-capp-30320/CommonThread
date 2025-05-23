@@ -843,26 +843,24 @@ def add_user_to_org(request, org_id):
     return JsonResponse({"success": True}, status=201)
 
 
+def delete_user(request, user_id: str):
+
+    try:
+        user_to_delete = CustomUser.objects.get(id=user_id)  # kwargs['real_user_id']
+        user_to_delete.delete()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return JsonResponse(
+            {"success": False, "error": "Deletion Unsuccessful"}, status=400
+        )
+
 @require_http_methods(["DELETE"])
 # @verify_user('creator')
-def delete_user_from_org(request, org_id):
-    try:
-        org_user_data = json.loads(request.body or "{}")
-        print("org_user_data", org_user_data)
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
-
-    if not org_user_data["user_id"]:
-        return JsonResponse(
-            {
-                "success": False,
-                "error": f"User ID is missing",
-            }
-        )
+def delete_user_from_org(request, org_id, user_id,):
 
     try:
         user_to_delete = OrgUser.objects.get(
-            org_id=org_id, user_id=org_user_data["user_id"]
+            org_id=org_id, user_id=user_id
         )
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
