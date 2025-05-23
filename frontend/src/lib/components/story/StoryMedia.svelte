@@ -131,7 +131,7 @@
 			};
 		}
 
-		// remove image/ audio from storyDataToSubmit
+		// remove image/ audio from storyDataToSubmit for less data transfer
 		delete storyDataToSubmit.image;
 		delete storyDataToSubmit.audio;
 
@@ -144,6 +144,8 @@
 		);
 
 		console.log('uploadStory', uploadStory);
+
+		// for testing turned off
 		//submitted = true;
 	}
 </script>
