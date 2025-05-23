@@ -55,7 +55,7 @@
 				<div class="column is-one-quarter">
 					<figure class="image is-1by1">
 						<img
-							src={profile_pic_path || 'https://bulma.io/images/placeholders/256x256.png'}
+							src={user.Profile_pic_path || 'https://bulma.io/images/placeholders/256x256.png'}
 							alt="Profile picture"
 							class="is-rounded"
 						/>

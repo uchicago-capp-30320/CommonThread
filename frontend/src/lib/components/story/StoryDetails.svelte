@@ -1,6 +1,6 @@
 <script>
 	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
-	let wordCount = $derived(storyData.content.trim().split(/\s+/).length);
+	let wordCount = $derived(storyData.text_content.trim().split(/\s+/).length);
 	let required;
 	let optional;
 
@@ -84,7 +84,7 @@
 	}
 
 	function handleNext() {
-		if (storyData.content && hasAllRequiredTags()) {
+		if (storyData.text_content && hasAllRequiredTags()) {
 			currentStep = 3;
 		}
 	}
@@ -99,7 +99,7 @@
 			<textarea
 				class="textarea"
 				id="story-text"
-				bind:value={storyData.content}
+				bind:value={storyData.text_content}
 				placeholder="Share your story here..."
 				rows="6"
 				required
@@ -201,7 +201,7 @@
 			<button
 				class="button is-primary"
 				onclick={handleNext}
-				disabled={!storyData.content ||
+				disabled={!storyData.text_content ||
 					!tagCategories.required.every((cat) =>
 						(storyData.tags || []).some((tag) => tag.category === cat.id && tag.value.trim())
 					)}

@@ -6,7 +6,6 @@
 	import { accessToken, refreshToken } from '$lib/store.js';
 
 	const org_id = $page.params.org_id;
-	console.log('org_id', org_id);
 
 	let projects = $state([
 		{

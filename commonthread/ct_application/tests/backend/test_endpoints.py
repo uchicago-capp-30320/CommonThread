@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 from django.test import Client
 from ct_application.models import (
+    MLProcessingQueue,
     CustomUser, Organization, OrgUser,
     Project, Story, Tag, StoryTag, ProjectTag
 )
@@ -18,57 +19,91 @@ pytestmark = pytest.mark.django_db
 # ────────────── seed data ──────────────
 @pytest.fixture
 def seed():
-    alice  = CustomUser.objects.create_user(
-        "alice", email="alice@example.com",
-        password="pass123", name="Alice"
+    # ─── Users ───
+    alice = CustomUser.objects.create_user(
+        username="alice",
+        email="alice@example.com",
+        password="pass123",
+        name="Alice"
     )
     brenda = CustomUser.objects.create_user(
-        "brenda", email="brenda@example.com",
-        password="secret456", name="Brenda"
+        username="brenda",
+        email="brenda@example.com",
+        password="secret456",
+        name="Brenda"
     )
     deleto = CustomUser.objects.create_user(
-        "deleto", email="deleto@example.com",
-        password="editdeletetester", name="Delly"
+        username="deleto",
+        email="deleto@example.com",
+        password="editdeletetester",
+        name="Delly"
     )
 
-    org1, org2, org3 = (
-        Organization.objects.create(name="UChicago"),
-        Organization.objects.create(name="HP Hist Soc"),
-        Organization.objects.create(name="Edit Delete Tester"),
-    )
+    # ─── Organizations ───
+    org1 = Organization.objects.create(name="UChicago")
+    org2 = Organization.objects.create(name="HP Hist Soc")
+    org3 = Organization.objects.create(name="Edit Delete Tester")
+
+    # ─── Memberships ───
     OrgUser.objects.bulk_create([
-        OrgUser(user_id=alice.id,  org_id=org1.id, access="admin"),
-        OrgUser(user_id=brenda.id, org_id=org2.id, access="admin"),
-        OrgUser(user_id=deleto.id, org_id=org3.id, access="creator"),
+        OrgUser(user=alice,  org=org1, access="admin"),
+        OrgUser(user=brenda, org=org2, access="admin"),
+        OrgUser(user=deleto, org=org3, access="creator"),
+        OrgUser(user=alice, org=org3, access="user"),
     ])
 
+    # ─── Projects ───
     proj1 = Project.objects.create(
-        org_id=org1.id, name="Campus Tales",
-        curator=alice, date=datetime.date(2025, 4, 1)
+        org=org1,
+        name="Campus Tales",
+        curator=alice,
+        date=datetime.date(2025, 4, 1)
     )
     proj_edit_delete = Project.objects.create(
-        org_id=org3.id, name="To Be Edited",
-        curator=deleto, date=datetime.date(2025, 4, 7)
+        org=org3,
+        name="To Be Edited",
+        curator=deleto,
+        date=datetime.date(2025, 4, 7)
     )
 
+    # ─── Stories ───
     story1 = Story.objects.create(
-        proj_id=proj1.id, storyteller="Alice",
-        curator=alice, date=datetime.date(2025, 4, 5),
-        text_content="Hello!"
+        proj=proj1,
+        storyteller="Alice",
+        curator=alice,
+        date=datetime.date(2025, 4, 5),
+        text_content="Hello!",
+        is_transcript=False
     )
     story2 = Story.objects.create(
-        proj_id=proj_edit_delete.id, storyteller="Delly",
-        curator=deleto, date=datetime.date(2025, 4, 7),
-        text_content="To be edited and deleted"
+        proj=proj_edit_delete,
+        storyteller="Delly",
+        curator=deleto,
+        date=datetime.date(2025, 4, 7),
+        text_content="To be edited and deleted",
+        is_transcript=False
     )
+
+    # ─── Tagging ───
     tag = Tag.objects.create(name="fun", value="yes", required=False)
-    StoryTag.objects.create(story_id=story1.id, tag_id=tag.id)
-    ProjectTag.objects.create(proj_id=proj1.id, tag_id=tag.id)
+    StoryTag.objects.create(story=story1, tag=tag)
+    ProjectTag.objects.create(proj=proj1, tag=tag)
+    StoryTag.objects.create(story=story2, tag=tag)
+    ProjectTag.objects.create(proj=proj_edit_delete, tag=tag)
 
-    StoryTag.objects.create(story_id=story2.id, tag_id=tag.id)
-    ProjectTag.objects.create(proj_id=proj_edit_delete.id, tag_id=tag.id)
-
-    return locals()
+    return {
+        "alice": alice,
+        "brenda": brenda,
+        "deleto": deleto,
+        "org1": org1,
+        "org2": org2,
+        "org3": org3,
+        "proj1": proj1,
+        "proj_edit_delete": proj_edit_delete,
+        "story1": story1,
+        "story2": story2,
+        "tag": tag,
+    }
 
 @pytest.fixture
 def client():
@@ -160,11 +195,28 @@ def test_create_story_ok(client, seed, auth_headers):
     payload = {
         "storyteller": "Testy", "curator": alice.id,
         "text_content": "Hi!", "proj_id": p.id,
-        "tags": [{"name": "tagX", "value": 1, "required": False}],
+        "tags": [{"name": "fun", "value": "yes", "required": False}],
     }
     r = client.post("/story/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
     assert r.status_code == 200
+
+def test_add_user_to_org(client, seed, auth_headers):
+    alice = seed['alice']
+    brenda = seed["brenda"]
+    org1 = seed["org1"]
+    payload = {
+        "user_id": brenda.id,
+        "access": "user"
+    }
+    r = client.post(
+        f"/org/{org1.id}/add-user{brenda.id}",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    assert r.status_code == 201
+    assert OrgUser.objects.filter(user_id=brenda.id, org_id=org1.id).exists()
 
 # ------------------ Edit Tests -----------------------------------
 
@@ -227,24 +279,31 @@ def test_delete_user(client, seed, auth_headers_user3):
     r = client.delete(f"/user/{deleto.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
+def test_delete_user_from_org(client, seed, auth_headers_user3):
+    deleto, alice, org = seed["deleto"], seed["alice"], seed["org3"]
+    r = client.delete(f"/org/{org.id}/delete-user/{alice.id}", **auth_headers_user3())
+    assert r.status_code == 200
 
 # ───────── auth / permission edges ─────────
-def test_no_token_401(client):
-    assert client.get("/story/1").status_code == 401
+def test_no_token_401(client, seed):
+    s = seed['story1']
+    assert client.get(f"/story/{s.id}").status_code == 401
 
-def test_malformed_token_401(client):
+def test_malformed_token_401(client, seed):
+    s = seed['story1']
     hdrs = {"HTTP_AUTHORIZATION": "Bearer bad.token"}
-    assert client.get("/story/1", **hdrs).status_code == 401
+    assert client.get(f"/story/{s.id}", **hdrs).status_code == 401
 
 def test_expired_token_299(client, seed):
+    s, alice = seed['story1'], seed['alice']
     hdrs = {"HTTP_AUTHORIZATION":
-            f"Bearer {expired_access_token(seed['alice'].id)}"}
-    assert client.get("/story/1", **hdrs).status_code == 299
+            f"Bearer {expired_access_token(alice.id)}"}
+    assert client.get(f"/story/{s.id}", **hdrs).status_code == 299
 
 def test_project_forbidden_403(client, seed, auth_headers):
     p = seed["proj1"]
     hdrs = auth_headers("brenda", "secret456")
-    r = client.get(f"/project/{p.org_id}/{p.id}",
+    r = client.get(f"/project/{p.id}",
                    **hdrs)
     assert r.status_code == 403
 

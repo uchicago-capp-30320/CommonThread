@@ -25,9 +25,11 @@
 			project_name: 'Loading...',
 			description: 'Loading...',
 			stories: 0,
+			org_id: $page.params.org_id,
 			required_tags: [],
 			optional_tags: [],
-			isOpen: false
+			isOpen: false,
+			isNew: false
 		}
 	]);
 	let projectResponses = $state([]);
@@ -65,6 +67,20 @@
 	});
 
 	let totalUsers = $derived(userData.length);
+
+	async function addProject(project) {
+		// logic to add the project
+		console.log('Adding project:', project);
+
+		const addProjectResponse = await authRequest(
+			'/project/create',
+			'POST',
+			$accessToken,
+			$refreshToken,
+			project
+		);
+		console.log('Project added:', addProjectResponse);
+	}
 
 	// async function editProject(project) {
 	// 	// logic to edit the project
@@ -196,7 +212,9 @@
 								insight: 'Description of new project',
 								required_tags: [],
 								optional_tags: [],
-								isOpen: true
+								org_id: org_id,
+								isOpen: true,
+								isNew: true
 							},
 							...projects
 						];
@@ -325,11 +343,11 @@
 													// logic to save the project
 													project.isOpen = false;
 													// Example: saveProject(project);
-													alert('Project saved!');
-													editProject(project);
+													alert('Project added!');
+													project.isNew ? addProject(project) : editProject(project);
 												}}
 											>
-												Save Changes
+												{project.isNew ? 'Add Project' : 'Save Changes'}
 											</button>
 										</div>
 										<div class="control">

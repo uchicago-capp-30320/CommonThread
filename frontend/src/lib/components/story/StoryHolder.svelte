@@ -10,10 +10,16 @@
 		storyteller: '',
 		author: '',
 		project: '',
-		content: '',
+		text_content: '',
 		tags: [],
-		image: null
+		image: null,
+		audio: null,
+		proj_id: '',
+		audio_path: null,
+		image_path: null
 	});
+
+	$inspect(storyData);
 
 	function handleStepClick(step) {
 		if (step < currentStep || canNavigateToStep(step)) {
@@ -26,7 +32,7 @@
 			case 2:
 				return storyData.storyteller && storyData.author;
 			case 3:
-				return storyData.storyteller && storyData.author && storyData.content;
+				return storyData.storyteller && storyData.author && storyData.text_content;
 			default:
 				return false;
 		}
@@ -90,7 +96,7 @@
 				{:else if currentStep === 2}
 					<StoryDetails bind:currentStep bind:storyData {projects} />
 				{:else if currentStep === 3}
-					<StoryMedia bind:currentStep bind:storyData />
+					<StoryMedia bind:currentStep bind:storyData {projects} />
 				{/if}
 			</div>
 		</div>
