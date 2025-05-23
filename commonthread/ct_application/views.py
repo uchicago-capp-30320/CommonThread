@@ -93,8 +93,9 @@ def verify_user(required_access = "user"):
             #Verifying the user and storing their user ID for use/passback
             try:
                 # Decode Given Access Token
+                logger.debug("Request Headers: ", request.headers)
                 access_token = request.headers.get("Authorization", "")
-                print('access token', access_token)
+                logger.debug("Access Token: ", access_token)
                 if not access_token or not access_token.startswith("Bearer "):
                     return JsonResponse(
                         {"success": False, "error": "Token missing or malformed"}, status=401
@@ -189,7 +190,7 @@ def check_story_auth(user_id: str, story_id: str):
     try:
         story = Story.objects.get(story_id=story_id)
         return check_project_auth(user_id, story.id)
-    except:
+    except Story.DoesNotExist:
         return JsonResponse({"success": False, "error": "Story not found"}, status=404)
 
 
@@ -792,7 +793,7 @@ def create_user(request):
 
 
 @require_POST
-# @verify_user('creator')
+@verify_user('creator')
 def add_user_to_org(request, org_id):
 
     """
@@ -825,7 +826,7 @@ def add_user_to_org(request, org_id):
 
 
 @require_http_methods(["DELETE"])
-# @verify_user('creator')
+@verify_user('creator')
 def delete_user_from_org(request, org_id):
     try:
         org_user_data = json.loads(request.body or "{}")
@@ -853,7 +854,7 @@ def delete_user_from_org(request, org_id):
 
 
 @require_http_methods(["POST", "PATCH"])
-# @verify_user('admin')
+@verify_user('admin')
 def edit_story(request, story_id):
 
     try:
@@ -962,7 +963,7 @@ def create_project(request):
 
 
 @require_http_methods(["POST", "PATCH"])
-# @verify_user('admin')
+@verify_user('admin')
 def edit_project(request, org_id, project_id):
     """
     Takes the full project form from the front-end and updates the Project record with
@@ -985,7 +986,7 @@ def edit_project(request, org_id, project_id):
     try:
         # Update fields with new information
         project.name = project_updates["name"]
-        project.curator = curator.id
+        #project.curator = curator.id
         project.date = project_updates["date"]
         # project.insight = project_updates["insight"] # Shouldn't be updated here, only through ML?
         project.save()
@@ -995,7 +996,7 @@ def edit_project(request, org_id, project_id):
 
 
 @require_http_methods(["DELETE"])
-# @verify_user('admin')
+@verify_user('admin')
 def delete_project(request, org_id, project_id):
     try:
         proj_to_delete = Project.objects.get(id=project_id)
@@ -1008,7 +1009,7 @@ def delete_project(request, org_id, project_id):
 
 
 @require_POST
-# @verify_user
+@verify_user
 def create_org(request: HttpRequest) -> JsonResponse:
     """
     Handle requests for creating new organizations
@@ -1071,7 +1072,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
 
 
 @require_http_methods(["POST", "PATCH"])
-# @verify_user('admin')
+@verify_user('admin')
 def edit_org(request, org_id):
 
     try:
@@ -1096,7 +1097,7 @@ def edit_org(request, org_id):
 
 
 @require_http_methods(["DELETE"])
-# @verify_user('creator')
+@verify_user('creator')
 def delete_org(request, org_id):
     try:
         org_to_delete = Organization.objects.get(id=org_id)
@@ -1213,11 +1214,11 @@ def edit_user(request, user_id, **kwargs):
 
 
 @require_http_methods(["DELETE"])
-@verify_user
-def delete_user(request, user_id: str):
+@verify_user()
+def delete_user(request, user_id):
 
     try:
-        user_to_delete = CustomUser.objects.get(id=user_id)  # kwargs['real_user_id']
+        user_to_delete = CustomUser.objects.get(id=request.user_id)  # kwargs['real_user_id']
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
