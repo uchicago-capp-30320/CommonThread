@@ -14,6 +14,7 @@ from ct_application.models import (
 )
 from commonthread.settings import JWT_SECRET_KEY
 from unittest.mock import patch, MagicMock
+from django.conf import settings
 
 pytestmark = pytest.mark.django_db
 
@@ -441,6 +442,7 @@ def test_create_org_ok(client, seed, auth_headers):
     assert Organization.objects.filter(id=data["org_id"], name="New Org").exists()
 
 #-----------error tests-------------------
+
 def test_create_user_conflict(client, seed):
     # 'alice' was created by seed fixture
     payload = {"username": "alice", "password": "whatever"}
@@ -543,6 +545,57 @@ def test_create_org_missing_description(client, auth_headers):
     }
 
 
+@pytest.mark.django_db
+def test_get_user_no_token(client):
+    # No Authorization header → 401 + “No token”
+    resp = client.get("/user/")
+    assert resp.status_code == 401
+    assert resp.json() == {"success": False, "error": "No token"}
+
+@pytest.mark.django_db
+def test_get_user_bad_token(client):
+    # Malformed / unverifiable token → 401 + “Bad token”
+    resp = client.get(
+        "/user/",
+        HTTP_AUTHORIZATION="Bearer not.a.valid.jwt"
+    )
+    assert resp.status_code == 401
+    assert resp.json() == {"success": False, "error": "Bad token"}
+
+@pytest.mark.django_db
+def test_get_user_ok(client, seed, auth_headers):
+    alice = seed["alice"]
+    org1  = seed["org1"]
+
+    resp = client.get("/user/", **auth_headers())
+    assert resp.status_code == 200
+
+    data = resp.json()
+    # Basic scalar fields
+    assert data["user_id"]    == alice.id
+    assert data["name"]       == alice.name
+    assert data["First_name"] == alice.first_name
+    assert data["Last_name"]  == alice.last_name
+    assert data["Email"]      == alice.email
+    assert data["City"]       == alice.city
+    assert data["Bio"]        == alice.bio
+    assert data["Position"]   == alice.position
+
+    # Profile URL should be a presigned S3 URL
+    user_prefix = f"https://{settings.CT_BUCKET_USER_PROFILES}.s3.amazonaws.com/"
+    assert isinstance(data["Profile_pic_path"], str)
+    assert data["Profile_pic_path"].startswith(user_prefix)
+
+    # There should be exactly one org entry for org1
+    org_entries = [o for o in data["orgs"] if o["org_id"] == str(org1.id)]
+    assert len(org_entries) == 1
+    org_entry = org_entries[0]
+    assert org_entry["org_name"] == org1.name
+
+    # And its profile URL should also be a presigned S3 URL
+    org_prefix = f"https://{settings.CT_BUCKET_ORG_PROFILES}.s3.amazonaws.com/"
+    assert isinstance(org_entry["org_profile_pic_path"], str)
+    assert org_entry["org_profile_pic_path"].startswith(org_prefix)
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
