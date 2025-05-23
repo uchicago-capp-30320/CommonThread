@@ -416,6 +416,17 @@ def test_create_user_ok(client):
     # And the user really exists in the DB
     assert CustomUser.objects.filter(username="newtester").exists()
 
+def test_create_org_ok(client, seed, auth_headers):
+    alice = seed["alice"]
+    payload = {
+        "name":        "New Org",
+        "description": "This is a new org",
+        "creator":     alice.id
+    }
+    r = client.post("/org/create", json.dumps(payload),
+                    content_type="application/json", **auth_headers())
+    assert r.status_code == 201
+    assert Organization.objects.filter(name="New Org").exists()
 #-----------error tests-------------------
 def test_create_user_conflict(client, seed):
     # 'alice' was created by seed fixture
@@ -486,6 +497,23 @@ def test_get_org_unauthorized(client, seed):
         "success": False,
         "error": "Token missing or malformed"
     }
+
+def test_create_org_missing_fields(client, auth_headers):
+    # No name or description
+    payload = {}
+    resp = client.post(
+        "/org/create",
+        json.dumps(payload),
+        content_type="application/json",
+        **auth_headers()
+    )
+    assert resp.status_code == 400
+    assert resp.json() == {
+        "success": False,
+        "error": "Name and description are required"
+    }
+
+
 # ------------------ Edit Tests -----------------------------------
 
 def test_edit_story(client, seed, auth_headers_user3):
