@@ -2,6 +2,8 @@
 	// Refs: https://stackoverflow.com/questions/43370534/css-cutting-text-to-the-size-of-parent-div
 	// Refs: https://www.w3schools.com/css/css3_borders.asp
 	// Refs: https://dev.to/drews256/ridiculously-easy-row-and-column-layouts-with-flexbox-1k01
+	import { page } from '$app/stores';
+
 	let { story } = $props();
 </script>
 
@@ -15,6 +17,14 @@
 
 		<div class="text" id="storyContent">
 			{story.text_content}
+		</div>
+		<div class="row" style="margin-top: auto; justify-content: flex-end;">
+			<a href="{$page.url.pathname}/story/{story.story_id}" class="button is-primary">
+				<span>Read More</span>
+				<span class="icon">
+					<i class="fa fa-arrow-right"></i>
+				</span>
+			</a>
 		</div>
 	</div>
 </div>
