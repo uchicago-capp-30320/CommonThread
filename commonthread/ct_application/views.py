@@ -848,6 +848,7 @@ def add_user_to_org(request, org_id):
 def delete_user_from_org(request, org_id):
     try:
         org_user_data = json.loads(request.body or "{}")
+        print("org_user_data", org_user_data)
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
