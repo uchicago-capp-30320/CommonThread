@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 from django.test import Client
 from ct_application.models import (
+    MLProcessingQueue,
     CustomUser, Organization, OrgUser,
     Project, Story, Tag, StoryTag, ProjectTag
 )
@@ -18,57 +19,90 @@ pytestmark = pytest.mark.django_db
 # ────────────── seed data ──────────────
 @pytest.fixture
 def seed():
-    alice  = CustomUser.objects.create_user(
-        "alice", email="alice@example.com",
-        password="pass123", name="Alice"
+    # ─── Users ───
+    alice = CustomUser.objects.create_user(
+        username="alice",
+        email="alice@example.com",
+        password="pass123",
+        name="Alice"
     )
     brenda = CustomUser.objects.create_user(
-        "brenda", email="brenda@example.com",
-        password="secret456", name="Brenda"
+        username="brenda",
+        email="brenda@example.com",
+        password="secret456",
+        name="Brenda"
     )
     deleto = CustomUser.objects.create_user(
-        "deleto", email="deleto@example.com",
-        password="editdeletetester", name="Delly"
+        username="deleto",
+        email="deleto@example.com",
+        password="editdeletetester",
+        name="Delly"
     )
 
-    org1, org2, org3 = (
-        Organization.objects.create(name="UChicago"),
-        Organization.objects.create(name="HP Hist Soc"),
-        Organization.objects.create(name="Edit Delete Tester"),
-    )
+    # ─── Organizations ───
+    org1 = Organization.objects.create(name="UChicago")
+    org2 = Organization.objects.create(name="HP Hist Soc")
+    org3 = Organization.objects.create(name="Edit Delete Tester")
+
+    # ─── Memberships ───
     OrgUser.objects.bulk_create([
-        OrgUser(user_id=alice.id,  org_id=org1.id, access="admin"),
-        OrgUser(user_id=brenda.id, org_id=org2.id, access="admin"),
-        OrgUser(user_id=deleto.id, org_id=org3.id, access="creator"),
+        OrgUser(user=alice,  org=org1, access="admin"),
+        OrgUser(user=brenda, org=org2, access="admin"),
+        OrgUser(user=deleto, org=org3, access="creator"),
     ])
 
+    # ─── Projects ───
     proj1 = Project.objects.create(
-        org_id=org1.id, name="Campus Tales",
-        curator=alice, date=datetime.date(2025, 4, 1)
+        org=org1,
+        name="Campus Tales",
+        curator=alice,
+        date=datetime.date(2025, 4, 1)
     )
     proj_edit_delete = Project.objects.create(
-        org_id=org3.id, name="To Be Edited",
-        curator=deleto, date=datetime.date(2025, 4, 7)
+        org=org3,
+        name="To Be Edited",
+        curator=deleto,
+        date=datetime.date(2025, 4, 7)
     )
 
+    # ─── Stories ───
     story1 = Story.objects.create(
-        proj_id=proj1.id, storyteller="Alice",
-        curator=alice, date=datetime.date(2025, 4, 5),
-        text_content="Hello!"
+        proj=proj1,
+        storyteller="Alice",
+        curator=alice,
+        date=datetime.date(2025, 4, 5),
+        text_content="Hello!",
+        is_transcript=False
     )
     story2 = Story.objects.create(
-        proj_id=proj_edit_delete.id, storyteller="Delly",
-        curator=deleto, date=datetime.date(2025, 4, 7),
-        text_content="To be edited and deleted"
+        proj=proj_edit_delete,
+        storyteller="Delly",
+        curator=deleto,
+        date=datetime.date(2025, 4, 7),
+        text_content="To be edited and deleted",
+        is_transcript=False
     )
+
+    # ─── Tagging ───
     tag = Tag.objects.create(name="fun", value="yes", required=False)
-    StoryTag.objects.create(story_id=story1.id, tag_id=tag.id)
-    ProjectTag.objects.create(proj_id=proj1.id, tag_id=tag.id)
+    StoryTag.objects.create(story=story1, tag=tag)
+    ProjectTag.objects.create(proj=proj1, tag=tag)
+    StoryTag.objects.create(story=story2, tag=tag)
+    ProjectTag.objects.create(proj=proj_edit_delete, tag=tag)
 
-    StoryTag.objects.create(story_id=story2.id, tag_id=tag.id)
-    ProjectTag.objects.create(proj_id=proj_edit_delete.id, tag_id=tag.id)
-
-    return locals()
+    return {
+        "alice": alice,
+        "brenda": brenda,
+        "deleto": deleto,
+        "org1": org1,
+        "org2": org2,
+        "org3": org3,
+        "proj1": proj1,
+        "proj_edit_delete": proj_edit_delete,
+        "story1": story1,
+        "story2": story2,
+        "tag": tag,
+    }
 
 @pytest.fixture
 def client():
@@ -165,6 +199,51 @@ def test_create_story_ok(client, seed, auth_headers):
     r = client.post("/story/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
     assert r.status_code == 200
+
+@pytest.mark.django_db
+def test_get_ml_status_ok_independent(client):
+    # 1) build new org
+    org = Organization.objects.create(name="Test Org")
+    user = CustomUser.objects.create_user(
+        username="alice", password="pw123", email="a@e.com"
+    )
+    project = Project.objects.create(
+        org=org,
+        curator=user,
+        name="ML Test Project",
+        date=datetime.date(2025, 5, 23)
+    )
+    story   = Story.objects.create(
+        proj=project,
+        storyteller="bob",
+        curator=user,
+        date=datetime.date(2025, 5, 23),
+        text_content="hello world",
+        is_transcript=False
+    )
+    ml_task = MLProcessingQueue.objects.create(
+        story=story,
+        project=project,
+        task_type="tag",
+        status="processing"
+    )
+    resp = client.get(f"/story/{story.id}/ml-status")
+    assert resp.status_code == 200
+
+    data = resp.json()
+    assert data["success"]    is True
+    assert data["task_type"]  == "tag"
+    assert data["ml_status"]  == "processing"
+
+    # timestamp should be an ISO timestamp within a few seconds of now
+    ts = datetime.datetime.fromisoformat(data["timestamp"])
+    assert abs((ts - timezone.now()).total_seconds()) < 10
+
+@pytest.mark.django_db
+def test_get_ml_status_not_found_independent(client):
+    resp = client.get("/story/9999/ml-status")
+    assert resp.status_code == 404
+    assert resp.json() == {"success": False, "error": "ML status not found"}
 
 # ------------------ Edit Tests -----------------------------------
 
