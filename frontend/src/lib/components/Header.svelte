@@ -35,7 +35,7 @@
 	
 	// Mount 
 	onMount(async () => {
-			// Tasks to be executed right when the page is rendered
+		// Tasks to be executed right when the page is rendered
 		// Check authorization 
 		const now = new Date();
 		const expirationDate = new Date($userExpirationTimestamp);
