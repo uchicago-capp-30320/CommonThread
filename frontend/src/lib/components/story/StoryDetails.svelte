@@ -6,7 +6,9 @@
 	let required;
 	let optional;
 
-	let project = $derived(projects.filter((project) => project.project_id === storyData.project_id)[0]);
+	let project = $derived(
+		projects.filter((project) => project.project_id === storyData.project_id)[0]
+	);
 
 	if (project.required_tags.length === 0) {
 		required = [];
