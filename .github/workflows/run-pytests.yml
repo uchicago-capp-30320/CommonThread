@@ -1,9 +1,9 @@
 name: Run-Tests
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev, repo_maintenance ]
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main, dev, repo_maintenance ]
 
 jobs:
   test:
@@ -26,6 +26,10 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run tests
+        env: 
+          AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
+          AWS_S3_REGION_NAME: ${{ env.AWS_S3_REGION_NAME }}
+          AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
         run: | #Tests are internal to the application currently.
           cd commonthread
           uv run pytest
