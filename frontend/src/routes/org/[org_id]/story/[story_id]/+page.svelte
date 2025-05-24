@@ -1,7 +1,7 @@
 <script>
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
-	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
+	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
