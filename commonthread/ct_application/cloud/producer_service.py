@@ -166,9 +166,10 @@ class QueueProducer:
         """
         self.queue_strategy = queue_strategy
         self.tasks = {
-            "tag": MLTask("tag"),
+            # DO NOT CHANGE THIS ORDER: TRANSCRIPTION NEEDS TO HAPPEN FIRST
             "transcription": MLTask("transcription"),
             "summarization": MLTask("summarization"),
+            "tag": MLTask("tag")
         }
         logger.info(
             "QueueProducer initialized with %s", queue_strategy.__class__.__name__
