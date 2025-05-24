@@ -485,6 +485,17 @@ def get_org(request, org_id):
             "id", "name", "email", "position"
         )
         users_data = list(users)
+        
+        # Query OrgUser table for access levels
+        org_user_access = OrgUser.objects.filter(
+            org_id=org.id, user_id__in=user_ids
+        ).values("user_id", "access")
+
+        orguser_map = {entry["user_id"]: entry["access"] for entry in org_user_access}
+
+        # Add access level to each user
+        for user in users_data:
+            user["access"] = orguser_map.get(user["id"])
 
         # Generate presigned URL
         profile_pic_url = ""
