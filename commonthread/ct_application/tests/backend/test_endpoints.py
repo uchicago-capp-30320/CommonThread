@@ -77,6 +77,7 @@ def seed():
         curator=alice,
         date=datetime.date(2025, 4, 5),
         text_content="Hello!",
+        summary="summarized",
         is_transcript=False
     )
     story2 = Story.objects.create(
@@ -85,6 +86,7 @@ def seed():
         curator=deleto,
         date=datetime.date(2025, 4, 7),
         text_content="To be edited and deleted",
+        summary="summarized",
         is_transcript=False
     )
 
@@ -497,6 +499,7 @@ def test_get_story_ok(client, seed, auth_headers):
     assert data["curator"]      == story.curator.id
     assert data["date"]         == str(story.date)
     assert data["text_content"] == story.text_content
+    assert data["summary"] == story.summary
 
     # tags should be a list of {name,value} dicts
     assert isinstance(data["tags"], list)

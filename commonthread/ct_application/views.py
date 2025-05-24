@@ -648,6 +648,7 @@ def get_story(request, story_id):
                 "curator": story.curator.id if story.curator else None,
                 "date": story.date,
                 "text_content": story.text_content,
+                "summary": story.summary,
                 "tags": tags,
                 "audio_path": audio_url,
                 "image_path": image_url,
