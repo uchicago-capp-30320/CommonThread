@@ -136,7 +136,6 @@ def verify_user(required_access="user"):
                     return JsonResponse(
                     {"success": False, "error": "Body not loaded"}, status=400
                 )
-                logging.debug("Got to id_searcher")
                 auth_level, search_success = id_searcher(real_user_id, body, required_access)
             if search_success:
                 auth_level_check(auth_level, required_access)
@@ -159,53 +158,38 @@ def id_searcher(real_user_id, id_set, required_access):
         logger.debug("request? %r", id_set)
         # Separate out user requests that don't have any additional needs beyond authenticating the user
         if "user_id" not in id_set:
-            logger.debug("Flag 1.1")
             # Find the specific component of information that is needed for authorization
             if "org_id" not in id_set:
-                logger.debug("Flag 1.2")
                 if "project_id" not in id_set:
-                    logger.debug("Flag 1.3")
                     if "story_id" not in id_set:
-                        logger.debug("Flag 1.4")
                         return "user", True
                     else:
-                        logger.debug("Flag 1.4.1")
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
-                    logger.debug("Flag 1.3.1")
                     return check_project_auth(real_user_id, id_set["project_id"])
             else:
-                logger.debug("Flag 1.2.1")
                 return check_org_auth(real_user_id, id_set["org_id"])
         elif required_access != "user":
             logger.debug("Flag 2.1")
             # If there's a user id in there but we need admin/creator for some purpose.
             # This essentially serves as a failsafe against things that might include user ids
             if "org_id" not in id_set:
-                logger.debug("Flag 2.2")
                 if "project_id" not in id_set:
-                    logger.debug("Flag 2.3")
                     if "story_id" not in id_set:
-                        logger.debug("Flag 2.4")
                         return JsonResponse(
                             {"success": False, "error": "No Identifier Provided"},
                             status=400,
                         ), False
                     else:
-                        logger.debug("Flag 2.4.1")
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
-                    logger.debug("Flag 2.3.1")
                     return check_project_auth(real_user_id, id_set["project_id"])
             else:
-                logger.debug("Flag 2.2.1")
                 return check_org_auth(real_user_id, id_set["org_id"])
         else:
-            logger.debug("Flag 3")
             return "user", True
 
     except:
-        logger.debug("Flag 4")
         return JsonResponse(
             {"success": False, "error": "Identifier read failed"}, status=400
         ), False
