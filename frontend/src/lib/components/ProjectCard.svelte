@@ -4,6 +4,7 @@
 	import { page } from '$app/stores';
 
 	let { project } = $props();
+	console.log('ProjectCard', project);
 </script>
 
 <div class="card">
@@ -11,12 +12,12 @@
 		<div class="media">
 			<div class="media-content">
 				<p class="is-size-6 has-text-grey mb-1">Project</p>
-				<p class="title is-4">{project.name}</p>
+				<p class="title is-4">{project.project_name}</p>
 			</div>
 			<div class="media-right">
 				<div class="has-text-right">
 					<p class="is-size-6 has-text-grey mb-0">Stories</p>
-					<p class="is-size-5 has-text-weight-bold mt-0">{project.total_stories}</p>
+					<p class="is-size-5 has-text-weight-bold mt-0">{project.stories}</p>
 				</div>
 			</div>
 		</div>
@@ -24,8 +25,11 @@
 
 		<div class="content">
 			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
-			This is a description placeholder of the project. It can be a bit longer to give more context about
-			the project and its goals.
+			{#if project.insight}
+				{project.insight.slice(0, 100) + (project.insight.length > 100 ? '...' : '')}
+			{:else}
+				<em>No insight available</em>
+			{/if}
 		</div>
 		<div class="has-text-right mt-4">
 			<a href="{$page.url.pathname}/project/{project.id}" class="button is-primary">
