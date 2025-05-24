@@ -23,6 +23,7 @@
 	});
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
+	let isLoading = $state(true);
 
 	let searchValue = $state('');
 
@@ -73,6 +74,10 @@
 
 		if (storiesResponse.newAccessToken) {
 			accessToken.set(storiesResponse.newAccessToken);
+		}
+
+		if (storiesResponse.data !== null) {
+			isLoading = false;
 		}
 
 		const loadedData = storiesResponse.data;
@@ -185,7 +190,7 @@
 	<hr />
 
 	<div class="container">
-		{#if stories.length === 0}
+		{#if isLoading}
 			{#each [1, 2, 3] as project}
 				<div class="columns mt-4 is-multiline">
 					{#each [1, 2, 3] as _}
@@ -195,22 +200,30 @@
 					{/each}
 				</div>
 			{/each}
-		{:else if type === 'project'}
-			<div class="columns mt-4 is-multiline">
-				{#each filteredItems as project}
-					<div class="column is-one-third">
-						<ProjectCard {project} />
+		{:else if !isLoading && projects.length !== 0}
+			{#if type === 'project'}
+				<div class="columns mt-4 is-multiline">
+					{#each filteredItems as project}
+						<div class="column is-one-third">
+							<ProjectCard {project} />
+						</div>
+					{/each}
+				</div>
+			{:else if type === 'story'}
+				{#each filteredItems as story}
+					<div class="">
+						<StoryPreview {story} />
 					</div>
 				{/each}
-			</div>
-		{:else if type === 'story'}
-			{#each filteredItems as story}
-				<div class="">
-					<StoryPreview {story} />
-				</div>
-			{/each}
+			{/if}
 		{:else}
-			<p class="has-text-centered">No stories available</p>
+			<div class="has-text-centered my-6">
+				<p class="mb-2">
+					No projects have been created for this organizations. Please create a project first before
+					you can see a project.
+				</p>
+				<a href="/org/{org_id}/admin" class="button is-primary is-small"> Create a Project</a>
+			</div>
 		{/if}
 	</div>
 </div>

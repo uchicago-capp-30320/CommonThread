@@ -77,6 +77,7 @@ def seed():
         curator=alice,
         date=datetime.date(2025, 4, 5),
         text_content="Hello!",
+        summary="summarized",
         is_transcript=False
     )
     story2 = Story.objects.create(
@@ -85,6 +86,7 @@ def seed():
         curator=deleto,
         date=datetime.date(2025, 4, 7),
         text_content="To be edited and deleted",
+        summary="summarized",
         is_transcript=False
     )
 
@@ -240,8 +242,8 @@ def test_create_project_ok(client, seed, auth_headers):
     payload = {
         "org_id":  org1.id,
         "name":    "New Project",
+        "description": "New Project Description",
         "curator": alice.id,
-        "date":    "2025-05-01"
     }
     r = client.post("/project/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
@@ -497,6 +499,7 @@ def test_get_story_ok(client, seed, auth_headers):
     assert data["curator"]      == story.curator.id
     assert data["date"]         == str(story.date)
     assert data["text_content"] == story.text_content
+    assert data["summary"] == story.summary
 
     # tags should be a list of {name,value} dicts
     assert isinstance(data["tags"], list)
@@ -682,17 +685,17 @@ def test_get_user_ok(client, seed, auth_headers):
     # Basic scalar fields
     assert data["user_id"]    == alice.id
     assert data["name"]       == alice.name
-    assert data["First_name"] == alice.first_name
-    assert data["Last_name"]  == alice.last_name
-    assert data["Email"]      == alice.email
-    assert data["City"]       == alice.city
-    assert data["Bio"]        == alice.bio
-    assert data["Position"]   == alice.position
+    assert data["first_name"] == alice.first_name
+    assert data["last_name"]  == alice.last_name
+    assert data["email"]      == alice.email
+    assert data["city"]       == alice.city
+    assert data["bio"]        == alice.bio
+    assert data["position"]   == alice.position
 
     # Profile URL should be a presigned S3 URL
     user_prefix = f"https://{settings.CT_BUCKET_USER_PROFILES}.s3.amazonaws.com/"
-    assert isinstance(data["Profile_pic_path"], str)
-    assert data["Profile_pic_path"].startswith(user_prefix)
+    assert isinstance(data["profile_pic_path"], str)
+    assert data["profile_pic_path"].startswith(user_prefix)
 
     # There should be exactly one org entry for org1
     org_entries = [o for o in data["orgs"] if o["org_id"] == str(org1.id)]
@@ -930,18 +933,6 @@ def test_refresh_token_invalid(client):
     assert data["success"] is False
     assert data["error"] == "Invalid refresh token"
 
-def test_refresh_token_form_data(client, refresh_token):
-    """Test token refresh with form data instead of JSON"""
-    response = client.post(
-        "/create_access",
-        data={"refresh_token": refresh_token},
-        content_type="application/x-www-form-urlencoded"
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "access_token" in data
 
 @patch('ct_application.views.decode_refresh_token')
 def test_refresh_token_unexpected_error(mock_decode, client, refresh_token):

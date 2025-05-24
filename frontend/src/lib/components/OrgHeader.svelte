@@ -66,31 +66,6 @@
 							<span>Edit Organization</span>
 						</a>
 					</div>
-					<div class="dropdown {dActive ? 'is-active' : ''}">
-						<div class="dropdown-trigger">
-							<button
-								class="button is-secondary is-small"
-								aria-haspopup="true"
-								aria-controls="dropdown-menu"
-								onclick={() => {
-									dActive = !dActive;
-								}}
-							>
-								<span>Change Organization</span>
-								<span class="icon is-small">
-									<i class="fa fa-angle-down" aria-hidden="true"></i>
-								</span>
-							</button>
-						</div>
-						<div class="dropdown-menu" id="dropdown-menu" role="menu" hidden>
-							<div class="dropdown-content">
-								{#each orgs as org}
-									<a target="_self" href="/org/{org.org_id}" class="dropdown-item">{org.org_name}</a
-									>
-								{/each}
-							</div>
-						</div>
-					</div>
 				</nav>
 			</div>
 		</div>

@@ -20,7 +20,9 @@
 			No projects have been created for this organizations. Please create a project first before you
 			can add a project.
 		</p>
-		<a href="/org/{storyData.org_id}" class="button is-primary is-small"> Create Projects </a>
+		<a href="/org/{storyData.org_id}/admin" class="button is-primary is-small">
+			Create a Project
+		</a>
 	{:else if !loaded}
 		<p class="mb-2">Loading...</p>
 	{:else if loaded}
@@ -30,7 +32,7 @@
 			<label class="label" for="project">Project</label>
 			<div class="control">
 				<div class="select is-fullwidth">
-					<select id="project" bind:value={storyData.proj_id}>
+					<select id="project" bind:value={storyData.project_id}>
 						<option value="" disabled selected>Choose the project name</option>
 						{#each projects as project}
 							<option value={project.project_id}>{project.project_name}</option>m

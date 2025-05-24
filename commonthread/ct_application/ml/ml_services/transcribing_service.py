@@ -9,7 +9,6 @@ from ..ml_pipelines.transcribing_pipeline import (
 from ct_application.models import Story
 from commonthread.settings import CT_BUCKET_STORY_AUDIO
 from ct_application.utils import generate_s3_presigned
-from ct_application.ml.ml_services.tagging_service import TaggingService
 
 logger = logging.getLogger(__name__)
 
@@ -48,16 +47,7 @@ class TranscribingService:
             story = Story.objects.get(id=story_id)
             story.text_content = transcribed_text
             story.save(update_fields=["text_content"])
-
             logger.info(f"Saved transcription into text_content for story {story_id}")
-
-            tagging = TaggingService()
-            tagger_worked = tagging.process_story_tags(story_id)
-            if not tagger_worked:
-                logger.error(f"Tagging failed for story {story_id}")
-            logger.info(f"Processed tags for story {story_id}")
-
-            return True
 
         except Exception:
             logger.exception(f"Failed to process transcription for story {story_id}")

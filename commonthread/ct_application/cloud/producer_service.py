@@ -101,15 +101,22 @@ class SQSStrategy(QueueStrategy):
                 if task.story_level:
                     message["story_id"] = story.id
 
+                message_group_id = f"{story.id}"
+                sequence_prefix = "1" if task.task_type == "transcription" else "2"
+                deduplication_id = f"{sequence_prefix}_{story.id}_{task.task_type}_{datetime.now(UTC).timestamp()}"
+                
                 response = self.sqs.send_message(
-                    QueueUrl=self.queue_url, MessageBody=json.dumps(message)
+                    QueueUrl=self.queue_url,
+                    MessageBody=json.dumps(message),
+                    MessageGroupId=message_group_id, 
+                    MessageDeduplicationId=deduplication_id
                 )
                 task_ids[task.task_type] = response["MessageId"]
                 logger.info(
                     f"Successfully queued task {task.task_type} for story {story.id}"
                 )
-
             return {"success": True, "task_ids": task_ids}
+        
         except Exception as e:
             error_msg = (
                 f"Failed to add tasks to SQS queue for story {story.id}: {str(e)}"
@@ -166,9 +173,10 @@ class QueueProducer:
         """
         self.queue_strategy = queue_strategy
         self.tasks = {
-            "tag": MLTask("tag"),
+            # DO NOT CHANGE THIS ORDER: TRANSCRIPTION NEEDS TO HAPPEN FIRST
             "transcription": MLTask("transcription"),
             "summarization": MLTask("summarization"),
+            "tag": MLTask("tag")
         }
         logger.info(
             "QueueProducer initialized with %s", queue_strategy.__class__.__name__

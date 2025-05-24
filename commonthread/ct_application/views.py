@@ -485,6 +485,17 @@ def get_org(request, org_id):
             "id", "name", "email", "position"
         )
         users_data = list(users)
+        
+        # Query OrgUser table for access levels
+        org_user_access = OrgUser.objects.filter(
+            org_id=org.id, user_id__in=user_ids
+        ).values("user_id", "access")
+
+        orguser_map = {entry["user_id"]: entry["access"] for entry in org_user_access}
+
+        # Add access level to each user
+        for user in users_data:
+            user["access"] = orguser_map.get(user["id"])
 
         # Generate presigned URL
         profile_pic_url = ""
@@ -648,6 +659,7 @@ def get_story(request, story_id):
                 "curator": story.curator.id if story.curator else None,
                 "date": story.date,
                 "text_content": story.text_content,
+                "summary": story.summary,
                 "tags": tags,
                 "audio_path": audio_url,
                 "image_path": image_url,
@@ -996,10 +1008,11 @@ def create_project(request):
 
     try:
         project = Project.objects.create(
-            name = project_data["project_name"],
+            name = project_data["name"],
+            description = project_data["description"],
             curator = curator,
             org = org,
-            date= project_data.get("date", str(date.today())),
+            date= project_data.get("date", date.today()),
         )
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])
@@ -1277,13 +1290,13 @@ def get_user(request):
         user_data = {
             "user_id": user.id,
             "name": user.name,
-            "First_name": user.first_name,
-            "Last_name": user.last_name,
-            "Email": user.email,
-            "City": user.city,
-            "Bio": user.bio,
-            "Position": user.position,
-            "Profile_pic_path": user_profile_url,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "city": user.city,
+            "bio": user.bio,
+            "position": user.position,
+            "profile_pic_path": user_profile_url,
             "orgs": orgs,
         }
 
