@@ -32,7 +32,9 @@
 			case 2:
 				return storyData.storyteller && storyData.author;
 			case 3:
-				return storyData.storyteller && storyData.author && storyData.text_content;
+				return (
+					storyData.storyteller && storyData.author && (storyData.text_content || storyData.audio)
+				);
 			default:
 				return false;
 		}

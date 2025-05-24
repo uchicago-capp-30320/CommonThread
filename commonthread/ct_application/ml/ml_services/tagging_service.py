@@ -43,7 +43,7 @@ class TaggingService:
                 tag_value = tag["word"]
 
                 tag, _ = Tag.objects.get_or_create(
-                    name=tag_name, value=tag_value, created_by="computer"
+                    name=tag_name, value=tag_value, created_by="computer",required=False
                 )
 
                 story = Story.objects.get(id=story_id)
