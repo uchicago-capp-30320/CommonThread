@@ -13,7 +13,7 @@
 	// URL parameters
 	const org_id = page.params.org_id;
 
-	// Tasks while launch
+	// Tasks to be executed right when the page is rendered
 	onMount(async () => {
 		// Check authorization 
 		let authorized = $state(false)
@@ -37,6 +37,10 @@
 			}
 		}
 	}); 
+
+	const logOut = () => {
+		// TODO 
+	}
 
 	// Drop-down button state
 	let dActive = $state(false)
@@ -95,7 +99,7 @@
 			</div>
 			<div class="auth">
 				<a href="/login">
-					<button class="logout-btn">Log In</button>
+					<button onclick={() => logOut} class="logout-btn">Log In</button>
 				</a>
 			</div>
 		</div>
