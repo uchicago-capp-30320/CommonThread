@@ -22,6 +22,10 @@
 	});
 </script>
 
+<svelte:head>
+	<title>Common Thread</title>
+</svelte:head>
+
 <div id="container">
 	<div class="banner">
 		<img src={background_texture} alt="" />
