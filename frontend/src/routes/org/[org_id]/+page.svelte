@@ -45,6 +45,26 @@
 			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
 		]);
 
+		// get project info from all projects concurrently
+		const project_ids = orgResponse.data.project_ids;
+		const projectPromises = project_ids.map((project_id) =>
+			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+		);
+		const projectResponses = await Promise.all(projectPromises);
+		// Extract project data from the responses
+		projects = projectResponses.map((response) => {
+			return response.data;
+		});
+
+		// Sort projects by number of stories (largest to smallest)
+		projects = projects.sort((a, b) => {
+			// Check if projects have a stories property, otherwise use 0
+			const aStories = a.stories ? a.stories : 0;
+			const bStories = b.stories ? b.stories : 0;
+			// Sort in descending order (largest to smallest)
+			return bStories - aStories;
+		});
+
 		console.log('orgResponse', orgResponse.data);
 
 		orgData = orgResponse.data;
@@ -60,29 +80,6 @@
 		stories = loadedData['stories'];
 		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
 		storiesTotal = stories.length;
-
-		// Group stories by project_id
-		const projectGroups = {};
-		stories.forEach((story) => {
-			const projectId = story.project_id || 'unknown';
-			if (!projectGroups[projectId]) {
-				projectGroups[projectId] = {
-					id: projectId,
-					name: story.project_name || 'Unnamed Project',
-					description: story.project_description || 'No description available',
-					stories: []
-				};
-			}
-			projectGroups[projectId].stories.push(story);
-		});
-
-		// Convert to array and add story count
-		projects = Object.values(projectGroups).map((project) => ({
-			id: project.id,
-			name: project.name,
-			description: project.description,
-			total_stories: project.stories.length
-		}));
 	});
 
 	// Create a function to filter items based on search value
