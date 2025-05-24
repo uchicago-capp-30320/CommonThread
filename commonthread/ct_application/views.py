@@ -973,7 +973,6 @@ def delete_story(request, story_id):
 @require_POST
 @verify_user("admin")
 def create_project(request):
-
     try:
         project_data = json.loads(request.body or "{}")
     except json.JSONDecodeError:
@@ -993,14 +992,15 @@ def create_project(request):
             {"success": False, "error": "Organization not found"}, status=404
         )
 
+    curator = CustomUser.objects.get(id = project_data["curator"])
+
     try:
         project = Project.objects.create(
-            name=project_data["project_name"],
-            curator_id = project_data["curator"],
-            org = org.id,
-            date=project_data.get("date", str(date.today())),
+            name = project_data["project_name"],
+            curator = curator,
+            org = org,
+            date= project_data.get("date", str(date.today())),
         )
-
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])
         optional_tags = project_data.get("optional_tags", [])
