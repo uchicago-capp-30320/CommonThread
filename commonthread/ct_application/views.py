@@ -1279,13 +1279,13 @@ def get_user(request):
         user_data = {
             "user_id": user.id,
             "name": user.name,
-            "First_name": user.first_name,
-            "Last_name": user.last_name,
-            "Email": user.email,
-            "City": user.city,
-            "Bio": user.bio,
-            "Position": user.position,
-            "Profile_pic_path": user_profile_url,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "city": user.city,
+            "bio": user.bio,
+            "position": user.position,
+            "profile_pic_path": user_profile_url,
             "orgs": orgs,
         }
 
