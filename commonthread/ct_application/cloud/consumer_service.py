@@ -128,7 +128,7 @@ class MLWorkerService:
             return {"status": "ok"}
 
         if not CT_SQS_QUEUE_URL:
-            logger.error("AWS_SQS_QUEUE_URL not set. Exiting.")
+            logger.error("CT_SQS_QUEUE_URL not set. Exiting.")
             return
         logger.info("Starting SQS poll loop on %s", CT_SQS_QUEUE_URL)
         while True:
