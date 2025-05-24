@@ -110,10 +110,7 @@
 						{#if includesImage}
 							<div class="media">
 								<div class="media-right" id="images">
-									<figure>
-										<img src={storyData.image_path} alt="" />
-										<figcaption>Figure 1</figcaption>
-									</figure>
+									<img src={storyData.image_path} alt="Story image" />
 								</div>
 							</div>
 						{/if}
@@ -139,10 +136,9 @@
 		justify-content: center;
 	}
 
-	img {
+	#images {
 		/* max-height: 300px; */
-		width: auto;
-		/* width: 80%; */
+		max-width: 100%;
 		/* margin: 0 10px; */
 		object-fit: contain;
 	}
