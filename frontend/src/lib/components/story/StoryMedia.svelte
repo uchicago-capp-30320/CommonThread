@@ -12,7 +12,7 @@
 	let error = $state(null);
 	let isUploading = $state(false);
 
-	let project = $derived(projects.filter((project) => project.project_id === storyData.proj_id)[0]);
+	let project = $derived(projects.filter((project) => project.project_id === storyData.project_id)[0]);
 
 	let storyDataToSubmit = $state({ ...storyData });
 

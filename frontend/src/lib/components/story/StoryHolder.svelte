@@ -14,7 +14,7 @@
 		tags: [],
 		image: null,
 		audio: null,
-		proj_id: '',
+		project_id: '',
 		audio_path: null,
 		image_path: null
 	});
