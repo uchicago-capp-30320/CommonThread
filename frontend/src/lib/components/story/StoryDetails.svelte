@@ -1,4 +1,6 @@
 <script>
+	import { text } from '@sveltejs/kit';
+
 	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
 	let wordCount = $derived(storyData.text_content.trim().split(/\s+/).length);
 	let required;
@@ -27,8 +29,10 @@
 	let tagCategories = $state({ required: required, optional: optional });
 	let selectedOptionalCategory = $state(optional[0]?.id || '');
 	let optionalTagValue = $state('');
+	let textActive = $state(true);
+	let audioActive = $state(false);
 
-	$inspect(tagCategories);
+	$inspect(tagCategories, textActive, audioActive);
 
 	function getTagMap() {
 		return new Map((storyData.tags || []).map((tag) => [tag.category, tag]));
@@ -99,14 +103,12 @@
 
 		<div class="tabs is-boxed">
 			<ul>
-				<li class={!storyData.audio ? 'is-active' : ''}>
+				<li class={textActive ? 'is-active' : ''}>
 					<a
 						onclick={() => {
-							if (storyData.audio) {
-								storyData = {
-									...storyData,
-									audio: null
-								};
+							if (!storyData.audio && storyData.text_content === '') {
+								textActive = !textActive;
+								audioActive = !audioActive;
 							}
 						}}
 					>
@@ -114,13 +116,13 @@
 						<span>Text</span>
 					</a>
 				</li>
-				<li class={storyData.audio ? 'is-active' : ''}>
+				<li class={audioActive ? 'is-active' : ''}>
 					<a
 						onclick={() => {
-							storyData = {
-								...storyData,
-								audio: storyData.audio || new File([], '')
-							};
+							if (storyData.text_content === '' && !storyData.audio) {
+								audioActive = !audioActive;
+								textActive = !textActive;
+							}
 						}}
 					>
 						<span class="icon is-small"><i class="fa fa-microphone"></i></span>
@@ -132,7 +134,7 @@
 
 		<div class="tab-content">
 			<!-- Text Tab Content -->
-			{#if !storyData.audio}
+			{#if textActive}
 				<div class="control">
 					<textarea
 						class="textarea"
@@ -187,7 +189,7 @@
 	<div class="field mt-4">
 		<div class="label">Required Tags</div>
 		{#if Object.keys(tagCategories.required).length === 0}
-			<p class="help">No required tags for this project.</p>
+			<p>No required tags for this project.</p>
 		{:else}
 			<div class="tags mb-3">
 				{#each storyData.tags as tag, index}
@@ -223,7 +225,7 @@
 		<label class="label">Optional Tags</label>
 		<div class="tags mb-3">
 			{#if Object.keys(tagCategories.optional).length === 0}
-				<p class="">No optional tags for this project.</p>
+				<p>No optional tags for this project.</p>
 			{:else}
 				{#each storyData.tags as tag, index}
 					{#if tagCategories.optional.some((cat) => cat.id === tag.category)}
@@ -234,35 +236,35 @@
 						</span>
 					{/if}
 				{/each}
-			{/if}
-		</div>
-		<div class="field has-addons">
-			<div class="control is-expanded">
-				<div class="select is-fullwidth">
-					<select bind:value={selectedOptionalCategory}>
-						{#each tagCategories.optional as category}
-							<option value={category.id}>{category.label}</option>
-						{/each}
-					</select>
+				<div class="field has-addons">
+					<div class="control is-expanded">
+						<div class="select is-fullwidth">
+							<select bind:value={selectedOptionalCategory}>
+								{#each tagCategories.optional as category}
+									<option value={category.id}>{category.label}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+					<div class="control is-expanded">
+						<input
+							class="input"
+							type="text"
+							placeholder="Enter tag value..."
+							bind:value={optionalTagValue}
+						/>
+					</div>
+					<div class="control">
+						<button
+							class="button add-tag-btn"
+							onclick={addOptionalTag}
+							disabled={!optionalTagValue.trim()}
+						>
+							Add
+						</button>
+					</div>
 				</div>
-			</div>
-			<div class="control is-expanded">
-				<input
-					class="input"
-					type="text"
-					placeholder="Enter tag value..."
-					bind:value={optionalTagValue}
-				/>
-			</div>
-			<div class="control">
-				<button
-					class="button add-tag-btn"
-					onclick={addOptionalTag}
-					disabled={!optionalTagValue.trim()}
-				>
-					Add
-				</button>
-			</div>
+			{/if}
 		</div>
 	</div>
 
