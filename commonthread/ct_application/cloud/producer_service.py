@@ -173,7 +173,6 @@ class QueueProducer:
         """
         self.queue_strategy = queue_strategy
         self.tasks = {
-            # DO NOT CHANGE THIS ORDER: TRANSCRIPTION NEEDS TO HAPPEN FIRST
             "transcription": MLTask("transcription"),
             "summarization": MLTask("summarization"),
             "tag": MLTask("tag")
@@ -248,6 +247,13 @@ class QueueProducer:
             Dict containing success status and additional information
         """
         try:
+            if story.audio_content is None:
+                logger.warning(f"Story {story.id} has no audio content")
+                self.disable_task("transcription")
+                if story.text_content is None:
+                    logger.warning(f"Story {story.id} has no text content")
+                    return {"success": False, "error": "Story has no audio or text content"}
+
             with transaction.atomic():
                 enabled_tasks = self.get_enabled_tasks()
                 if not enabled_tasks:
