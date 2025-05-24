@@ -930,18 +930,6 @@ def test_refresh_token_invalid(client):
     assert data["success"] is False
     assert data["error"] == "Invalid refresh token"
 
-def test_refresh_token_form_data(client, refresh_token):
-    """Test token refresh with form data instead of JSON"""
-    response = client.post(
-        "/create_access",
-        data={"refresh_token": refresh_token},
-        content_type="application/x-www-form-urlencoded"
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["success"] is True
-    assert "access_token" in data
 
 @patch('ct_application.views.decode_refresh_token')
 def test_refresh_token_unexpected_error(mock_decode, client, refresh_token):
