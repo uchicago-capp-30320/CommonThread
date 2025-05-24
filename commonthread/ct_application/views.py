@@ -997,6 +997,7 @@ def create_project(request):
     try:
         project = Project.objects.create(
             name = project_data["name"],
+            description = project_data["description"],
             curator = curator,
             org = org,
             date= project_data.get("date", date.today()),

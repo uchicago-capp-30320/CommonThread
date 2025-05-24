@@ -240,6 +240,7 @@ def test_create_project_ok(client, seed, auth_headers):
     payload = {
         "org_id":  org1.id,
         "name":    "New Project",
+        "description": "New Project Description",
         "curator": alice.id,
     }
     r = client.post("/project/create", json.dumps(payload),

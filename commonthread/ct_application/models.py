@@ -31,6 +31,7 @@ class Organization(models.Model):
 class Project(models.Model):
     org = models.ForeignKey(Organization, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
     curator = models.ForeignKey(CustomUser, models.SET_NULL, blank=True, null=True)
     date = models.DateField()
     insight = models.TextField(null=True, blank=True)
