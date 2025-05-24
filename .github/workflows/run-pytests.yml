@@ -30,6 +30,20 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ env.AWS_ACCESS_KEY_ID }}
           AWS_S3_REGION_NAME: ${{ env.AWS_S3_REGION_NAME }}
           AWS_SECRET_ACCESS_KEY: ${{ env.AWS_SECRET_ACCESS_KEY }}
+          CT_BUCKET_ORG_PROFILES: ${{ env.CT_BUCKET_ORG_PROFILES }}
+          CT_BUCKET_STORY_AUDIO: ${{ env.CT_BUCKET_STORY_AUDIO }}
+          CT_BUCKET_STORY_IMAGES: ${{ env.CT_BUCKET_STORY_IMAGES }}
+          CT_BUCKET_USER_PROFILES: ${{ env.CT_BUCKET_USER_PROFILES }}
+          CT_SQS_QUEUE_URL: ${{ env.CT_SQS_QUEUE_URL }}
+          DATABASE_HOST: ${{ env.DATABASE_HOST }}
+          DATABASE_PASSWORD: ${{ env.DATABASE_PASSWORD }}
+          DATABASE_PORT: ${{ env.DATABASE_PORT }}
+          DATABASE_USER: ${{ env.DATABASE_USER }}
+          DEEPGRAM_API_KEY: ${{ env.DEEPGRAM_API_KEY }}
+          JWT_REFRESH_SECRET_KEY: ${{ env.JWT_REFRESH_SECRET_KEY }}
+          JWT_SECRET_KEY: ${{ env.JWT_SECRET_KEY }}
+          PERPLEXITY_API: ${{ env.PERPLEXITY_API }}
+          SECRET_KEY: ${{ env.SECRET_KEY }}
         run: | #Tests are internal to the application currently.
           cd commonthread
           uv run pytest
