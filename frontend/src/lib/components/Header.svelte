@@ -11,47 +11,59 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 
-	// URL parameters
-	if (page.url.pathname.includes("org/")) {
-		let org_id = page.params.org_id;
-	}
-	
-	// Initialize state 
-	let loading = $state(true); 
-	let authorized = $state(false); 
+	// Initialize state
+	let loading = $state(true);
+	let authorized = $state(false);
 	let dActive = $state(false);
 	let orgs = $state([]);
+	let org_id = $state(null);
+	let isHome = $state(page.url.pathname === '/');
+	let first_name = $state(null);
 
-	// Define functions 
-	const getOrgs = async () => {
-		const userRequest = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
-		orgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
+	// URL parameters
+	if (page.url.pathname.includes('org/')) {
+		org_id = page.params.org_id;
 	}
 
-	const logOut = (() => {
-		// TODO 
-		console.log("Pring log out")
-	}	)
-	
-	// Mount 
+	// Define functions
+	const getOrgs = async () => {
+		const userRequest = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
+		console.log('userRequest', userRequest);
+		if (org_id) {
+			orgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
+		} else {
+			orgs = userRequest.data.orgs;
+		}
+		first_name = userRequest.data.first_name;
+		authorized = true;
+	};
+
+	const logOut = () => {
+		console.log('Print log out');
+		accessToken.set('');
+		refreshToken.set('');
+		authorized = false;
+		// redirect to login page
+		window.location.href = '/login';
+	};
+
+	// Mount
 	onMount(async () => {
 		// Tasks to be executed right when the page is rendered
-		// Check authorization 
+		// Check authorization
 		const now = new Date();
 		const expirationDate = new Date($userExpirationTimestamp);
-		
-		if (now > expirationDate) {
+
+		if (now > expirationDate || $accessToken == '') {
 			console.log('User token expired');
 		} else {
 			console.log('User token is valid');
-			authorized = true; 
 			getOrgs();
 		}
 
 		loading = false;
 	});
 </script>
-
 
 <header class="header">
 	<div class="logo">
@@ -73,43 +85,56 @@
 					<a href="/login">
 						<button class="login-btn">Log In</button>
 					</a>
-					<!-- <a href="/signup">
+					<a href="/signup">
 						<button class="signup-btn">Sign Up</button>
-					</a> -->
+					</a>
 				</div>
 			</div>
 		{:else}
 			<div class="right-section">
-				<!-- {#if page.url.pathname.includes("org/")}
-					<div class="dropdown {dActive ? 'is-active' : ''}">
-						<div class="dropdown-trigger">
-							<button
-								class="button is-secondary is-small"
-								aria-haspopup="true"
-								aria-controls="dropdown-menu"
-								onclick={() => {
-									dActive = !dActive;
-								}}
-							>
-								<span>Change Organization</span>
-								<span class="icon is-small">
-									<i class="fa fa-angle-down" aria-hidden="true"></i>
-								</span>
-							</button>
-						</div>
-						<div class="dropdown-menu" id="dropdown-menu" role="menu" hidden>
-							<div class="dropdown-content">
-								{#each orgs as org}
-									<a target="_self" href="/org/{org.org_id}" class="dropdown-item">{org.org_name}</a
-									>
-								{/each}
-							</div>
+				<div class="dropdown {dActive ? 'is-active' : ''}">
+					<div class="dropdown-trigger">
+						<button
+							class="login-btn"
+							aria-haspopup="true"
+							aria-controls="dropdown-menu"
+							onclick={() => {
+								dActive = !dActive;
+							}}
+						>
+							<span>{isHome ? 'Choose Organization' : 'Change Organization'}</span>
+							<span class="icon">
+								<i class="fa fa-angle-down" aria-hidden="true"></i>
+							</span>
+						</button>
+					</div>
+					<div class="dropdown-menu" id="dropdown-menu" role="menu" hidden>
+						<div class="dropdown-content">
+							{#each orgs as org}
+								<div class="m-2">
+									<a href="/org/{org.org_id}" target="_self" class="dropdown-item">
+										<div class="org-item">
+											<span class="org-name">{org.org_name}</span>
+											<span class="icon is-small">
+												<i class="fa fa-arrow-right" aria-hidden="true"></i>
+											</span>
+										</div>
+									</a>
+								</div>
+							{/each}
 						</div>
 					</div>
-				{/if} -->
+				</div>
+
 				<div class="auth">
-					<a href="/login">
-						<button onclick={() => logOut} class="logout-btn">Log Out</button>
+					<button onclick={logOut} class="logout-btn">Log Out</button>
+				</div>
+				<div class="user-greeting">
+					<a href="/user" class="is-flex is-align-items-center">
+						<span class="icon mr-2">
+							<i class="fa fa-user-circle"></i>
+						</span>
+						<span>Hi, {first_name}</span>
 					</a>
 				</div>
 			</div>
@@ -183,6 +208,16 @@
 
 	.login-btn {
 		background-color: #56bcb3;
+		color: white;
+		font-weight: 700;
+		border: none;
+		border-radius: 4px;
+		padding: 0.5rem 1rem;
+		cursor: pointer;
+	}
+
+	.signup-btn {
+		background-color: #133335;
 		color: white;
 		font-weight: 700;
 		border: none;

@@ -1,7 +1,6 @@
 <script>
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import ProjectCard from '$lib/components/ProjectCard.svelte';
-	import StoryCard from '$lib/components/StoryCard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 
@@ -16,7 +15,12 @@
 	let projectsTotal = $state('...');
 	let storiesTotal = $state('...');
 	let projects = $state([]);
-	let orgName = $state('Loading...');
+	let orgData = $state({
+		org_id: null,
+		name: 'Loading...',
+		description: 'Loading...',
+		profile_pic_path: 'https://bulma.io/assets/images/placeholders/96x96.png'
+	});
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
 
@@ -29,7 +33,7 @@
 		}
 	]);
 
-	$inspect(searchValue);
+	$inspect(orgData);
 
 	onMount(async () => {
 		// Fetch the data when the component mounts
@@ -41,7 +45,9 @@
 			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
 		]);
 
-		orgName = orgResponse.data.name;
+		console.log('orgResponse', orgResponse.data);
+
+		orgData = orgResponse.data;
 
 		changeOrgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
 
@@ -120,8 +126,10 @@
 <div class="container">
 	<div class="p-5">
 		<OrgHeader
-			org_name={orgName}
+			org_name={orgData.name}
 			description="This is a description of my organization"
+			,
+			profile_pic_path={orgData.profile_pic_path}
 			numProjects={projectsTotal}
 			numStories={storiesTotal}
 			orgs={changeOrgs}
@@ -145,7 +153,7 @@
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/org/{org_id}/stories/new" class="button">
+					<a href="/org/{org_id}/story/new" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>

@@ -67,11 +67,17 @@
 	<title>Login</title>
 </svelte:head>
 
-<div id="container">
+<div id="container" class="mb-5">
 	<div class="container is-max-tablet">
 		<div class="notification">
 			<div class="title has-text-centered">LOGIN</div>
-			<form onsubmit={() => login({ username, password })}>
+			<form
+				onsubmit={() => {
+					// Prevent default form submission
+					event.preventDefault();
+					login({ username, password });
+				}}
+			>
 				<div class="field">
 					<label class="label" for="username" bind>Username</label>
 					<div class="control has-icons-left has-icons-right">

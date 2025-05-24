@@ -218,8 +218,8 @@ class QueueProducer:
                         story=story if task.story_level else None,
                         project=story.proj,
                         task_type=task.task_type,
-                        status="processing",
-                        timestamp=datetime.now(datetime.UTC),
+                        status="initialized",
+                        timestamp=datetime.now(UTC),
                     )
                 )
             return MLProcessingQueue.objects.bulk_create(entries)

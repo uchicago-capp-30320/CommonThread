@@ -86,7 +86,7 @@
 					</div>
 				</div>
 				<div class="level-item pl-6">
-					<a href="/stories/new" class="button">
+					<a href="/org/{projectData.org_id}/story/new" class="button">
 						<span class="icon">
 							<i class="fa fa-plus"></i>
 						</span>

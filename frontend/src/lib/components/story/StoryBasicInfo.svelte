@@ -19,7 +19,7 @@
 		<label class="label" for="project">Project</label>
 		<div class="control">
 			<div class="select is-fullwidth">
-				<select id="project" bind:value={storyData.project}>
+				<select id="project" bind:value={storyData.proj_id}>
 					<option value="" disabled selected>Choose the project name</option>
 					{#each projects as project}
 						<option value={project.project_id}>{project.project_name}</option>m

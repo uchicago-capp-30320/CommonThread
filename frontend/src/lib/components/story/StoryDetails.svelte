@@ -1,31 +1,31 @@
 <script>
 	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
-	let wordCount = $derived(storyData.content.trim().split(/\s+/).length);
+	let wordCount = $derived(storyData.text_content.trim().split(/\s+/).length);
 	let required;
 	let optional;
 
-	projects = projects[0];
+	let project = $derived(projects.filter((project) => project.project_id === storyData.proj_id)[0]);
 
-	if (projects.required_tags.length === 0) {
+	if (project.required_tags.length === 0) {
 		required = [];
 	} else {
-		required = projects.required_tags.map((tag) => ({
+		required = project.required_tags.map((tag) => ({
 			id: tag,
 			label: tag
 		}));
 	}
 
-	if (projects.optional_tags.length === 0) {
+	if (project.optional_tags.length === 0) {
 		optional = [];
 	} else {
-		optional = projects.optional_tags.map((tag) => ({
+		optional = project.optional_tags.map((tag) => ({
 			id: tag,
 			label: tag
 		}));
 	}
 
 	let tagCategories = $state({ required: required, optional: optional });
-	let selectedOptionalCategory = $state(tagCategories.optional[0].id);
+	let selectedOptionalCategory = $state(optional[0]?.id || '');
 	let optionalTagValue = $state('');
 
 	$inspect(tagCategories);
@@ -84,7 +84,7 @@
 	}
 
 	function handleNext() {
-		if (storyData.content && hasAllRequiredTags()) {
+		if ((storyData.text_content || storyData.audio) && hasAllRequiredTags()) {
 			currentStep = 3;
 		}
 	}
@@ -95,15 +95,85 @@
 
 	<div class="field">
 		<label class="label" for="story-text">Your Story</label>
-		<div class="control">
-			<textarea
-				class="textarea"
-				id="story-text"
-				bind:value={storyData.content}
-				placeholder="Share your story here..."
-				rows="6"
-				required
-			></textarea>
+		<p class="help mb-2">Share your story in your own words. Share either text or an audio file.</p>
+
+		<div class="tabs is-boxed">
+			<ul>
+				<li class={!storyData.audio ? 'is-active' : ''}>
+					<a
+						onclick={() => {
+							if (storyData.audio) {
+								storyData = {
+									...storyData,
+									audio: null
+								};
+							}
+						}}
+					>
+						<span class="icon is-small"><i class="fa fa-font"></i></span>
+						<span>Text</span>
+					</a>
+				</li>
+				<li class={storyData.audio ? 'is-active' : ''}>
+					<a
+						onclick={() => {
+							storyData = {
+								...storyData,
+								audio: storyData.audio || new File([], '')
+							};
+						}}
+					>
+						<span class="icon is-small"><i class="fa fa-microphone"></i></span>
+						<span>Audio</span>
+					</a>
+				</li>
+			</ul>
+		</div>
+
+		<div class="tab-content">
+			<!-- Text Tab Content -->
+			{#if !storyData.audio}
+				<div class="control">
+					<textarea
+						class="textarea"
+						id="story-text"
+						bind:value={storyData.text_content}
+						placeholder="Share your story here..."
+						rows="6"
+						required
+					></textarea>
+				</div>
+			{:else}
+				<!-- Audio Tab Content -->
+				<div class="control">
+					<div class="file has-name is-fullwidth">
+						<label class="file-label">
+							<input
+								class="file-input"
+								type="file"
+								accept="audio/*"
+								onchange={(e) => {
+									if (e.target.files.length > 0) {
+										storyData = {
+											...storyData,
+											audio: e.target.files[0]
+										};
+									}
+								}}
+							/>
+							<span class="file-cta">
+								<span class="file-icon">
+									<i class="fa fa-upload"></i>
+								</span>
+								<span class="file-label">Choose an audio file...</span>
+							</span>
+							<span class="file-name">
+								{storyData.audio?.name || 'No file selected'}
+							</span>
+						</label>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 	<div class="is-flex is-justify-content-flex-end mb-2">
@@ -201,7 +271,7 @@
 			<button
 				class="button is-primary"
 				onclick={handleNext}
-				disabled={!storyData.content ||
+				disabled={(!storyData.text_content && !storyData.audio) ||
 					!tagCategories.required.every((cat) =>
 						(storyData.tags || []).some((tag) => tag.category === cat.id && tag.value.trim())
 					)}
