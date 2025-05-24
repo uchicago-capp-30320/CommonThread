@@ -12,7 +12,9 @@
 	let error = $state(null);
 	let isUploading = $state(false);
 
-	let project = $derived(projects.filter((project) => project.project_id === storyData.project_id)[0]);
+	let project = $derived(
+		projects.filter((project) => project.project_id === storyData.project_id)[0]
+	);
 
 	let storyDataToSubmit = $state({ ...storyData });
 
@@ -203,6 +205,11 @@
 {:else}
 	<div class="field mt-5">
 		<h2 class="title is-4 mb-4">Story submitted</h2>
-		<p>Thank you for sharing</p>
+		<p>Thank you for sharing your story!</p>
+		<div class="mt-4">
+			<a href="/org/{$page.params.org_id}" class="button is-primary">
+				Return to Organization Homepage
+			</a>
+		</div>
 	</div>
 {/if}

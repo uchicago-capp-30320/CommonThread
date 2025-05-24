@@ -1,7 +1,7 @@
 <script>
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
-	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
+	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
@@ -65,14 +65,18 @@
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
 				<li><a href="/">Home</a></li>
-				<li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+				<li>
+					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
+				</li>
 				<li class="">
 					<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
-						>{storyData.project_name}</a
+						><b>Project</b>: {storyData.project_name}</a
 					>
 				</li>
 				<li class="is-active">
-					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page">Story: {story_id}</a>
+					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
+						><b>Story</b>: {story_id}</a
+					>
 				</li>
 			</ul>
 		</nav>
@@ -106,10 +110,7 @@
 						{#if includesImage}
 							<div class="media">
 								<div class="media-right" id="images">
-									<figure>
-										<img src={storyData.image_path} alt="" />
-										<figcaption>Figure 1</figcaption>
-									</figure>
+									<img src={storyData.image_path} alt="Story image" />
 								</div>
 							</div>
 						{/if}
@@ -135,10 +136,9 @@
 		justify-content: center;
 	}
 
-	img {
+	#images {
 		/* max-height: 300px; */
-		width: auto;
-		/* width: 80%; */
+		max-width: 100%;
 		/* margin: 0 10px; */
 		object-fit: contain;
 	}
