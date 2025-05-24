@@ -211,7 +211,7 @@
 				</div>
 			{:else if type === 'story'}
 				{#each filteredItems as story}
-					<div class="">
+					<div class="mb-4">
 						<StoryPreview {story} />
 					</div>
 				{/each}

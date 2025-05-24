@@ -25,6 +25,8 @@
 	} = $props();
 
 	let dActive = $state(false);
+
+	let notAdminPage = $state(!$page.url.pathname.includes('admin'));
 </script>
 
 <div class="columns">
@@ -57,16 +59,18 @@
 						</div>
 					</div>
 				</nav>
-				<nav class="level-right">
-					<div class="level-item">
-						<a href="{$page.url.pathname}/admin" class="button is-secondary is-small mr-2">
-							<span class="icon is-small">
-								<i class="fa fa-edit"></i>
-							</span>
-							<span>Edit Organization</span>
-						</a>
-					</div>
-				</nav>
+				{#if notAdminPage}
+					<nav class="level-right">
+						<div class="level-item">
+							<a href="{$page.url.pathname}/admin" class="button is-secondary is-small mr-2">
+								<span class="icon is-small">
+									<i class="fa fa-edit"></i>
+								</span>
+								<span>Edit Organization</span>
+							</a>
+						</div>
+					</nav>
+				{/if}
 			</div>
 		</div>
 	</div>

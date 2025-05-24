@@ -107,7 +107,9 @@
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
 				<li><a href="/">Home</a></li>
-				<li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+				<li>
+					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
+				</li>
 				<li class="is-active">
 					<a href="/org/{orgData.org_id}/admin" aria-current="page">Admin Page</a>
 				</li>

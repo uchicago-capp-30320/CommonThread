@@ -65,14 +65,18 @@
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
 				<li><a href="/">Home</a></li>
-				<li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+				<li>
+					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
+				</li>
 				<li class="">
 					<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
-						>{storyData.project_name}</a
+						><b>Project</b>: {storyData.project_name}</a
 					>
 				</li>
 				<li class="is-active">
-					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page">Story: {story_id}</a>
+					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
+						><b>Story</b>: {story_id}</a
+					>
 				</li>
 			</ul>
 		</nav>

@@ -16,11 +16,14 @@
 		stories: 0
 	});
 	let projectsTotal = $state('...');
-	let storiesTotal = $state('...');
 	let themeColor = $state('#133335');
 	let type = $state('dash');
+	let searchValue = $state('');
+	let storiesTotalSearch = $state(0);
+
 	$inspect(projectData);
 	$inspect(stories);
+	$inspect(searchValue);
 
 	onMount(async () => {
 		// Fetch the data when the component mounts
@@ -40,6 +43,25 @@
 
 		const loadedData = storiesResponse.data;
 		stories = loadedData['stories'];
+
+		storiesTotalSearch = projectData.stories;
+	});
+
+	// Create a function to filter items based on search value
+	function getFilteredItems() {
+		if (searchValue === '') {
+			return stories;
+		}
+		const searchTerm = searchValue.toLowerCase();
+		return stories.filter((story) => story.text_content.includes(searchTerm));
+	}
+
+	// Create derived state for filtered items
+	let filteredItems = $derived(getFilteredItems());
+
+	// Update counts based on filtered items
+	$effect(() => {
+		storiesTotalSearch = filteredItems.length;
 	});
 </script>
 
@@ -52,10 +74,14 @@
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
 				<li><a href="/">Home</a></li>
-				<li><a href="/org/{projectData.org_id}">{projectData.org_name || 'Organization'}</a></li>
+				<li>
+					<a href="/org/{projectData.org_id}"
+						><b>Organization</b>: {projectData.org_name || 'Organization'}</a
+					>
+				</li>
 				<li class="is-active">
 					<a href="/org/{projectData.org_id}/project/{projectData.name}" aria-current="page"
-						>{projectData.project_name}</a
+						><b>Project</b>: {projectData.project_name}</a
 					>
 				</li>
 			</ul>
@@ -97,14 +123,19 @@
 			<div class="level-right">
 				<div class="level-item">
 					<p class="subtitle is-5">
-						<strong>{projectData.stories}</strong> Stories
+						<strong>{storiesTotalSearch}</strong> Stories
 					</p>
 				</div>
 				{#if type === 'story'}
 					<div class="level-item">
 						<div class="field has-addons">
 							<p class="control">
-								<input class="input" type="text" placeholder={`Search for ${type}`} />
+								<input
+									class="input"
+									type="text"
+									bind:value={searchValue}
+									placeholder={`Search for ${type}`}
+								/>
 							</p>
 							<p class="control">
 								<button class="button">Search</button>
@@ -131,7 +162,7 @@
 	{:else if type === 'dash'}
 		<DataDashboard {stories} />
 	{:else if type === 'story'}
-		{#each stories as story}
+		{#each filteredItems as story}
 			<div class="">
 				<StoryPreview {story} />
 			</div>
