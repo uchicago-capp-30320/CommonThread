@@ -996,10 +996,10 @@ def create_project(request):
 
     try:
         project = Project.objects.create(
-            name = project_data["project_name"],
+            name = project_data["name"],
             curator = curator,
             org = org,
-            date= project_data.get("date", str(date.today())),
+            date= project_data.get("date", date.today()),
         )
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])

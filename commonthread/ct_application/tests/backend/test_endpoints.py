@@ -241,7 +241,6 @@ def test_create_project_ok(client, seed, auth_headers):
         "org_id":  org1.id,
         "name":    "New Project",
         "curator": alice.id,
-        "date":    "2025-05-01"
     }
     r = client.post("/project/create", json.dumps(payload),
                     content_type="application/json", **auth_headers())
