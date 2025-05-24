@@ -97,9 +97,14 @@ def verify_user(required_access="user"):
                 logger.debug("Request Headers: %r", request.headers)
                 access_token = request.headers.get("Authorization", "")
                 logger.debug("Access Token: %r", access_token)
-                if not access_token or not access_token.startswith("Bearer "):
+                if not access_token:
                     return JsonResponse(
-                        {"success": False, "error": "Token missing or malformed"},
+                        {"success": False, "error": "No token"},
+                        status=401,
+                    )
+                elif not access_token.startswith("Bearer "):
+                    return JsonResponse(
+                        {"success": False, "error": "Token malformed"},
                         status=401,
                     )
                 access_token = access_token.split(" ", 1)[1]
@@ -114,26 +119,30 @@ def verify_user(required_access="user"):
             except InvalidTokenError:
                 # Something broke in the process
                 return JsonResponse(
-                    {"success": False, "error": "Login Failed"}, status=401
+                    {"success": False, "error": "Bad token"}, status=401
                 )
 
             request.user_id = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
             if kwargs:
+                logging.debug("Kwargs used in Auth")
                 auth_level, search_success = id_searcher(real_user_id, kwargs, required_access)
             else:
+                logging.debug("Request used in Auth")
                 try:
-                    body = json.loads(request.body)
-                    auth_level, search_success = id_searcher(real_user_id, body, required_access)
+                    body = json.loads((request.body or "{}"))
                 except:
+                    logging.debug("Request failed to load")
                     return JsonResponse(
                     {"success": False, "error": "Body not loaded"}, status=400
                 )
-            
+                logging.debug("Got to id_searcher")
+                auth_level, search_success = id_searcher(real_user_id, body, required_access)
             if search_success:
                 auth_level_check(auth_level, required_access)
             else:
                 return auth_level
+            logger.debug("Authentication Success")
             return view_function(request, *args, **kwargs)
 
         return inner
@@ -150,40 +159,53 @@ def id_searcher(real_user_id, id_set, required_access):
         logger.debug("request? %r", id_set)
         # Separate out user requests that don't have any additional needs beyond authenticating the user
         if "user_id" not in id_set:
+            logger.debug("Flag 1.1")
             # Find the specific component of information that is needed for authorization
             if "org_id" not in id_set:
+                logger.debug("Flag 1.2")
                 if "project_id" not in id_set:
+                    logger.debug("Flag 1.3")
                     if "story_id" not in id_set:
-                        return JsonResponse(
-                            {"success": False, "error": "No Identifier Provided"},
-                            status=400,
-                        ), False
+                        logger.debug("Flag 1.4")
+                        return "user", True
                     else:
+                        logger.debug("Flag 1.4.1")
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
+                    logger.debug("Flag 1.3.1")
                     return check_project_auth(real_user_id, id_set["project_id"])
             else:
+                logger.debug("Flag 1.2.1")
                 return check_org_auth(real_user_id, id_set["org_id"])
         elif required_access != "user":
+            logger.debug("Flag 2.1")
             # If there's a user id in there but we need admin/creator for some purpose.
             # This essentially serves as a failsafe against things that might include user ids
             if "org_id" not in id_set:
+                logger.debug("Flag 2.2")
                 if "project_id" not in id_set:
+                    logger.debug("Flag 2.3")
                     if "story_id" not in id_set:
+                        logger.debug("Flag 2.4")
                         return JsonResponse(
                             {"success": False, "error": "No Identifier Provided"},
                             status=400,
                         ), False
                     else:
+                        logger.debug("Flag 2.4.1")
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
+                    logger.debug("Flag 2.3.1")
                     return check_project_auth(real_user_id, id_set["project_id"])
             else:
+                logger.debug("Flag 2.2.1")
                 return check_org_auth(real_user_id, id_set["org_id"])
         else:
+            logger.debug("Flag 3")
             return "user", True
 
     except:
+        logger.debug("Flag 4")
         return JsonResponse(
             {"success": False, "error": "Identifier read failed"}, status=400
         ), False
@@ -195,6 +217,12 @@ def check_org_auth(user_id: str, org_id: str):
         row = OrgUser.objects.get(user_id=user_id, org_id=org_id)
         return row.access, True
     except OrgUser.DoesNotExist:
+        try:
+            org = Organization.objects.get(id = org_id)
+        except:
+            return JsonResponse(
+                {"success": False, "error": "Org not found"}, status=404
+            ), False
         return JsonResponse(
             {"success": False, "error": "Not authorized to access page"}, status=403
         ), False
@@ -204,17 +232,17 @@ def check_project_auth(user_id: str, project_id: str):
     # Checks if user has access through proj->org link, returns True if the link exists
     try:
         project = Project.objects.get(id = project_id)
-        logger.debug("Found Project, looking for ")
-        return check_org_auth(user_id, project.org_id)
+        logger.debug("Found Project, looking for org")
+        return check_org_auth(user_id, project.org.id)
     except Project.DoesNotExist:
-        return JsonResponse({"Failed": False, "error": "Project not found"}, status=404), False
+        return JsonResponse({"success": False, "error": "Project not found."}, status=404), False
 
 
 def check_story_auth(user_id: str, story_id: str):
     # Checks if user has access through story->proj->org link, returns True if the link exists
     try:
         story = Story.objects.get(id = story_id)
-        return check_project_auth(user_id, story.id)
+        return check_project_auth(user_id, story.proj.id)
     except Story.DoesNotExist:
         return JsonResponse({"success": False, "error": "Story not found"}, status=404), False
 
@@ -451,7 +479,7 @@ def get_project(request, project_id):
 
 
 @require_GET
-# @verify_user("user")
+@verify_user("user")
 def get_org(request, org_id):
     try:
         org = get_object_or_404(Organization, id=org_id)
@@ -854,7 +882,7 @@ def create_user(request):
 
 @require_POST
 @verify_user('creator')
-def add_user_to_org(request, org_id):
+def add_user_to_org(request, org_id, add_user_id):
     """
     Receives a request with user_id and org_id its body and registers new user
     user-org relationship in the login table of the db.
@@ -875,7 +903,7 @@ def add_user_to_org(request, org_id):
 
     try:
         OrgUser.objects.create(
-            user_id=org_user_data["user_id"],
+            user_id=add_user_id,
             org_id=org_id,
             access=org_user_data["access"],
         )
@@ -913,7 +941,9 @@ def edit_story(request, story_id):
 
     try:
         story = Story.objects.get(id=story_id)
+        logging.debug("story id: %r", story.id)
         curator = CustomUser.objects.get(id=story_updates.get("curator"))
+        logging.debug("curator id: %r", curator.id)
     except:
         return JsonResponse(
             {"success": False, "error": "Story does not exist"}, status=404
@@ -942,7 +972,7 @@ def edit_story(request, story_id):
 
 
 @require_http_methods(["DELETE"])
-# @verify_user('admin')
+@verify_user('admin')
 def delete_story(request, story_id):
     try:
         org_to_delete = Story.objects.get(id=story_id)
@@ -1086,7 +1116,7 @@ def delete_project(request, org_id, project_id):
 
 @csrf_exempt
 @require_POST
-@verify_user("admin")
+@verify_user("user")
 def create_org(request: HttpRequest) -> JsonResponse:
     """
     Handle requests for creating new organizations
@@ -1210,7 +1240,7 @@ def delete_org(request, org_id):
 
 
 @require_GET
-# @verify_user
+@verify_user('user')
 def get_user(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
@@ -1280,7 +1310,7 @@ def get_user(request):
 
 
 @require_http_methods(["POST", "PATCH"])
-@verify_user
+@verify_user('user')
 def edit_user(request, user_id, **kwargs):
 
     try:
