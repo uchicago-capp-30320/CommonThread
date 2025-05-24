@@ -11,11 +11,6 @@
 			<a href="https://github.com/uchicago-capp-30320">
 				Software Engineering for Civic Tech (CAPP 30320)</a
 			>.
-			<br />
-			The source code is licensed under
-			<a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0 license</a>. The website content
-			is licensed
-			<a href="https://creativecommons.org/licenses/by-nc-sa/4.0//">CC BY NC SA 4.0</a>.
 		</p>
 	</div>
 </footer>
