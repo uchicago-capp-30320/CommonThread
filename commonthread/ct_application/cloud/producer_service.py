@@ -93,7 +93,9 @@ class SQSStrategy(QueueStrategy):
 
         try:
             for task in tasks:
+                job_id = f"{story.id}_{task.task_type}_{datetime.now(UTC).timestamp()}"
                 message = {
+                    "job_id": job_id,
                     "project_id": story.proj.id,
                     "task_type": task.task_type,
                 }
@@ -103,7 +105,7 @@ class SQSStrategy(QueueStrategy):
 
                 message_group_id = f"{story.id}"
                 sequence_prefix = "1" if task.task_type == "transcription" else "2"
-                deduplication_id = f"{sequence_prefix}_{story.id}_{task.task_type}_{datetime.now(UTC).timestamp()}"
+                deduplication_id = f"{sequence_prefix}_{job_id}"
                 
                 response = self.sqs.send_message(
                     QueueUrl=self.queue_url,
@@ -247,10 +249,12 @@ class QueueProducer:
             Dict containing success status and additional information
         """
         try:
-            if story.audio_content is None:
+            #TODO: this is to disable tasks if the story has no audio or text content
+            #audio_content may not be none but its could be null
+            if not story.audio_content:
                 logger.warning(f"Story {story.id} has no audio content")
                 self.disable_task("transcription")
-                if story.text_content is None:
+                if not story.text_content or story.text_content == "":
                     logger.warning(f"Story {story.id} has no text content")
                     return {"success": False, "error": "Story has no audio or text content"}
 

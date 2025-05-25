@@ -32,7 +32,7 @@
 			{/if}
 		</div>
 		<div class="has-text-right mt-4">
-			<a href="{$page.url.pathname}/project/{project.id}" class="button is-primary">
+			<a href="{$page.url.pathname}/project/{project.project_id}" class="button is-primary">
 				<span>Explore Project</span>
 				<span class="icon">
 					<i class="fa fa-arrow-right"></i>
