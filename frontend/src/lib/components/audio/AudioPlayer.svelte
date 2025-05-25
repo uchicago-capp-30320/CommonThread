@@ -26,24 +26,21 @@
 			onend={() => {
 				time = 0;
 			}}
-			></audio>
+		></audio>
 
-		<button
-			class="play"
-			onclick={() => paused = !paused}
-			aria-label={paused ? 'play' : 'pause'}
+		<button class="play" onclick={() => (paused = !paused)} aria-label={paused ? 'play' : 'pause'}
 		></button>
 
 		<div class="info">
 			<div class="description">
-				Hear story by <strong>{storyteller}</strong> 
+				Hear story by <strong>{storyteller}</strong>
 			</div>
 
 			<div class="time">
 				<span>{format(time)}</span>
 				<div
 					class="slider"
-					onpointerdown={e => {
+					onpointerdown={(e) => {
 						const div = e.currentTarget;
 
 						function seek(e) {
@@ -60,11 +57,15 @@
 
 						window.addEventListener('pointermove', seek);
 
-						window.addEventListener('pointerup', () => {
-							window.removeEventListener('pointermove', seek);
-						}, {
-							once: true
-						});
+						window.addEventListener(
+							'pointerup',
+							() => {
+								window.removeEventListener('pointermove', seek);
+							},
+							{
+								once: true
+							}
+						);
 					}}
 				>
 					<div class="progress" style="--progress: {time / duration}%"></div>
@@ -73,9 +74,7 @@
 			</div>
 		</div>
 	</div>
-
 </div>
-
 
 <style>
 	.player {
@@ -93,7 +92,7 @@
 
 	.player:not(.paused) {
 		color: var(--fg-1);
-		filter: drop-shadow(0.5em 0.5em 1em rgba(0,0,0,0.1));
+		filter: drop-shadow(0.5em 0.5em 1em rgba(0, 0, 0, 0.1));
 	}
 
 	button {
@@ -104,11 +103,11 @@
 		border-radius: 50%;
 	}
 
-	[aria-label="pause"] {
+	[aria-label='pause'] {
 		background-image: url(./pause.svg);
 	}
 
-	[aria-label="play"] {
+	[aria-label='play'] {
 		background-image: url(./play.svg);
 	}
 

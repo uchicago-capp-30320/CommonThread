@@ -6,7 +6,8 @@
 	<div class="content has-text-centered">
 		<p>
 			<strong>CommonThread</strong> is an
-			<a href="https://github.com/uchicago-capp-30320/CommonThread"> open source project
+			<a href="https://github.com/uchicago-capp-30320/CommonThread">
+				open source project
 				<span class="icon">
 					<b><i class="fa fa-code-fork"></i></b>
 				</span>
@@ -28,7 +29,7 @@
 	}
 
 	p {
-		color: #133335; 
+		color: #133335;
 	}
 	a {
 		color: #56bcb3;
@@ -37,5 +38,4 @@
 	a:hover {
 		text-decoration: underline;
 	}
-
 </style>

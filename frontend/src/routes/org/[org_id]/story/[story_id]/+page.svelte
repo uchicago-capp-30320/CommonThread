@@ -60,7 +60,6 @@
 	});
 </script>
 
-
 <div id="container" class="mb-6">
 	<!-- NAVIGATION BAR  -->
 	<div class="breadcrumb-nav mb-5 mt-3">
@@ -96,7 +95,7 @@
 					<StoryFullView story={storyData}></StoryFullView>
 				</div>
 			{/if}
-			
+
 			<!-- AUDIOVISUAL MEDIA -->
 			{#if media}
 				<div class="column is-4" id="media">
@@ -104,10 +103,8 @@
 					<div class="row">
 						{#if includesAudio}
 							<div class="media-right" id="audio">
-								<AudioPlayer 
-									src={storyData.audio_path}
-									storyteller={storyData.storyteller}
-									></AudioPlayer>
+								<AudioPlayer src={storyData.audio_path} storyteller={storyData.storyteller}
+								></AudioPlayer>
 							</div>
 						{/if}
 						{#if includesImage}
@@ -149,7 +146,7 @@
 	/* #media {
 		display: flex; 
 		} */
-	
+
 	.row {
 		width: 100%;
 	}
@@ -166,11 +163,9 @@
 
 	li a:hover {
 		color: #56bcb3;
-
 	}
 
 	li.is-active a {
 		color: #56bcb3 !important;
 	}
-
 </style>

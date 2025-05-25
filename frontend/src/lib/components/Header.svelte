@@ -231,5 +231,4 @@
 		padding: 0.5rem 1rem;
 		cursor: pointer;
 	}
-
 </style>

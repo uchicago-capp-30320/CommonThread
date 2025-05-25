@@ -17,34 +17,36 @@
 <dialog
 	bind:this={dialog}
 	onclose={() => (showModal = false)}
-	onclick={(e) => { if (e.target === dialog) dialog.close(); }}
+	onclick={(e) => {
+		if (e.target === dialog) dialog.close();
+	}}
 >
-    <!-- svelte-ignore a11y_autofocus -->
-    <div class="container">
+	<!-- svelte-ignore a11y_autofocus -->
+	<div class="container">
+		<!-- X mark to close dialog -->
+		<div class="modal">
+			<div class="modal-background"></div>
+		</div>
 
-        <!-- X mark to close dialog -->
-        <div class="modal">
-            <div class="modal-background"></div>
-    	</div>
-
-        <div class="level-right">
-					<button 
-			class="button is-ghost level-right" 
-			id="close"
-			autofocus onclick={() => dialog.close()} 
-			aria-label="Close">        
+		<div class="level-right">
+			<button
+				class="button is-ghost level-right"
+				id="close"
+				autofocus
+				onclick={() => dialog.close()}
+				aria-label="Close"
+			>
 				<span class="icon">
 					<i class="fa fa-window-close"></i>
 				</span>
-        </button>
-
+			</button>
 		</div>
 
-        <!-- The actual content of the modal is defined in the parent component -->
-        {@render header?.()}
-        <hr />
-        {@render children?.()}
-    </div>
+		<!-- The actual content of the modal is defined in the parent component -->
+		{@render header?.()}
+		<hr />
+		{@render children?.()}
+	</div>
 </dialog>
 
 <style>
@@ -86,11 +88,11 @@
 		display: block;
 	}
 
-    .icon {
-        color: #ede8eb !important;
-    }
+	.icon {
+		color: #ede8eb !important;
+	}
 
-    .icon:hover {
-        color: #CE6664 !important;
-    }
+	.icon:hover {
+		color: #ce6664 !important;
+	}
 </style>
