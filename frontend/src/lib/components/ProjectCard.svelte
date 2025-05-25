@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 
 	let { project } = $props();
-	console.log('ProjectCard', $inspect(project).value);
+	if (project) { console.log('ProjectCard', $inspect(project).value); } else { console.log('ProjectCard received undefined project'); }
 </script>
 
 <div class="card">
