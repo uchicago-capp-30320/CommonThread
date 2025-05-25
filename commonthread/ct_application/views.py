@@ -403,7 +403,7 @@ def get_new_access_token(request):
         logger.debug("REFRESH: invalid")
         return create_error_response('INVALID_TOKEN', AUTH_ERRORS)
     except Exception:
-        return create_error_response('SERVER_ERROR', SERVER_ERRORS)
+        return create_error_response('INTERNAL_ERROR', SERVER_ERRORS)
 
 
 @require_GET
@@ -782,6 +782,7 @@ def create_story(request):
                     tag, created = Tag.objects.get_or_create(
                         name=tag_data["name"],
                         value=tag_data["value"],
+                        created_by="user",
                         required=is_required,
                     )
                     if created:
