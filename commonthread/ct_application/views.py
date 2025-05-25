@@ -375,49 +375,39 @@ def login(request):  # need not pass username and password as query params
 def get_new_access_token(request):
     # TODO change this if they will send it in as a cookie
     logger.debug(
-        "REFRESH ➤ content-type=%r body=%r", request.content_type, request.body
+        "REFRESH: content-type=%r body=%r", request.content_type, request.body
     )
 
     if request.content_type == "application/json":
         try:
             data = json.loads(request.body)
-        except Exception as e:
-            logger.debug("REFRESH ➤ JSON parse failed: %r", e)
-            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        except json.JSONDecodeError:
+            logger.debug("REFRESH: token JSON parse failed")
+            return create_error_response('INVALID_JSON', VALIDATION_ERRORS)
     else:
         data = request.POST
-        logger.debug("REFRESH ➤ form-data: %r", data)
+        logger.debug("REFRESH: form-data: %r", data)
 
     refresh_token = data.get("refresh_token")
-    logger.debug("REFRESH ➤ got refresh_token=%r", refresh_token)
+    logger.debug("REFRESH: got refresh_token=%r", refresh_token)
     if not refresh_token:
-        return JsonResponse(
-            {"success": False, "error": "Refresh token required"}, status=400
-        )
+        return create_error_response('NO_TOKEN', AUTH_ERRORS)
 
     try:
         decoded_refresh = decode_refresh_token(refresh_token)
-        logger.debug("REFRESH ➤ decoded payload: %r", decoded_refresh)
+        logger.debug("REFRESH: decoded payload: %r", decoded_refresh)
         user_id = decoded_refresh.get("sub")
         new_access_token = generate_access_token(user_id)
         return JsonResponse({"success": True, "access_token": new_access_token})
     except ExpiredSignatureError:
         # we need to redirect to login? Onur says we can't do this, frontend should handle it
-        logger.debug("REFRESH ➤ expired")
-        return JsonResponse(
-            {"success": False, "error": "Refresh token expired"}, status=401
-        )
+        logger.debug("REFRESH: expired")
+        return create_error_response('REFRESH_TOKEN_EXPIRED', AUTH_ERRORS)
     except InvalidTokenError:
-        # we need to redirect to login? Onur says we can't do this, frontend should handle it
-        logger.debug("REFRESH ➤ invalid")
-        return JsonResponse(
-            {"success": False, "error": "Invalid refresh token"}, status=401
-        )
+        logger.debug("REFRESH: invalid")
+        return create_error_response('INVALID_TOKEN', AUTH_ERRORS)
     except Exception:
-        # catch anything else (e.g. wrong payload shape)
-        return JsonResponse(
-            {"success": False, "error": "Unable to refresh token"}, status=400
-        )
+        return create_error_response('SERVER_ERROR', SERVER_ERRORS)
 
 
 @require_GET
