@@ -132,7 +132,9 @@ def verify_user(required_access="user"):
             # Identifying what kind of request/auth level the user has for their request
             if kwargs:
                 logging.debug("Kwargs used in Auth")
-                auth_level, search_success = id_searcher(real_user_id, kwargs, required_access)
+                auth_level, search_success = id_searcher(
+                    real_user_id, kwargs, required_access
+                )
             else:
                 logging.debug("Request used in Auth")
                 try:
@@ -140,9 +142,11 @@ def verify_user(required_access="user"):
                 except:
                     logging.debug("Request failed to load")
                     return JsonResponse(
-                    {"success": False, "error": "Body not loaded"}, status=400
+                        {"success": False, "error": "Body not loaded"}, status=400
+                    )
+                auth_level, search_success = id_searcher(
+                    real_user_id, body, required_access
                 )
-                auth_level, search_success = id_searcher(real_user_id, body, required_access)
             if search_success:
                 auth_level_check(auth_level, required_access)
             else:
@@ -182,10 +186,13 @@ def id_searcher(real_user_id, id_set, required_access):
             if "org_id" not in id_set:
                 if "project_id" not in id_set:
                     if "story_id" not in id_set:
-                        return JsonResponse(
-                            {"success": False, "error": "No Identifier Provided"},
-                            status=400,
-                        ), False
+                        return (
+                            JsonResponse(
+                                {"success": False, "error": "No Identifier Provided"},
+                                status=400,
+                            ),
+                            False,
+                        )
                     else:
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
@@ -196,9 +203,12 @@ def id_searcher(real_user_id, id_set, required_access):
             return "user", True
 
     except:
-        return JsonResponse(
-            {"success": False, "error": "Identifier read failed"}, status=400
-        ), False
+        return (
+            JsonResponse(
+                {"success": False, "error": "Identifier read failed"}, status=400
+            ),
+            False,
+        )
 
 
 def check_org_auth(user_id: str, org_id: str):
@@ -208,33 +218,43 @@ def check_org_auth(user_id: str, org_id: str):
         return row.access, True
     except OrgUser.DoesNotExist:
         try:
-            org = Organization.objects.get(id = org_id)
+            org = Organization.objects.get(id=org_id)
         except:
-            return JsonResponse(
-                {"success": False, "error": "Org not found"}, status=404
-            ), False
-        return JsonResponse(
-            {"success": False, "error": "Not authorized to access page"}, status=403
-        ), False
+            return (
+                JsonResponse({"success": False, "error": "Org not found"}, status=404),
+                False,
+            )
+        return (
+            JsonResponse(
+                {"success": False, "error": "Not authorized to access page"}, status=403
+            ),
+            False,
+        )
 
 
 def check_project_auth(user_id: str, project_id: str):
     # Checks if user has access through proj->org link, returns True if the link exists
     try:
-        project = Project.objects.get(id = project_id)
+        project = Project.objects.get(id=project_id)
         logger.debug("Found Project, looking for org")
         return check_org_auth(user_id, project.org.id)
     except Project.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Project not found."}, status=404), False
+        return (
+            JsonResponse({"success": False, "error": "Project not found."}, status=404),
+            False,
+        )
 
 
 def check_story_auth(user_id: str, story_id: str):
     # Checks if user has access through story->proj->org link, returns True if the link exists
     try:
-        story = Story.objects.get(id = story_id)
+        story = Story.objects.get(id=story_id)
         return check_project_auth(user_id, story.proj.id)
     except Story.DoesNotExist:
-        return JsonResponse({"success": False, "error": "Story not found"}, status=404), False
+        return (
+            JsonResponse({"success": False, "error": "Story not found"}, status=404),
+            False,
+        )
 
 
 def auth_level_check(user_level: str, required_level: str):
@@ -247,8 +267,8 @@ def auth_level_check(user_level: str, required_level: str):
     try:
         if auth_dict[user_level] >= auth_dict[required_level]:
             logger.debug(
-            "Required Access Level: %r",
-            auth_dict[required_level],
+                "Required Access Level: %r",
+                auth_dict[required_level],
             )
             logger.debug(
                 "Given Access Level: %r",
@@ -331,7 +351,6 @@ def login(request):  # need not pass username and password as query params
     if not username or not password:
         return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS)
 
-
     authenticated_user = authenticate(username=username, password=password)
     logger.debug("LOGIN ➤ authenticate returned %r", authenticated_user)
 
@@ -370,16 +389,14 @@ def login(request):  # need not pass username and password as query params
 @require_POST
 def get_new_access_token(request):
     # TODO change this if they will send it in as a cookie
-    logger.debug(
-        "REFRESH: content-type=%r body=%r", request.content_type, request.body
-    )
+    logger.debug("REFRESH: content-type=%r body=%r", request.content_type, request.body)
 
     if request.content_type == "application/json":
         try:
             data = json.loads(request.body)
         except json.JSONDecodeError:
             logger.debug("REFRESH: token JSON parse failed")
-            return create_error_response('INVALID_JSON', VALIDATION_ERRORS)
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
     else:
         data = request.POST
         logger.debug("REFRESH: form-data: %r", data)
@@ -387,7 +404,7 @@ def get_new_access_token(request):
     refresh_token = data.get("refresh_token")
     logger.debug("REFRESH: got refresh_token=%r", refresh_token)
     if not refresh_token:
-        return create_error_response('NO_TOKEN', AUTH_ERRORS)
+        return create_error_response("NO_TOKEN", AUTH_ERRORS)
 
     try:
         decoded_refresh = decode_refresh_token(refresh_token)
@@ -398,16 +415,16 @@ def get_new_access_token(request):
     except ExpiredSignatureError:
         # we need to redirect to login? Onur says we can't do this, frontend should handle it
         logger.debug("REFRESH: expired")
-        return create_error_response('REFRESH_TOKEN_EXPIRED', AUTH_ERRORS)
+        return create_error_response("REFRESH_TOKEN_EXPIRED", AUTH_ERRORS)
     except InvalidTokenError:
         logger.debug("REFRESH: invalid")
-        return create_error_response('INVALID_TOKEN', AUTH_ERRORS)
+        return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
     except Exception:
-        return create_error_response('INTERNAL_ERROR', SERVER_ERRORS)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_GET
-@verify_user('user')
+@verify_user("user")
 def get_project(request, project_id):
     try:
         project = Project.objects.select_related("org", "curator").get(id=project_id)
@@ -477,7 +494,7 @@ def get_org(request, org_id):
             "id", "name", "email", "position"
         )
         users_data = list(users)
-        
+
         # Query OrgUser table for access levels
         org_user_access = OrgUser.objects.filter(
             org_id=org.id, user_id__in=user_ids
@@ -611,7 +628,7 @@ def get_stories(request):
 
 
 @require_GET
-@verify_user('user')
+@verify_user("user")
 @cache_page(60 * 15)  # Cache for 15 minutes
 def get_story(request, story_id):
     print(request.headers)
@@ -685,8 +702,11 @@ def create_story(request):
         try:
             user_id = request.user_id
             if not user_id:
-                return create_error_response('MISSING_REQUIRED_FIELDS', VALIDATION_ERRORS, 
-                                          {'missing_field': 'user_id'})
+                return create_error_response(
+                    "MISSING_REQUIRED_FIELDS",
+                    VALIDATION_ERRORS,
+                    {"missing_field": "user_id"},
+                )
 
             file_uuid = str(uuid4())
             audio_key = f"{user_id}/{file_uuid}"
@@ -710,7 +730,7 @@ def create_story(request):
                 )
             except Exception as e:
                 logger.error("S3 presigned URL generation failed: %s", str(e))
-                return create_error_response('S3_ERROR', SERVER_ERRORS)
+                return create_error_response("S3_ERROR", SERVER_ERRORS)
 
             return JsonResponse(
                 {
@@ -728,7 +748,7 @@ def create_story(request):
 
         except Exception as e:
             logger.error("Error in GET handling: %s", str(e))
-            return create_error_response('INTERNAL_ERROR', SERVER_ERRORS)
+            return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
     # POST handling
     try:
@@ -737,18 +757,24 @@ def create_story(request):
             story_data = json.loads(request.body)
             logger.debug("Parsed story data: %s", story_data)
         except json.JSONDecodeError:
-            return create_error_response('INVALID_JSON', VALIDATION_ERRORS)
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
         try:
             project = Project.objects.get(id=story_data["project_id"])
             logger.debug("Found project: %s", project)
         except Project.DoesNotExist:
             logger.error("Project with ID %s does not exist", story_data["project_id"])
-            return create_error_response('PROJECT_NOT_FOUND', RESOURCE_ERRORS, 
-                                      {'project_id': story_data["project_id"]})
+            return create_error_response(
+                "PROJECT_NOT_FOUND",
+                RESOURCE_ERRORS,
+                {"project_id": story_data["project_id"]},
+            )
         except KeyError:
-            return create_error_response('MISSING_REQUIRED_FIELDS', VALIDATION_ERRORS,
-                                      {'missing_field': 'project_id'})
+            return create_error_response(
+                "MISSING_REQUIRED_FIELDS",
+                VALIDATION_ERRORS,
+                {"missing_field": "project_id"},
+            )
 
         logger.debug("Curator ID: %s", story_data.get("curator"))
 
@@ -768,13 +794,15 @@ def create_story(request):
             # Handle tags
             all_tags = [
                 (tag_data, True) for tag_data in story_data.get("required_tags", [])
-            ] + [
-                (tag_data, False) for tag_data in story_data.get("optional_tags", [])
-            ]
+            ] + [(tag_data, False) for tag_data in story_data.get("optional_tags", [])]
 
             story_tags_to_create = []
             for tag_data, is_required in all_tags:
-                if not isinstance(tag_data, dict) or 'name' not in tag_data or 'value' not in tag_data:
+                if (
+                    not isinstance(tag_data, dict)
+                    or "name" not in tag_data
+                    or "value" not in tag_data
+                ):
                     logger.warning("Invalid tag format: %s", tag_data)
                     continue
 
@@ -788,9 +816,13 @@ def create_story(request):
                     if created:
                         logger.debug(
                             "Created new tag: name=%s, value=%s, required=%s",
-                            tag.name, tag.value, is_required,
+                            tag.name,
+                            tag.value,
+                            is_required,
                         )
-                    story_tags_to_create.append(StoryTag(story_id=story.id, tag_id=tag.id))
+                    story_tags_to_create.append(
+                        StoryTag(story_id=story.id, tag_id=tag.id)
+                    )
                 except Exception as e:
                     logger.warning("Failed to create tag %s: %s", tag_data, str(e))
 
@@ -798,16 +830,17 @@ def create_story(request):
                 StoryTag.objects.bulk_create(story_tags_to_create)
                 logger.debug(
                     "Created %d story tag relationships for story %s",
-                    len(story_tags_to_create), story.id,
+                    len(story_tags_to_create),
+                    story.id,
                 )
 
         except ValueError as _:
             story.delete()
-            return create_error_response('INVALID_TAG_FORMAT', VALIDATION_ERRORS)
+            return create_error_response("INVALID_TAG_FORMAT", VALIDATION_ERRORS)
         except Exception as e:
             logger.error("Database operation failed: %s", str(e))
             story.delete()
-            return create_error_response('DATABASE_ERROR', SERVER_ERRORS)
+            return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
         # Queue ML processing
         # For now, we are not giving back error for ML queue failure to the client
@@ -819,7 +852,7 @@ def create_story(request):
             if not queue_result["success"]:
                 logger.error("Failed to queue ML tasks")
                 # return create_error_response('ML_QUEUE_FAILED', BUSINESS_ERRORS)
-            
+
             logger.info("Successfully queued ML tasks for story %s", story.id)
         except Exception as e:
             logger.error("Queue service error: %s", str(e))
@@ -829,7 +862,7 @@ def create_story(request):
 
     except Exception as e:
         logger.error("Unhandled error in create_story: %s", str(e))
-        return create_error_response('INTERNAL_ERROR', SERVER_ERRORS)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -881,7 +914,7 @@ def create_user(request):
 
 
 @require_POST
-@verify_user('creator')
+@verify_user("creator")
 def add_user_to_org(request, org_id, add_user_id):
     """
     Receives a request with user_id and org_id its body and registers new user
@@ -912,14 +945,13 @@ def add_user_to_org(request, org_id, add_user_id):
     return JsonResponse({"success": True}, status=201)
 
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
-@verify_user('creator')
+@verify_user("creator")
 def delete_user_from_org(request, org_id, del_user_id):
-    
+
     try:
-        user_to_delete = OrgUser.objects.get(
-            org_id=org_id, user_id=del_user_id
-        )
+        user_to_delete = OrgUser.objects.get(org_id=org_id, user_id=del_user_id)
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
@@ -927,11 +959,12 @@ def delete_user_from_org(request, org_id, del_user_id):
             {"success": False, "error": "Deletion Unsuccessful"}, status=400
         )
 
+
 ###############################################################################
 
 
 @require_http_methods(["POST", "PATCH"])
-@verify_user('admin')
+@verify_user("admin")
 def edit_story(request, story_id):
 
     try:
@@ -971,8 +1004,9 @@ def edit_story(request, story_id):
         return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
-@verify_user('admin')
+@verify_user("admin")
 def delete_story(request, story_id):
     try:
         org_to_delete = Story.objects.get(id=story_id)
@@ -1008,15 +1042,15 @@ def create_project(request):
             {"success": False, "error": "Organization not found"}, status=404
         )
 
-    curator = CustomUser.objects.get(id = project_data["curator"])
+    curator = CustomUser.objects.get(id=project_data["curator"])
 
     try:
         project = Project.objects.create(
-            name = project_data["name"],
-            description = project_data["description"],
-            curator = curator,
-            org = org,
-            date= project_data.get("date", date.today()),
+            name=project_data["name"],
+            description=project_data["description"],
+            curator=curator,
+            org=org,
+            date=project_data.get("date", date.today()),
         )
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])
@@ -1025,14 +1059,14 @@ def create_project(request):
         for rtag in required_tags:
             tag = Tag.objects.create(name=rtag, required=True)
             ProjectTag.objects.create(
-                tag = tag.id,
-                proj = project.id,
+                tag=tag.id,
+                proj=project.id,
             )
         for otag in optional_tags:
             tag = Tag.objects.create(name=otag, required=False)
             ProjectTag.objects.create(
-                tag = tag.id,
-                proj = project.id,
+                tag=tag.id,
+                proj=project.id,
             )
 
         return JsonResponse(
@@ -1051,7 +1085,7 @@ def create_project(request):
 
 
 @require_http_methods(["POST", "PATCH"])
-@verify_user('admin')
+@verify_user("admin")
 def edit_project(request, org_id, project_id):
     """
     POST /project/<org_id>/<project_id>/edit
@@ -1102,8 +1136,9 @@ def edit_project(request, org_id, project_id):
     return JsonResponse({"success": True}, status=200)
 
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
-@verify_user('admin')
+@verify_user("admin")
 def delete_project(request, org_id, project_id):
     try:
         proj_to_delete = Project.objects.get(id=project_id)
@@ -1157,7 +1192,6 @@ def create_org(request: HttpRequest) -> JsonResponse:
     if not description:
         return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
 
-
     if Organization.objects.filter(name=name).exists():
         logger.debug(
             "Organization already exists: %s",
@@ -1167,10 +1201,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
         return create_error_response("DUPLICATE_ORG_NAME", BUSINESS_ERRORS)
 
     try:
-        org = Organization.objects.create(
-            description=description,
-            name=name
-        )
+        org = Organization.objects.create(description=description, name=name)
 
         user = get_user_model().objects.get(pk=request.user_id)
 
@@ -1192,7 +1223,7 @@ def create_org(request: HttpRequest) -> JsonResponse:
 
 
 @require_http_methods(["POST", "PATCH"])
-@verify_user('admin')
+@verify_user("admin")
 def edit_org(request, org_id):
 
     try:
@@ -1216,8 +1247,9 @@ def edit_org(request, org_id):
         return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
 
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
-@verify_user('creator')
+@verify_user("creator")
 def delete_org(request, org_id):
     try:
         org_to_delete = Organization.objects.get(id=org_id)
@@ -1233,7 +1265,7 @@ def delete_org(request, org_id):
 
 
 @require_GET
-@verify_user('user')
+@verify_user("user")
 def get_user(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
@@ -1303,7 +1335,7 @@ def get_user(request):
 
 
 @require_http_methods(["POST", "PATCH"])
-@verify_user('user')
+@verify_user("user")
 def edit_user(request, user_id, **kwargs):
 
     try:
@@ -1333,12 +1365,15 @@ def edit_user(request, user_id, **kwargs):
         return JsonResponse({"success": False, "error": str(e)}, status=500)
 
 
+@csrf_exempt
 @require_http_methods(["DELETE"])
 @verify_user()
 def delete_user(request, user_id):
 
     try:
-        user_to_delete = CustomUser.objects.get(id=request.user_id)  # kwargs['real_user_id']
+        user_to_delete = CustomUser.objects.get(
+            id=request.user_id
+        )  # kwargs['real_user_id']
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
