@@ -43,14 +43,16 @@
 </script>
 
 <!-- Trash button -->
-<button class="button is-ghost"
+<div class="level-right">
+    <button class="button is-ghost"
     aria-label="delete"
-    onclick={showModal=true}
->
-    <span class="icon">
-        <i class="fa fa-trash"></i>
-    </span>
-</button>
+    onclick={showModal=true}>
+        <span class="icon">
+            <i class="fa fa-trash"></i>
+        </span>
+    </button>
+</div>
+
 
 <!-- Bulma's modal with Pop up message  -->
 <Modal bind:showModal>
@@ -66,10 +68,10 @@
 	{/snippet}
 
     <div id="modal-buttons" class="container level-right">
-        <button class="button" 
+        <!-- <button class="button" 
         id="cancel-delete"
         onclick={showModal=false}
-        >No, go back.</button>
+        >No, go back.</button> -->
         <button class="button is-link" 
         id="confirm-delete"
         onclick={sendDeleteRequest}

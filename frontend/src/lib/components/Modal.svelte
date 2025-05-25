@@ -27,15 +27,19 @@
             <div class="modal-background"></div>
     	</div>
 
-        <button 
-        class="button is-ghost level-right" 
-        id="close"
-        autofocus onclick={() => dialog.close()} 
-        aria-label="Close">        
-            <span class="icon">
-                <i class="fa fa-xmark"></i>
-            </span>
+        <div class="level-right">
+					<button 
+			class="button is-ghost level-right" 
+			id="close"
+			autofocus onclick={() => dialog.close()} 
+			aria-label="Close">        
+				<span class="icon">
+					<i class="fa fa-window-close"></i>
+				</span>
         </button>
+
+		</div>
+
         <!-- The actual content of the modal is defined in the parent component -->
         {@render header?.()}
         <hr />
@@ -89,9 +93,4 @@
     .icon:hover {
         color: #CE6664 !important;
     }
-
-    #close {
-        background-color: #f2f1f0;
-    }
-
 </style>
