@@ -318,7 +318,7 @@ def login(request):  # need not pass username and password as query params
             data = data.get("post_data")
         except Exception as e:
             logger.debug("LOGIN ➤ JSON parse failed: %r", e)
-            return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
     else:
         data = request.POST
         logger.debug("LOGIN ➤ form-data: %r", data)
@@ -329,18 +329,14 @@ def login(request):  # need not pass username and password as query params
     logger.debug("LOGIN ➤ extracted username=%r password=%r", username, password)
 
     if not username or not password:
-        return JsonResponse(
-            {"success": False, "error": "Username and password are not provided"},
-            status=400,
-        )
+        return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS)
+
 
     authenticated_user = authenticate(username=username, password=password)
     logger.debug("LOGIN ➤ authenticate returned %r", authenticated_user)
 
     if authenticated_user is None:
-        return JsonResponse(
-            {"success": False, "error": "Invalid username or password"}, status=403
-        )
+        return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS)
 
     access_token = generate_access_token(authenticated_user.id)
     logger.debug(f"LOGIN ➤ issued access_token={access_token}")
@@ -1140,9 +1136,9 @@ def create_org(request: HttpRequest) -> JsonResponse:
 
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        return JsonResponse({"success": False, "error": "No token"}, status=401)
+        return create_error_response("NO_TOKEN", AUTH_ERRORS)
 
-        # Parse and validate input data
+    # Parse and validate input data
     logger.debug("Received request body: %s", request.body)
 
     org_data = json.loads(request.body)
@@ -1155,15 +1151,11 @@ def create_org(request: HttpRequest) -> JsonResponse:
     logger.debug("Parsed organization desc: %s,", description)
 
     if not name:
-        return JsonResponse(
-            {"success": False, "error": "Organization name is required"},
-            status=400,
-        )
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
+
     if not description:
-        return JsonResponse(
-            {"success": False, "error": "Organization description is required"},
-            status=400,
-        )
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
+
 
     if Organization.objects.filter(name=name).exists():
         logger.debug(
@@ -1171,14 +1163,12 @@ def create_org(request: HttpRequest) -> JsonResponse:
             Organization.objects.filter(name=name).first(),
         )
         logger.debug("Organization with name %s already exists", name)
-        return JsonResponse(
-            {"success": False, "error": "Organization already exists"}, status=400
-        )
+        return create_error_response("DUPLICATE_ORG_NAME", BUSINESS_ERRORS)
 
     try:
         org = Organization.objects.create(
-            name=name,
             description=description,
+            name=name
         )
 
         user = get_user_model().objects.get(pk=request.user_id)
@@ -1187,11 +1177,9 @@ def create_org(request: HttpRequest) -> JsonResponse:
 
     except KeyError as e:
         logger.error("KeyError: %s", str(e))
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
     except Exception as e:
-        return JsonResponse(
-            {"success": False, "error": f"internal service error{str(e)}"}, status=500
-        )
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
     return JsonResponse(
         {
