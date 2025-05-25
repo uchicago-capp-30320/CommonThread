@@ -3,7 +3,7 @@
 	import Modal from '$lib/components/Modal.svelte';
 	import { accessToken, refreshToken, ipAddress } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
-	import { redirect } from '@sveltejs/kit';
+	import { goto } from '$app/navigation';
 
 	// To be consistent with the API, the type prop must have the values: "story", "project", "org", "user"
 	// Derive props and set initial state
@@ -40,15 +40,15 @@
 		);
 		console.log(deleteResponse);
 
-		if (deleteResponse.ok) {
-			return redirect(204, redirectPath);
+		if (deleteResponse.data.success) {
+			goto(redirectPath);
 		}
 	};
 </script>
 
 <!-- Trash button -->
 <div class="level-right">
-	<button class="button is-ghost" aria-label="delete" onclick={(showModal = true)}>
+	<button class="button is-ghost" aria-label="delete" onclick={() => (showModal = true)}>
 		<span class="icon">
 			<i class="fa fa-trash"></i>
 		</span>
@@ -86,7 +86,7 @@
 
 	#confirm-delete {
 		color: #f2f1f0 !important;
-		background-color: #ce6664;
+		background-color: var(--red);
 	}
 
 	#cancel-delete {
@@ -94,6 +94,6 @@
 	}
 
 	i:hover {
-		color: #ce6664;
+		color: var(--red);
 	}
 </style>
