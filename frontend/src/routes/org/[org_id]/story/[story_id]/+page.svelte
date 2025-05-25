@@ -164,8 +164,13 @@
 		color: black;
 	}
 
-	li.is-active {
-		color: #133335 !important;
+	li a:hover {
+		color: #56bcb3;
+
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
 	}
 
 </style>
