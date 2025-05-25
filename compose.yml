@@ -1,0 +1,17 @@
+services:
+  backend:
+    restart: on-failure
+    build: ./commonthread
+    command: python manage.py runserver
+    ports:
+      - '8030:9000'
+  frontend:
+    restart: on-failure
+    build: ./frontend
+    ports:
+      - '8040:9000'
+  machine:
+    build: ./commonthread
+    command: python commonthread/ct_application/cloud/consumer_service.py
+    ports:
+    - '8050:9000'
