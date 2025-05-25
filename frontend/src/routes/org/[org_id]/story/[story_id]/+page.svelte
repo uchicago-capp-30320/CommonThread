@@ -60,11 +60,13 @@
 	});
 </script>
 
+
 <div id="container" class="mb-6">
+	<!-- NAVIGATION BAR  -->
 	<div class="breadcrumb-nav mb-5 mt-3">
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
-				<li><a href="/">Home</a></li>%
+				<li><a href="/">Home</a></li>
 				<li>
 					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
 				</li>
@@ -84,6 +86,7 @@
 	<div class="container-is-fullhd">
 		<div class="columns">
 			<div class="column is-1"></div>
+			<!-- STORY TEXT -->
 			{#if media}
 				<div class="column is-6">
 					<StoryFullView story={storyData}></StoryFullView>
@@ -93,7 +96,8 @@
 					<StoryFullView story={storyData}></StoryFullView>
 				</div>
 			{/if}
-
+			
+			<!-- AUDIOVISUAL MEDIA -->
 			{#if media}
 				<div class="column is-4" id="media">
 					<!-- Are we displaying a single image or multiple? -->
@@ -163,4 +167,5 @@
 	li.is-active {
 		color: #133335 !important;
 	}
+
 </style>
