@@ -17,7 +17,7 @@ def get_perplexity_chat_response(api_key: str, context: str, user_message: str) 
         A dictionary containing the Perplexity API JSON response or an error message.
     """
     perplexity_api_url = "https://api.perplexity.ai/chat/completions"
-    model_name = "sonar-medium-chat"  # Or any other suitable model
+    model_name = "sonar"  # Or any other suitable model
 
     perplexity_payload = {
         "model": model_name,
