@@ -2,6 +2,7 @@
 
 <script>
 	import DeleteButton from "$lib/components/DeleteButton.svelte";
+	import { fail, redirect } from '@sveltejs/kit';
 	let { story } = $props();
 	
 	// Highlight searched terms 
@@ -46,7 +47,7 @@
 			</h2>
 		</div>
 		<div class="level-right" id="trash">
-			<DeleteButton type={"story"} redirectPath={"home"}></DeleteButton>
+			<DeleteButton type={"story"} id={story.story_id} redirectPath={"home"}></DeleteButton>
 		</div>
 	</header>
 	<div class="content">
