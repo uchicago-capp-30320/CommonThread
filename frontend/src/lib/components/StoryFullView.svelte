@@ -107,15 +107,6 @@
 		padding: 10px;
 	}
 
-	#searh {
-		background-color: #133335;
-		color: white; 
-	}
-
-	.content-header {
-		display: flex; 
-	}
-	
 	.content {
 		padding: 25px;
 	}
