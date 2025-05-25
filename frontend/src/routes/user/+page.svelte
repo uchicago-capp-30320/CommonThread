@@ -21,7 +21,10 @@
 	});
 	let orgLoaded = $state(false);
 	let themeColor = $state('#133335');
-	$inspect(userData);
+	let orgCreateConfirmOpen = $state(false);
+	let createOrgName = $state('');
+	$inspect('userData', userData);
+	$inspect('orgData', orgData);
 
 	onMount(async () => {
 		// first get user data
@@ -97,8 +100,8 @@
 				onclick={() => {
 					orgData = [
 						{
-							name: 'New Org',
-							description: 'Description of new org',
+							name: '',
+							description: '',
 							isOpen: true,
 							isNew: true
 						},
@@ -163,18 +166,15 @@
 									<button
 										class="button is-success"
 										onclick={() => {
-											// logic to save the project
-											org.isOpen = false;
-											// Example: saveProject(project);
-											console.log('org added!');
-											org.isNew ? addOrg(org) : editOrg(org);
+											createOrgName = org.name;
+											orgCreateConfirmOpen = true;
 										}}
 									>
 										{org.isNew ? 'Add Organization' : 'Save Changes'}
 									</button>
 								</div>
 								<div class="control">
-									<button class="button is-light" onclick={() => (project.isOpen = false)}>
+									<button class="button is-light" onclick={() => (org.isOpen = false)}>
 										Cancel
 									</button>
 								</div>

@@ -34,9 +34,8 @@
 	]);
 	let projectResponses = $state([]);
 
-	$inspect(projects);
-	$inspect(userData);
-	$inspect(orgData);
+	$inspect('userData', userData);
+	$inspect('orgData', orgData);
 
 	const org_id = $page.params.org_id;
 

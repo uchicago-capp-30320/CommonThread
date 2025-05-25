@@ -14,7 +14,7 @@ export async function authRequest(url, method, accessToken, refreshToken, postDa
 		// if data is not null, send it as the body
 		body: postData ? JSON.stringify(postData) : null
 	});
-	if (ogResponse.status === 200) {
+	if (ogResponse.ok) {
 		data = await ogResponse.json();
 		return { data, newAccessToken: null };
 	}
