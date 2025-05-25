@@ -16,59 +16,62 @@
 	}
 </script>
 
-<div class={['player', { paused }]}>
-	<audio
-		{src}
-		bind:currentTime={time}
-		bind:duration
-		bind:paused
-		onend={() => {
-			time = 0;
-		}}
+<div class="box">
+	<div class={['player', { paused }]}>
+		<audio
+			{src}
+			bind:currentTime={time}
+			bind:duration
+			bind:paused
+			onend={() => {
+				time = 0;
+			}}
 		></audio>
 
-	<button
-		class="play"
-		onclick={() => paused = !paused}
-		aria-label={paused ? 'play' : 'pause'}
-	></button>
+		<button class="play" onclick={() => (paused = !paused)} aria-label={paused ? 'play' : 'pause'}
+		></button>
 
-	<div class="info">
-		<div class="description">
-			Hear story by <strong>{storyteller}</strong> 
-		</div>
-
-		<div class="time">
-			<span>{format(time)}</span>
-			<div
-				class="slider"
-				onpointerdown={e => {
-					const div = e.currentTarget;
-
-					function seek(e) {
-						const { left, width } = div.getBoundingClientRect();
-
-						let p = (e.clientX - left) / width;
-						if (p < 0) p = 0;
-						if (p > 1) p = 1;
-
-						time = p * duration;
-					}
-
-					seek(e);
-
-					window.addEventListener('pointermove', seek);
-
-					window.addEventListener('pointerup', () => {
-						window.removeEventListener('pointermove', seek);
-					}, {
-						once: true
-					});
-				}}
-			>
-				<div class="progress" style="--progress: {time / duration}%"></div>
+		<div class="info">
+			<div class="description">
+				Hear story by <strong>{storyteller}</strong>
 			</div>
-			<span>{duration ? format(duration) : '--:--'}</span>
+
+			<div class="time">
+				<span>{format(time)}</span>
+				<div
+					class="slider"
+					onpointerdown={(e) => {
+						const div = e.currentTarget;
+
+						function seek(e) {
+							const { left, width } = div.getBoundingClientRect();
+
+							let p = (e.clientX - left) / width;
+							if (p < 0) p = 0;
+							if (p > 1) p = 1;
+
+							time = p * duration;
+						}
+
+						seek(e);
+
+						window.addEventListener('pointermove', seek);
+
+						window.addEventListener(
+							'pointerup',
+							() => {
+								window.removeEventListener('pointermove', seek);
+							},
+							{
+								once: true
+							}
+						);
+					}}
+				>
+					<div class="progress" style="--progress: {time / duration}%"></div>
+				</div>
+				<span>{duration ? format(duration) : '--:--'}</span>
+			</div>
 		</div>
 	</div>
 </div>
@@ -89,7 +92,7 @@
 
 	.player:not(.paused) {
 		color: var(--fg-1);
-		filter: drop-shadow(0.5em 0.5em 1em rgba(0,0,0,0.1));
+		filter: drop-shadow(0.5em 0.5em 1em rgba(0, 0, 0, 0.1));
 	}
 
 	button {
@@ -100,11 +103,11 @@
 		border-radius: 50%;
 	}
 
-	[aria-label="pause"] {
+	[aria-label='pause'] {
 		background-image: url(./pause.svg);
 	}
 
-	[aria-label="play"] {
+	[aria-label='play'] {
 		background-image: url(./play.svg);
 	}
 
@@ -132,7 +135,7 @@
 	.slider {
 		flex: 1;
 		height: 0.5em;
-		background: var(--bg-2);
+		background: var(--gray);
 		border-radius: 0.5em;
 		overflow: hidden;
 	}
@@ -140,6 +143,6 @@
 	.progress {
 		width: calc(100 * var(--progress));
 		height: 100%;
-		background: var(--bg-3);
+		background: #133335;
 	}
 </style>
