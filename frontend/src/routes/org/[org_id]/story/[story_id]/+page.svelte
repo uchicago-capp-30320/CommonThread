@@ -64,7 +64,7 @@
 	<div class="breadcrumb-nav mb-5 mt-3">
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
-				<li><a href="/">Home</a></li>
+				<li><a href="/">Home</a></li>%
 				<li>
 					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
 				</li>
@@ -95,16 +95,15 @@
 			{/if}
 
 			{#if media}
-				<div class="column">
+				<div class="column is-4" id="media">
 					<!-- Are we displaying a single image or multiple? -->
 					<div class="row">
 						{#if includesAudio}
-							<div class="media">
-								<div class="media-right" id="audio">
-									<div class="audio">
-										<AudioPlayer src={storyData.audio_path}></AudioPlayer>
-									</div>
-								</div>
+							<div class="media-right" id="audio">
+								<AudioPlayer 
+									src={storyData.audio_path}
+									storyteller={storyData.storyteller}
+									></AudioPlayer>
 							</div>
 						{/if}
 						{#if includesImage}
@@ -143,8 +142,18 @@
 		object-fit: contain;
 	}
 
-	.audio {
-		object-fit: contain;
+	/* #media {
+		display: flex; 
+		} */
+	
+	.row {
+		width: 100%;
+	}
+
+	#audio {
+		/* display:flex; */
+		/* object-fit: contain; */
+		width: 100%;
 	}
 
 	li a {
