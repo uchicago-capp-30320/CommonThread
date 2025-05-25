@@ -2,6 +2,7 @@
 	import ProjectHeader from '$lib/components/ProjectHeader.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
+	import Chatbox from '$lib/components/Chatbox.svelte'; // Added Chatbox import
 
 	import { authRequest } from '$lib/authRequest.js';
 	import { onMount } from 'svelte';
@@ -20,6 +21,7 @@
 	let type = $state('dash');
 	let searchValue = $state('');
 	let storiesTotalSearch = $state(0);
+	const projectId = $page.params.project_id; // Extracted projectId
 
 	$inspect(projectData);
 	$inspect(stories);
@@ -170,6 +172,11 @@
 	{/if}
 </div>
 
+<!-- Chatbox Component -->
+<div class="chatbox-container">
+	<Chatbox {projectId} />
+</div>
+
 <style>
 	.container {
 		margin: 30px;
@@ -186,5 +193,16 @@
 	button.active {
 		background-color: #133335;
 		color: white;
+	}
+
+	.chatbox-container {
+		position: fixed;
+		bottom: 20px;
+		right: 20px;
+		z-index: 1000;
+		width: 400px; /* Or your preferred width */
+		max-width: 90vw;
+		height: 500px; /* Or your preferred height */
+		max-height: 80vh;
 	}
 </style>

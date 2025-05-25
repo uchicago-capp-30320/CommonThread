@@ -43,6 +43,9 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Prefetch
+# import requests # Removed, as it's now in perplexity_service
+from django.conf import settings
+from .ml.perplexity_service import get_perplexity_chat_response # Added
 
 # HANDLERES SET UP -------------------------------------------------------------
 import traceback
@@ -58,6 +61,49 @@ logger = logging.getLogger(__name__)
 
 
 # VIEWS ------------------------------------------------------------------------
+
+@csrf_exempt
+@verify_user('user')
+def project_chat_api(request, project_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    try:
+        data = json.loads(request.body)
+        user_message = data.get("user_message")
+        if not user_message:
+            return JsonResponse({"error": "Missing user_message"}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    stories = Story.objects.filter(proj_id=project_id).values_list('text_content', flat=True)
+    context = "\n\n".join(stories)
+    # TODO: Implement truncation or summarization if context exceeds Perplexity's limits.
+
+    # Call the Perplexity service
+    response_data = get_perplexity_chat_response(settings.PERPLEXITY_API_KEY, context, user_message)
+
+    if "error" in response_data:
+        logger.error(f"Error from Perplexity service: {response_data}")
+        return JsonResponse(
+            {"error": "Failed to get response from AI service", "details": response_data.get("details", response_data.get("error"))},
+            status=response_data.get("status_code", 500)
+        )
+
+    try:
+        # Adjust the following line based on the actual structure of Perplexity's response
+        # This structure is based on the successful response from the service
+        ai_response = response_data.get('choices', [{}])[0].get('message', {}).get('content', '')
+        if not ai_response:
+            logger.error(f"Perplexity service response did not contain the expected data structure: {response_data}")
+            api_error_message = response_data.get('error', {}).get('message', 'Error processing Perplexity response.')
+            return JsonResponse({"error": f"Failed to get a valid response from AI service: {api_error_message}"}, status=500)
+        
+        return JsonResponse({"reply": ai_response})
+
+    except Exception as e: # Catch any other unexpected errors during response parsing
+        logger.error(f"Unexpected error processing Perplexity service response in view: {e}. Response data: {response_data}")
+        return JsonResponse({"error": "An unexpected server error occurred while processing AI response."}, status=500)
 
 ## Home test -------------------------------------------------------------------
 

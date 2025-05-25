@@ -43,7 +43,8 @@ from ct_application.views import (
     edit_story,
     delete_story,
     get_stories,
-    get_story
+    get_story,
+    project_chat_api
 
 )
 
@@ -82,4 +83,7 @@ urlpatterns = [
     path("story/<int:story_id>/delete", delete_story, name="story-delete"),
     path("stories/", get_stories, name="get_stories"),
     path("story/<int:story_id>", get_story, name="get_story"),
+
+    # Perplexity Chat API endpoint
+    path("project/<int:project_id>/chat", project_chat_api, name="project-chat-api"),
 ]
