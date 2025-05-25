@@ -1,7 +1,7 @@
 <script>
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
-	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
+	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
@@ -29,9 +29,9 @@
 
 	// Story page
 	let storyData = $state({
-		storyteller: 'Loading...',
-		project_name: 'Loading...',
-		curator: 'Loading...',
+		storyteller: '...',
+		project_name: '...',
+		curator: '...',
 		text_content: 'Loading...',
 		summary: 'Loading...'
 	});
@@ -61,18 +61,23 @@
 </script>
 
 <div id="container" class="mb-6">
+	<!-- NAVIGATION BAR  -->
 	<div class="breadcrumb-nav mb-5 mt-3">
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
 				<li><a href="/">Home</a></li>
-				<li><a href="/org/{orgData.org_id}">{orgData.name || 'Organization'}</a></li>
+				<li>
+					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
+				</li>
 				<li class="">
 					<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
-						>{storyData.project_name}</a
+						><b>Project</b>: {storyData.project_name}</a
 					>
 				</li>
 				<li class="is-active">
-					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page">Story: {story_id}</a>
+					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
+						><b>Story</b>: {story_id}</a
+					>
 				</li>
 			</ul>
 		</nav>
@@ -80,6 +85,7 @@
 	<div class="container-is-fullhd">
 		<div class="columns">
 			<div class="column is-1"></div>
+			<!-- STORY TEXT -->
 			{#if media}
 				<div class="column is-6">
 					<StoryFullView story={storyData}></StoryFullView>
@@ -90,26 +96,21 @@
 				</div>
 			{/if}
 
+			<!-- AUDIOVISUAL MEDIA -->
 			{#if media}
-				<div class="column">
+				<div class="column is-4" id="media">
 					<!-- Are we displaying a single image or multiple? -->
 					<div class="row">
 						{#if includesAudio}
-							<div class="media">
-								<div class="media-right" id="audio">
-									<div class="audio">
-										<AudioPlayer src={storyData.audio_path}></AudioPlayer>
-									</div>
-								</div>
+							<div class="media-right" id="audio">
+								<AudioPlayer src={storyData.audio_path} storyteller={storyData.storyteller}
+								></AudioPlayer>
 							</div>
 						{/if}
 						{#if includesImage}
 							<div class="media">
 								<div class="media-right" id="images">
-									<figure>
-										<img src={storyData.image_path} alt="" />
-										<figcaption>Figure 1</figcaption>
-									</figure>
+									<img src={storyData.image_path} alt="Story image" />
 								</div>
 							</div>
 						{/if}
@@ -135,23 +136,36 @@
 		justify-content: center;
 	}
 
-	img {
+	#images {
 		/* max-height: 300px; */
-		width: auto;
-		/* width: 80%; */
+		max-width: 100%;
 		/* margin: 0 10px; */
 		object-fit: contain;
 	}
 
-	.audio {
-		object-fit: contain;
+	/* #media {
+		display: flex; 
+		} */
+
+	.row {
+		width: 100%;
+	}
+
+	#audio {
+		/* display:flex; */
+		/* object-fit: contain; */
+		width: 100%;
 	}
 
 	li a {
 		color: black;
 	}
 
-	li.is-active {
-		color: #133335 !important;
+	li a:hover {
+		color: #56bcb3;
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
 	}
 </style>

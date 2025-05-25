@@ -23,6 +23,7 @@
 	});
 	let themeColor = $state('#133335');
 	let type = $state('project'); // or 'story', depending on your logic
+	let isLoading = $state(true);
 
 	let searchValue = $state('');
 
@@ -45,6 +46,26 @@
 			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
 		]);
 
+		// get project info from all projects concurrently
+		const project_ids = orgResponse.data.project_ids;
+		const projectPromises = project_ids.map((project_id) =>
+			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+		);
+		const projectResponses = await Promise.all(projectPromises);
+		// Extract project data from the responses
+		projects = projectResponses.map((response) => {
+			return response.data;
+		});
+
+		// Sort projects by number of stories (largest to smallest)
+		projects = projects.sort((a, b) => {
+			// Check if projects have a stories property, otherwise use 0
+			const aStories = a.stories ? a.stories : 0;
+			const bStories = b.stories ? b.stories : 0;
+			// Sort in descending order (largest to smallest)
+			return bStories - aStories;
+		});
+
 		console.log('orgResponse', orgResponse.data);
 
 		orgData = orgResponse.data;
@@ -55,34 +76,15 @@
 			accessToken.set(storiesResponse.newAccessToken);
 		}
 
+		if (storiesResponse.data !== null) {
+			isLoading = false;
+		}
+
 		const loadedData = storiesResponse.data;
 
 		stories = loadedData['stories'];
 		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
 		storiesTotal = stories.length;
-
-		// Group stories by project_id
-		const projectGroups = {};
-		stories.forEach((story) => {
-			const projectId = story.project_id || 'unknown';
-			if (!projectGroups[projectId]) {
-				projectGroups[projectId] = {
-					id: projectId,
-					name: story.project_name || 'Unnamed Project',
-					description: story.project_description || 'No description available',
-					stories: []
-				};
-			}
-			projectGroups[projectId].stories.push(story);
-		});
-
-		// Convert to array and add story count
-		projects = Object.values(projectGroups).map((project) => ({
-			id: project.id,
-			name: project.name,
-			description: project.description,
-			total_stories: project.stories.length
-		}));
 	});
 
 	// Create a function to filter items based on search value
@@ -188,7 +190,7 @@
 	<hr />
 
 	<div class="container">
-		{#if stories.length === 0}
+		{#if isLoading}
 			{#each [1, 2, 3] as project}
 				<div class="columns mt-4 is-multiline">
 					{#each [1, 2, 3] as _}
@@ -198,22 +200,30 @@
 					{/each}
 				</div>
 			{/each}
-		{:else if type === 'project'}
-			<div class="columns mt-4 is-multiline">
-				{#each filteredItems as project}
-					<div class="column is-one-third">
-						<ProjectCard {project} />
+		{:else if !isLoading && projects.length !== 0}
+			{#if type === 'project'}
+				<div class="columns mt-4 is-multiline">
+					{#each filteredItems as project}
+						<div class="column is-one-third">
+							<ProjectCard {project} />
+						</div>
+					{/each}
+				</div>
+			{:else if type === 'story'}
+				{#each filteredItems as story}
+					<div class="mb-4">
+						<StoryPreview {story} />
 					</div>
 				{/each}
-			</div>
-		{:else if type === 'story'}
-			{#each filteredItems as story}
-				<div class="">
-					<StoryPreview {story} />
-				</div>
-			{/each}
+			{/if}
 		{:else}
-			<p class="has-text-centered">No stories available</p>
+			<div class="has-text-centered my-6">
+				<p class="mb-2">
+					No projects have been created for this organizations. Please create a project first before
+					you can see a project.
+				</p>
+				<a href="/org/{org_id}/admin" class="button is-primary is-small"> Create a Project</a>
+			</div>
 		{/if}
 	</div>
 </div>

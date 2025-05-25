@@ -77,6 +77,7 @@ def seed():
         curator=alice,
         date=datetime.date(2025, 4, 5),
         text_content="Hello!",
+        summary="summarized",
         is_transcript=False
     )
     story2 = Story.objects.create(
@@ -85,6 +86,7 @@ def seed():
         curator=deleto,
         date=datetime.date(2025, 4, 7),
         text_content="To be edited and deleted",
+        summary="summarized",
         is_transcript=False
     )
 
@@ -497,6 +499,7 @@ def test_get_story_ok(client, seed, auth_headers):
     assert data["curator"]      == story.curator.id
     assert data["date"]         == str(story.date)
     assert data["text_content"] == story.text_content
+    assert data["summary"] == story.summary
 
     # tags should be a list of {name,value} dicts
     assert isinstance(data["tags"], list)
@@ -682,17 +685,17 @@ def test_get_user_ok(client, seed, auth_headers):
     # Basic scalar fields
     assert data["user_id"]    == alice.id
     assert data["name"]       == alice.name
-    assert data["First_name"] == alice.first_name
-    assert data["Last_name"]  == alice.last_name
-    assert data["Email"]      == alice.email
-    assert data["City"]       == alice.city
-    assert data["Bio"]        == alice.bio
-    assert data["Position"]   == alice.position
+    assert data["first_name"] == alice.first_name
+    assert data["last_name"]  == alice.last_name
+    assert data["email"]      == alice.email
+    assert data["city"]       == alice.city
+    assert data["bio"]        == alice.bio
+    assert data["position"]   == alice.position
 
     # Profile URL should be a presigned S3 URL
     user_prefix = f"https://{settings.CT_BUCKET_USER_PROFILES}.s3.amazonaws.com/"
-    assert isinstance(data["Profile_pic_path"], str)
-    assert data["Profile_pic_path"].startswith(user_prefix)
+    assert isinstance(data["profile_pic_path"], str)
+    assert data["profile_pic_path"].startswith(user_prefix)
 
     # There should be exactly one org entry for org1
     org_entries = [o for o in data["orgs"] if o["org_id"] == str(org1.id)]

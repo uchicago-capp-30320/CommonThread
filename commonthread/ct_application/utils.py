@@ -4,6 +4,8 @@ import jwt
 import boto3
 from django.conf import settings
 from typing import Optional
+from django.utils import timezone
+from django.http import JsonResponse
 
 def generate_s3_presigned(
     bucket_name: str,
@@ -86,3 +88,77 @@ def decode_access_token(token):
 
                     
 
+
+# Authentication & Authorization Errors (4xx)
+AUTH_ERRORS = {
+    'NO_TOKEN': (401, "No token provided"),
+    'INVALID_TOKEN': (401, "Invalid token"),
+    'ACCESS_TOKEN_EXPIRED': (299, "Access token has expired"), 
+    'REFRESH_TOKEN_EXPIRED': (401, "Refresh token has expired"),
+    'INSUFFICIENT_PERMISSIONS': (403, "Insufficient permissions for this operation"),
+    'USER_NOT_IN_ORG': (403, "User is not a member of this organization"),
+    'INVALID_CREDENTIALS': (401, "Invalid username or password"),
+}
+
+# Resource Errors (4xx)
+RESOURCE_ERRORS = {
+    'NOT_FOUND': (404, "Resource not found"),
+    'ALREADY_EXISTS': (409, "Resource already exists"),
+    'STORY_NOT_FOUND': (404, "Story not found"),
+    'PROJECT_NOT_FOUND': (404, "Project not found"),
+    'ORG_NOT_FOUND': (404, "Organization not found"),
+    'USER_NOT_FOUND': (404, "User not found"),
+}
+
+# Validation Errors (4xx)
+VALIDATION_ERRORS = {
+    'INVALID_JSON': (400, "Invalid JSON format"),
+    'MISSING_REQUIRED_FIELDS': (400, "Missing required fields"),
+    'INVALID_FIELD_FORMAT': (400, "Invalid field format"),
+    'INVALID_DATE_FORMAT': (400, "Invalid date format"),
+    'INVALID_FILE_TYPE': (400, "Invalid file type"),
+    'INVALID_TAG_FORMAT': (400, "Invalid tag format"),
+}
+
+# Business Logic Errors (4xx)
+BUSINESS_ERRORS = {
+    'DUPLICATE_USERNAME': (409, "Username already exists"),
+    'DUPLICATE_ORG_NAME': (409, "Organization name already exists"),
+    'INVALID_STATE_TRANSITION': (422, "Invalid state transition"),
+    'ML_QUEUE_FAILED': (422, "Failed to queue ML processing"),
+    'TAG_LIMIT_EXCEEDED': (422, "Tag limit exceeded"),
+}
+
+# Server Errors (5xx)
+SERVER_ERRORS = {
+    'INTERNAL_ERROR': (500, "Internal server error"),
+    'DATABASE_ERROR': (503, "Database operation failed"),
+    'S3_ERROR': (503, "S3 operation failed"),
+    'ML_SERVICE_ERROR': (503, "ML service unavailable"),
+    'QUEUE_SERVICE_ERROR': (503, "Queue service unavailable"),
+}
+
+def create_error_response(error_type, error_dict, additional_details=None):
+    """
+    Creates a standardized error response
+    
+    Args:
+        error_type (str): The specific error code from error dictionaries
+        error_dict (dict): The error dictionary containing the mapping
+        additional_details (dict, optional): Additional error context
+    """
+    status_code, default_message = error_dict[error_type]
+    
+    error_response = {
+        "success": False,
+        "error": {
+            "code": error_type,
+            "message": default_message,
+            "timestamp": timezone.now().isoformat()
+        }
+    }
+    
+    if additional_details:
+        error_response["error"]["details"] = additional_details
+        
+    return JsonResponse(error_response, status=status_code)

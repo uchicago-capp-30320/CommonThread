@@ -7,9 +7,9 @@
 	import { accessToken, refreshToken } from '$lib/store.js';
 
 	let userData = $state({
-		First_name: 'Loading...',
-		Last_name: '',
-		Email: 'Loading...',
+		first_name: 'Loading...',
+		last_name: '',
+		email: 'Loading...',
 		data_added: 'Loading...'
 	});
 	let orgData = $state({
