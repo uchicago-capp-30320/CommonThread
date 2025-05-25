@@ -4,7 +4,7 @@
 	import { page } from '$app/stores';
 
 	let { project } = $props();
-	console.log('ProjectCard', project);
+	console.log('ProjectCard', $inspect(project).value);
 </script>
 
 <div class="card">

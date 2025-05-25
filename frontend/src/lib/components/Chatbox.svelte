@@ -1,6 +1,6 @@
 <script>
     import { onMount } from 'svelte';
-    import authRequest from '$lib/authRequest.js';
+    import { authRequest } from '$lib/authRequest.js';
     import { accessToken, refreshToken } from '$lib/store.js'; // Assuming store.js exists and exports these
 
     export let projectId;
