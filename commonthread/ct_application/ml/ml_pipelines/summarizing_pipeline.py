@@ -4,6 +4,7 @@ from transformers import pipeline
 import requests
 import os
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,9 @@ class CollectiveSummarizingStrategy(SummarizingStrategy):
             response = requests.post(self.api_url, headers=headers, json=data)
             response.raise_for_status()
             logger.debug("Successfully received API response")
-            return response.json()["choices"][0]["message"]["content"]
+        
+            return response.json()
+
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
             raise
