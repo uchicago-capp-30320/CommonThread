@@ -149,11 +149,7 @@
 		margin: 0;
 		padding: 0;
 	}
-	h1 {
-		font-family: 'Unna', serif;
-		font-weight: 700;
-		margin: 0;
-	}
+
 	.logo {
 		width: 150px;
 		height: fit-content;
@@ -235,4 +231,5 @@
 		padding: 0.5rem 1rem;
 		cursor: pointer;
 	}
+
 </style>
