@@ -29,9 +29,9 @@
 
 	// Story page
 	let storyData = $state({
-		storyteller: 'Loading...',
-		project_name: 'Loading...',
-		curator: 'Loading...',
+		storyteller: '...',
+		project_name: '...',
+		curator: '...',
 		text_content: 'Loading...',
 		summary: 'Loading...'
 	});

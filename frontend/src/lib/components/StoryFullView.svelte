@@ -16,7 +16,7 @@
 	function marker(txt, rex) {
 		function markTerm(term) {
 			// replacer function
-			return ` <mark class="highlight" style="background-color:#56bcb3; color:white">${term}</mark> `;
+			return ` <mark class="highlight" style="background-color:#56bcb3; color:#f2f1f0">${term}</mark> `;
 			}
 		return txt.replace(rex, (term) => markTerm(term));
 	}
@@ -62,7 +62,6 @@
 					<span class="tag is-medium m-1">{tag.value}</span>
 				{/each}
 			</div>
-			<div class="vl"></div> 
 			<div class="column" id="ml-tags">
 				<span class="has-text-left">AUTOMATICALLY GENEARATED TAGS</span>
 				<br>
@@ -121,16 +120,11 @@
 
 	#user-tags > .tag {
 		background-color: #56bcb3;
-		color: white; 
+		color: #f2f1f0; 
 	}
 
 	#ml-tags > .tag {
 		background-color: #d0fdb9;
-	}
-
-	.vl {
-		 border-left: 6px solid green;
-		 height: 80%;
 	}
 
 	#trash {
