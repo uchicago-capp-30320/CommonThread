@@ -26,6 +26,12 @@ from .utils import (
     generate_refresh_token,
     decode_refresh_token,
     decode_access_token,
+    create_error_response,
+    AUTH_ERRORS,
+    RESOURCE_ERRORS,
+    VALIDATION_ERRORS,
+    BUSINESS_ERRORS,
+    SERVER_ERRORS,
 )
 from django.contrib.auth import authenticate, get_user_model
 from .models import (
@@ -693,29 +699,32 @@ def create_story(request):
         try:
             user_id = request.user_id
             if not user_id:
-                return JsonResponse(
-                    {"success": False, "error": "Missing user_id"}, status=400
-                )
+                return create_error_response('MISSING_REQUIRED_FIELDS', VALIDATION_ERRORS, 
+                                          {'missing_field': 'user_id'})
 
             file_uuid = str(uuid4())
             audio_key = f"{user_id}/{file_uuid}"
             image_key = f"{user_id}/{file_uuid}"
 
-            audio_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_STORY_AUDIO,
-                key=audio_key,
-                operation="upload",
-                expiration=3600,
-                content_type="audio/mpeg",
-            )
+            try:
+                audio_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_STORY_AUDIO,
+                    key=audio_key,
+                    operation="upload",
+                    expiration=3600,
+                    content_type="audio/mpeg",
+                )
 
-            image_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_STORY_IMAGES,
-                key=image_key,
-                operation="upload",
-                expiration=3600,
-                content_type="image/png",
-            )
+                image_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_STORY_IMAGES,
+                    key=image_key,
+                    operation="upload",
+                    expiration=3600,
+                    content_type="image/png",
+                )
+            except Exception as e:
+                logger.error("S3 presigned URL generation failed: %s", str(e))
+                return create_error_response('S3_ERROR', SERVER_ERRORS)
 
             return JsonResponse(
                 {
@@ -732,31 +741,33 @@ def create_story(request):
             )
 
         except Exception as e:
-            logger.error("Error generating upload URLs: %s", str(e))
-            return JsonResponse(
-                {"success": False, "error": "Failed to generate upload URLs"},
-                status=500,
-            )
+            logger.error("Error in GET handling: %s", str(e))
+            return create_error_response('INTERNAL_ERROR', SERVER_ERRORS)
 
+    # POST handling
     try:
         logger.debug("Received request body: %s", request.body)
-        story_data = json.loads(request.body)
-        logger.debug("Parsed story data: %s", story_data)
+        try:
+            story_data = json.loads(request.body)
+            logger.debug("Parsed story data: %s", story_data)
+        except json.JSONDecodeError:
+            return create_error_response('INVALID_JSON', VALIDATION_ERRORS)
 
         try:
             project = Project.objects.get(id=story_data["project_id"])
             logger.debug("Found project: %s", project)
         except Project.DoesNotExist:
             logger.error("Project with ID %s does not exist", story_data["project_id"])
-
-            return JsonResponse(
-                {"error": f"Project with ID {story_data["project_id"]} does not exist"},
-                status=400,
-            )
+            return create_error_response('PROJECT_NOT_FOUND', RESOURCE_ERRORS, 
+                                      {'project_id': story_data["project_id"]})
+        except KeyError:
+            return create_error_response('MISSING_REQUIRED_FIELDS', VALIDATION_ERRORS,
+                                      {'missing_field': 'project_id'})
 
         logger.debug("Curator ID: %s", story_data.get("curator"))
 
         try:
+            # Create the story
             story = Story.objects.create(
                 storyteller=story_data.get("storyteller"),
                 curator_id=request.user_id,
@@ -767,22 +778,21 @@ def create_story(request):
                 image_content=story_data.get("image_path"),
             )
             logger.debug("Created story: %s", story)
-        except Exception as e:
-            logger.error("Error creating story: %s", str(e))
-            raise
 
-        try:
-            with transaction.atomic():
+            # Handle tags
+            all_tags = [
+                (tag_data, True) for tag_data in story_data.get("required_tags", [])
+            ] + [
+                (tag_data, False) for tag_data in story_data.get("optional_tags", [])
+            ]
 
-                all_tags = [
-                    (tag_data, True) for tag_data in story_data.get("required_tags", [])
-                ] + [
-                    (tag_data, False)
-                    for tag_data in story_data.get("optional_tags", [])
-                ]
+            story_tags_to_create = []
+            for tag_data, is_required in all_tags:
+                if not isinstance(tag_data, dict) or 'name' not in tag_data or 'value' not in tag_data:
+                    logger.warning("Invalid tag format: %s", tag_data)
+                    continue
 
-                story_tags_to_create = []
-                for tag_data, is_required in all_tags:
+                try:
                     tag, created = Tag.objects.get_or_create(
                         name=tag_data["name"],
                         value=tag_data["value"],
@@ -791,41 +801,48 @@ def create_story(request):
                     if created:
                         logger.debug(
                             "Created new tag: name=%s, value=%s, required=%s",
-                            tag.name,
-                            tag.value,
-                            is_required,
+                            tag.name, tag.value, is_required,
                         )
+                    story_tags_to_create.append(StoryTag(story_id=story.id, tag_id=tag.id))
+                except Exception as e:
+                    logger.warning("Failed to create tag %s: %s", tag_data, str(e))
 
-                    story_tags_to_create.append(
-                        StoryTag(story_id=story.id, tag_id=tag.id)
-                    )
+            if story_tags_to_create:
+                StoryTag.objects.bulk_create(story_tags_to_create)
+                logger.debug(
+                    "Created %d story tag relationships for story %s",
+                    len(story_tags_to_create), story.id,
+                )
 
-                if story_tags_to_create:
-                    StoryTag.objects.bulk_create(story_tags_to_create)
-                    logger.debug(
-                        "Created %d story tag relationships for story %s",
-                        len(story_tags_to_create),
-                        story.id,
-                    )
-
-        except Exception as e:
-            logger.error("Error creating tags for story %s: %s", story.id, str(e))
+        except ValueError as _:
             story.delete()
-            raise
+            return create_error_response('INVALID_TAG_FORMAT', VALIDATION_ERRORS)
+        except Exception as e:
+            logger.error("Database operation failed: %s", str(e))
+            story.delete()
+            return create_error_response('DATABASE_ERROR', SERVER_ERRORS)
 
-        producer = QueueProducer()
-        queue_result = producer.add_to_queue(story)
+        # Queue ML processing
+        # For now, we are not giving back error for ML queue failure to the client
+        # They can use the ml_status endpoint to check the status of the ML processing
+        try:
+            producer = QueueProducer()
+            queue_result = producer.add_to_queue(story)
 
-        if not queue_result["success"]:
-            logger.error("Failed to queue ML tasks")
-        else:
+            if not queue_result["success"]:
+                logger.error("Failed to queue ML tasks")
+                # return create_error_response('ML_QUEUE_FAILED', BUSINESS_ERRORS)
+            
             logger.info("Successfully queued ML tasks for story %s", story.id)
+        except Exception as e:
+            logger.error("Queue service error: %s", str(e))
+            # return create_error_response('QUEUE_SERVICE_ERROR', SERVER_ERRORS)
 
-        return JsonResponse({"story_id": story.id}, status=200)
+        return JsonResponse({"success": True, "story_id": story.id}, status=200)
 
     except Exception as e:
-        logger.error("Error creating story: %s", str(e))
-        return JsonResponse({"error": str(e)}, status=400)
+        logger.error("Unhandled error in create_story: %s", str(e))
+        return create_error_response('INTERNAL_ERROR', SERVER_ERRORS)
 
 
 @csrf_exempt
