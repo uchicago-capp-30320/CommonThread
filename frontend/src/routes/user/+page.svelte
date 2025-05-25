@@ -5,6 +5,8 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { accessToken, refreshToken } from '$lib/store.js';
+	import CreateButton from '$lib/components/CreateButton.svelte';
+	import DeleteButton from '$lib/components/DeleteButton.svelte';
 
 	let userData = $state({
 		first_name: 'Loading...',
@@ -97,8 +99,8 @@
 				onclick={() => {
 					orgData = [
 						{
-							name: 'New Org',
-							description: 'Description of new org',
+							name: '',
+							description: '',
 							isOpen: true,
 							isNew: true
 						},
@@ -148,35 +150,46 @@
 							<div class="field">
 								<label class="label">Organization Name</label>
 								<div class="control">
-									<input class="input" type="text" bind:value={org.name} />
+									<input
+										class="input"
+										type="text"
+										bind:value={org.name}
+										required
+										placeholder="Organization name"
+									/>
 								</div>
 							</div>
 
 							<div class="field">
 								<label class="label">Description</label>
 								<div class="control">
-									<textarea class="textarea" bind:value={org.description}></textarea>
+									<textarea
+										class="textarea"
+										bind:value={org.description}
+										placeholder="Organization description"
+									></textarea>
 								</div>
 							</div>
 							<div class="field is-grouped mt-4">
-								<div class="control">
+								<div class="control mr-2">
+									<CreateButton type="org" data={org} redirectPath="/user" />
+								</div>
+								<div class="control mr-2">
 									<button
-										class="button is-success"
+										class="button is-light"
 										onclick={() => {
-											// logic to save the project
-											org.isOpen = false;
-											// Example: saveProject(project);
-											console.log('org added!');
-											org.isNew ? addOrg(org) : editOrg(org);
+											if (org.isNew) {
+												orgData = orgData.filter((_, index) => index !== i);
+											} else {
+												org.isOpen = false;
+											}
 										}}
 									>
-										{org.isNew ? 'Add Organization' : 'Save Changes'}
+										Cancel
 									</button>
 								</div>
 								<div class="control">
-									<button class="button is-light" onclick={() => (project.isOpen = false)}>
-										Cancel
-									</button>
+									<DeleteButton type="org" id={org.org_id} redirectPath="/user" />
 								</div>
 							</div>
 						</div>
