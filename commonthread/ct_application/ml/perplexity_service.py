@@ -22,7 +22,7 @@ def get_perplexity_chat_response(api_key: str, context: str, user_message: str) 
     perplexity_payload = {
         "model": model_name,
         "messages": [
-            {"role": "system", "content": f"You are a helpful assistant. Use the following project stories to answer questions about the project:\n\n{context}"},
+            {"role": "system", "content": f"You are a helpful assistant. Your task is to answer questions about a project based ONLY on the following provided project stories. Do not use any external knowledge or make assumptions beyond what is written in these stories. If the answer to the question cannot be found within the provided stories, you MUST explicitly state that you cannot answer based on the provided information and should not attempt to answer generally.\n\nProject Stories Context:\n{context}"},
             {"role": "user", "content": user_message}
         ]
     }

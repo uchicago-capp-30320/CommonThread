@@ -80,15 +80,6 @@ def project_chat_api(request, project_id):
     context = "\n\n".join(stories)
     # TODO: Implement truncation or summarization if context exceeds Perplexity's limits.
 
-    # Debugging logs
-    logger.info(f"[CHAT_DEBUG] Project ID: {project_id}")
-    logger.info(f"[CHAT_DEBUG] Number of stories fetched: {len(stories) if stories is not None else 0}")
-    logger.info(f"[CHAT_DEBUG] Context preview (first 500 chars): {context[:500]}")
-    if not stories:
-        logger.warning(f"[CHAT_DEBUG] No stories found for project {project_id}. Context will be empty.")
-    elif not context.strip():
-        logger.warning(f"[CHAT_DEBUG] Stories were found for project {project_id}, but the combined text_content is empty or whitespace.")
-
     # Call the Perplexity service
     response_data = get_perplexity_chat_response(settings.PERPLEXITY_API_KEY, context, user_message)
 
