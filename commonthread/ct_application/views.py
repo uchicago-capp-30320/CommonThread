@@ -1024,7 +1024,9 @@ def delete_story(request, story_id):
 @verify_user("admin")
 def create_project(request):
     try:
+        logger.debug("Received request body: %s", request.body)
         project_data = json.loads(request.body or "{}")
+        logger.debug("Parsed project data: %s", project_data)
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 

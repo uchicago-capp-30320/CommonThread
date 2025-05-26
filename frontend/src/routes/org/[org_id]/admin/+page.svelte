@@ -1,5 +1,8 @@
 <script>
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
+	import CreateButton from '$lib/components/CreateButton.svelte';
+	import DeleteButton from '$lib/components/DeleteButton.svelte';
+
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { onMount } from 'svelte';
 	import { authRequest } from '$lib/authRequest.js';
@@ -210,8 +213,9 @@
 					onclick={() => {
 						projects = [
 							{
-								project_name: 'New Project',
-								insight: 'Description of new project',
+								project_name: '',
+								description: '',
+								insight: '',
 								required_tags: [],
 								optional_tags: [],
 								org_id: org_id,
@@ -261,14 +265,23 @@
 							<div class="field">
 								<label class="label">Project Name</label>
 								<div class="control">
-									<input class="input" type="text" bind:value={project.project_name} />
+									<input
+										class="input"
+										type="text"
+										bind:value={project.project_name}
+										placeholder="Project Name"
+									/>
 								</div>
 							</div>
 
 							<div class="field">
 								<label class="label">Description</label>
 								<div class="control">
-									<textarea class="textarea" bind:value={project.insight}></textarea>
+									<textarea
+										class="textarea"
+										bind:value={project.description}
+										placeholder="Project Description"
+									></textarea>
 								</div>
 							</div>
 
@@ -339,23 +352,23 @@
 									</button>
 									<div class="field is-grouped mt-4">
 										<div class="control">
-											<button
-												class="button is-success"
-												onclick={() => {
-													// logic to save the project
-													project.isOpen = false;
-													// Example: saveProject(project);
-													alert('Project added!');
-													project.isNew ? addProject(project) : editProject(project);
-												}}
-											>
-												{project.isNew ? 'Add Project' : 'Save Changes'}
-											</button>
+											<CreateButton
+												type="project"
+												data={project}
+												redirectPath={`/org/${project.org_id}/admin`}
+											/>
 										</div>
 										<div class="control">
 											<button class="button is-light" onclick={() => (project.isOpen = false)}>
 												Cancel
 											</button>
+										</div>
+										<div class="control">
+											<DeleteButton
+												type="project"
+												id={project.project_id}
+												redirectPath="/org/{project.org_id}/admin"
+											/>
 										</div>
 									</div>
 								</div>
