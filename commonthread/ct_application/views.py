@@ -176,7 +176,10 @@ def id_searcher(real_user_id, id_set, required_access):
             if "org_id" not in id_set:
                 if "project_id" not in id_set:
                     if "story_id" not in id_set:
-                        return create_error_response("BAD_FILTER", RESOURCE_ERRORS),False,
+                        return (
+                            create_error_response("BAD_FILTER", RESOURCE_ERRORS),
+                            False,
+                        )
                     else:
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
@@ -848,7 +851,7 @@ def create_user(request):
     password = user_data.get("password")
     if not username or not password:
         return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
-    
+
     #  check for existing user
     if User.objects.filter(username=username).exists():
         return create_error_response("DUPLICATE_USERNAME", BUSINESS_ERRORS)
@@ -978,7 +981,9 @@ def delete_story(request, story_id):
 @verify_user("admin")
 def create_project(request):
     try:
+        logger.debug("Received request body: %s", request.body)
         project_data = json.loads(request.body or "{}")
+        logger.debug("Parsed project data: %s", project_data)
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
@@ -991,26 +996,31 @@ def create_project(request):
     # Need to get org as object to pass to the project creation
     try:
         org = Organization.objects.get(pk=org_id)
+        logger.debug("Found organization: %s", org)
     except Organization.DoesNotExist:
         return JsonResponse(
             {"success": False, "error": "Organization not found"}, status=404
         )
 
-    curator = CustomUser.objects.get(id=project_data["curator"])
+    curator = CustomUser.objects.get(id=request.user_id)
+    logger.debug("Curator ID: %s", curator)
 
     try:
         logger.debug("Creating project with data: %s", project_data)
         project = Project.objects.create(
-            name=project_data["name"],
+            name=project_data["project_name"],
             description=project_data["description"],
             curator=curator,
             org=org,
-            date=project_data.get("date", str(date.today())),
+            date=str(date.today()),
         )
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])
         optional_tags = project_data.get("optional_tags", [])
 
+        logger.debug("Creating tags for project %s", project.id)
+        logger.debug("Required tags: %s", required_tags)
+        logger.debug("Optional tags: %s", optional_tags)
         for rtag in required_tags:
             tag = Tag.objects.create(name=rtag, required=True)
             ProjectTag.objects.create(
@@ -1070,7 +1080,9 @@ def edit_project(request, org_id, project_id):
     try:
         project.curator = CustomUser.objects.get(pk=curator_id)
     except CustomUser.DoesNotExist:
-        return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS, "Curator not in Users")
+        return create_error_response(
+            "USER_NOT_FOUND", RESOURCE_ERRORS, "Curator not in Users"
+        )
 
     # parse & assign date
     try:
@@ -1085,12 +1097,14 @@ def edit_project(request, org_id, project_id):
     except:
         return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
+
 @csrf_exempt
 @require_http_methods(["DELETE"])
 @verify_user("admin")
-def delete_project(request, org_id, project_id):
+def delete_project(request, project_id):
     try:
         proj_to_delete = Project.objects.get(id=project_id)
+
         proj_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:

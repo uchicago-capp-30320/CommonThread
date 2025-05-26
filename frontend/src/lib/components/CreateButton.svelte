@@ -9,9 +9,10 @@
 	// Derive props and set initial state
 	let { type, data, redirectPath = null } = $props();
 	let showModal = $state(false);
+
 	$inspect(showModal);
 	$inspect('type', type);
-	$inspect('data', data);
+	$inspect('data in create', data);
 	$inspect('redirectPath', redirectPath);
 
 	// Check input
@@ -21,8 +22,8 @@
 		console.error('Cannot create object of type ' + type);
 	}
 
-	// Define delete request
-	const sendCreateRequest = async () => {
+	// Define create request
+	async function sendCreateRequest() {
 		const createResponse = await authRequest(
 			`/${type}/create`,
 			'POST',
@@ -31,18 +32,20 @@
 			data
 		);
 		console.log(createResponse);
+		if (!createResponse) {
+			console.error('No response from create request');
+			showModal = false;
+			return;
+		}
 
 		if (createResponse.data.success) {
 			if (redirectPath) {
+				// If a redirect path is provided, use it
 				goto(redirectPath);
-			} else {
-				showModal = false;
 			}
-		} else {
-			console.error('Failed to create:', createResponse.data);
 			showModal = false;
 		}
-	};
+	}
 </script>
 
 <!-- Create button -->
@@ -65,7 +68,9 @@
         id="cancel-delete"
         onclick={showModal=false}
         >No, go back.</button> -->
-		<button class="button is-success" onclick={sendCreateRequest}> <b>Yes, create.</b></button>
+		<button class="button is-success" onclick={() => sendCreateRequest()}>
+			<b>Yes, create.</b></button
+		>
 	</div>
 </Modal>
 

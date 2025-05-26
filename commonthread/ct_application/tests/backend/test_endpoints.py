@@ -1,6 +1,7 @@
 # commonthread/ct_application/tests/backend/test_endpoints.py
 import json
 import datetime
+from datetime import date
 import jwt
 import inspect
 import sys
@@ -253,7 +254,7 @@ def test_get_ml_status_ok_independent(client):
 def test_get_ml_status_not_found_independent(client):
     # no MLProcessingQueue exists for story=9999
     resp = client.get("/story/9999/ml-status")
-    #STORY_NOT_FOUND → 404
+    # STORY_NOT_FOUND → 404
     assert resp.status_code == 404
     data = resp.json()
     assert data["success"] is False
@@ -273,6 +274,7 @@ def test_create_project_ok(client, seed, auth_headers):
         "curator": alice.id,
         "required_tags": ["rtag1", "rtag2"],
         "optional_tags": ["otag1", "otag2"],
+        "date": str(date.today()),
     }
     r = client.post(
         "/project/create",
@@ -600,30 +602,30 @@ def test_create_user_conflict(client, seed):
     resp = client.post(
         "/user/create", json.dumps(payload), content_type="application/json"
     )
-    #Duplicate username → 409 Conflict
+    # Duplicate username → 409 Conflict
     assert resp.status_code == 409
     data = resp.json()
     assert data["success"] is False
-    err=data["error"]
+    err = data["error"]
     assert err["code"] == "DUPLICATE_USERNAME"
     assert err["message"] == "Username already exists"
 
-    #timestamp is ISO format
+    # timestamp is ISO format
     datetime.datetime.fromisoformat(err["timestamp"])
 
 
 def test_create_user_missing_fields(client):
     # No username or password
     resp = client.post("/user/create", json.dumps({}), content_type="application/json")
-    
-    #missing required fields → 400 Bad Request
+
+    # missing required fields → 400 Bad Request
     assert resp.status_code == 400
     data = resp.json()
     assert data["success"] is False
     err = data["error"]
     assert err["code"] == "MISSING_REQUIRED_FIELDS"
     assert err["message"] == "Missing required fields"
-    #timestamp is ISO format
+    # timestamp is ISO format
     datetime.datetime.fromisoformat(err["timestamp"])
 
 
@@ -631,7 +633,7 @@ def test_create_user_invalid_json(client):
     resp = client.post(
         "/user/create", "this-is-not-json", content_type="application/json"
     )
-    #INVALID_JSON → 400 Bad Request
+    # INVALID_JSON → 400 Bad Request
     assert resp.status_code == 400
     data = resp.json()
     assert data["success"] is False
@@ -662,7 +664,7 @@ def test_get_project_not_found(client, auth_headers):
 def test_get_org_not_found(client, auth_headers):
     # get_object_or_404 raises Http404, but view catches Exception → 500
     r = client.get("/org/9999", **auth_headers())
-    assert r.status_code == 404 
+    assert r.status_code == 404
 
 
 @pytest.mark.django_db
@@ -810,7 +812,7 @@ def test_edit_project(client, seed, auth_headers_user3):
         "date": "2025-05-08",
     }
     r = client.post(
-        f"/project/{org3.id}/{p.id}/edit",
+        f"/project/{p.id}/edit",
         json.dumps(payload),
         content_type="application/json",
         **auth_headers_user3(),
@@ -847,8 +849,8 @@ def test_delete_story(client, seed, auth_headers_user3):
 
 
 def test_delete_project(client, seed, auth_headers_user3):
-    o, p, deleto = seed["org3"], seed["proj_edit_delete"], seed["deleto"]
-    r = client.delete(f"/project/{o.id}/{p.id}/delete", **auth_headers_user3())
+    p, deleto = seed["proj_edit_delete"], seed["deleto"]
+    r = client.delete(f"/project/{p.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
 
