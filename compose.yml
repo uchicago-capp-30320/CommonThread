@@ -9,9 +9,9 @@ services:
     restart: on-failure
     build: ./frontend
     ports:
-      - '8040:9000'
+      - '8031:9000'
   machine:
     build: ./commonthread
     command: python commonthread/ct_application/cloud/consumer_service.py
     ports:
-    - '8050:9000'
+    - '8032:9000'
