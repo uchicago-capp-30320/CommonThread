@@ -4,6 +4,7 @@
     import { accessToken, refreshToken } from '$lib/store.js'; // Assuming store.js exists and exports these
 
     export let apiEndpoint; // Changed from projectId to apiEndpoint
+    $: console.log('Chatbox prop apiEndpoint value has updated to:', apiEndpoint); // Wording updated
 
     let messages = [];
     let userInput = '';
@@ -25,6 +26,7 @@
     });
 
     async function sendMessage() {
+        console.log('sendMessage function called. Current apiEndpoint value is:', apiEndpoint); // Wording updated
         if (userInput.trim() === '' || isLoading) return;
 
         isLoading = true;

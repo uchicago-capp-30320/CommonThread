@@ -41,7 +41,10 @@
 	$inspect(storyData);
 
 	// Construct chat API endpoint
-	const chatApiEndpoint = `/story/${story_id}/chat`;
+	console.log('Story Page - $page.params.story_id:', $page.params.story_id);
+	const story_id_for_endpoint = $page.params.story_id; // Ensure story_id is explicitly defined for clarity
+	const chatApiEndpoint = `/story/${story_id_for_endpoint}/chat`;
+	console.log('Story Page - constructed chatApiEndpoint:', chatApiEndpoint);
 
 	// API call
 	onMount(async () => {

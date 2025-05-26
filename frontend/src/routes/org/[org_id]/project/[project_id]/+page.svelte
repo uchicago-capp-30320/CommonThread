@@ -21,8 +21,10 @@
 	let type = $state('dash');
 	let searchValue = $state('');
 	let storiesTotalSearch = $state(0);
-	const projectId = $page.params.project_id; // Extracted projectId
+	console.log('Project Page - $page.params.project_id:', $page.params.project_id);
+	const projectId = $page.params.project_id; // Ensure projectId is explicitly defined if not already
 	const projectChatApiEndpoint = `/project/${projectId}/chat`; // Create the endpoint URL
+	console.log('Project Page - constructed projectChatApiEndpoint:', projectChatApiEndpoint);
 
 	$inspect(projectData);
 	$inspect(stories);
