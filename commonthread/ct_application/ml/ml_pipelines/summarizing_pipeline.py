@@ -115,8 +115,10 @@ class CollectiveSummarizingStrategy(SummarizingStrategy):
             response = requests.post(self.api_url, headers=headers, json=data)
             response.raise_for_status()
             logger.debug("Successfully received API response")
-        
-            return response.json()
+            content = response.json()["choices"][0]["message"]["content"]
+            lines = [line.strip("-• ").strip() for line in content.strip().splitlines() if line.strip()]
+            insights = {f"insight{i+1}": line for i, line in enumerate(lines)}
+            return insights
 
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
