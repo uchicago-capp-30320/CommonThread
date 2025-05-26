@@ -199,7 +199,7 @@ def check_org_auth(user_id: str, org_id: str):
         try:
             org = Organization.objects.get(id=org_id)
         except:
-            return create_error_response("ORG_NOT_FOUND", AUTH_ERRORS), False
+            return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS), False
         return create_error_response("USER_NOT_IN_ORG", AUTH_ERRORS), False
 
 
@@ -210,7 +210,7 @@ def check_project_auth(user_id: str, project_id: str):
         logger.debug("Found Project, looking for org")
         return check_org_auth(user_id, project.org.id)
     except Project.DoesNotExist:
-        return create_error_response("PROJECT_NOT_FOUND", AUTH_ERRORS), False
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS), False
 
 
 def check_story_auth(user_id: str, story_id: str):
@@ -219,7 +219,7 @@ def check_story_auth(user_id: str, story_id: str):
         story = Story.objects.get(id=story_id)
         return check_project_auth(user_id, story.proj.id)
     except Story.DoesNotExist:
-        return create_error_response("STORY_NOT_FOUND", AUTH_ERRORS), False
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS), False
 
 
 def auth_level_check(user_level: str, required_level: str):
