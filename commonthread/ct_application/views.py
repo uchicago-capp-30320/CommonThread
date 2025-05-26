@@ -463,19 +463,22 @@ def get_project(request, project_id):
         return JsonResponse(data)
 
     except Project.DoesNotExist:
-        logger.error(f"Project with id={project_id} not found.")
-        return JsonResponse({"error": "Project not found."}, status=404)
+        logger.warning(f"Project with id={project_id} not found.")
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS)
 
     except Exception as e:
-        logger.error(f"Error in get_project: {e}")
-        return JsonResponse({"error": "Internal server error."}, status=500)
-
+        logger.error(f"Error in get_project: {e}", exc_info=True)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
+    
 
 @require_GET
 @verify_user("user")
 def get_org(request, org_id):
     try:
-        org = get_object_or_404(Organization, id=org_id)
+        try:
+            org = Organization.objects.get(id=org_id)
+        except Organization.DoesNotExist:
+            return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
 
         # Get all projects and stories
         projects = Project.objects.filter(org=org).only("id", "curator")
@@ -509,13 +512,17 @@ def get_org(request, org_id):
         # Generate presigned URL
         profile_pic_url = ""
         if org.profile:
-            presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-                key=org.profile.name,
-                operation="download",
-                expiration=3600,
-            )
-            profile_pic_url = presign["url"]
+            try:
+                presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_ORG_PROFILES,
+                    key=org.profile.name,
+                    operation="download",
+                    expiration=3600,
+                )
+                profile_pic_url = presign["url"]
+            except Exception as e:
+                logger.error(f"Failed to generate S3 URL: {e}", exc_info=True)
+                return create_error_response("S3_ERROR", SERVER_ERRORS)
 
         return JsonResponse(
             {
@@ -532,15 +539,12 @@ def get_org(request, org_id):
         )
 
     except Exception as e:
-        logging.error(f"Error in get_org: {e}")
-        return JsonResponse({"error": "Something went wrong."}, status=500)
+        logger.error(f"Unhandled error in get_org: {e}", exc_info=True)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_GET
 def get_stories(request):
-
-    if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
 
     try:
         # Existing filter logic remains the same
@@ -558,26 +562,28 @@ def get_stories(request):
         active_filter = {k: v for k, v in filters.items() if v is not None}
 
         if len(active_filter) != 1:
-            return JsonResponse(
-                {
-                    "error": "Specify exactly one of org_id, project_id, story_id, or user_id."
-                },
-                status=400,
-            )
+            return create_error_response("BAD_FILTER", RESOURCE_ERRORS)
 
         id_type, id_value = next(iter(active_filter.items()))
 
-        # Existing filtering logic remains the same
         if id_type == "org_id":
             stories = Story.objects.filter(proj__org__id=id_value)
+            if not stories.exists():
+                return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
         elif id_type == "project_id":
             stories = Story.objects.filter(proj__id=id_value)
+            if not stories.exists():
+                return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS)
         elif id_type == "story_id":
             stories = Story.objects.filter(id=id_value)
+            if not stories.exists():
+                return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
         elif id_type == "user_id":
             stories = Story.objects.filter(curator__id=id_value)
+            if not stories.exists():
+                return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS)
         else:
-            return JsonResponse({"error": "Invalid query parameter."}, status=400)
+            return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
 
         # Optimize tag fetching
         stories = stories.select_related("proj", "curator").prefetch_related(
@@ -624,7 +630,7 @@ def get_stories(request):
 
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
-        return JsonResponse({"error": "Internal server error."}, status=500)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_GET
@@ -678,10 +684,8 @@ def get_story(request, story_id):
 
     except Story.DoesNotExist:
         logging.debug("Story not found with ID: %s", story_id)
-        return HttpResponseNotFound(
-            "Could not find that story. It may have been deleted or never existed.",
-            status=404,
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
+    
 
 
 ## POST methods ----------------------------------------------------------------
@@ -1272,28 +1276,34 @@ def delete_org(request, org_id):
 def get_user(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        return JsonResponse({"success": False, "error": "No token"}, status=401)
+        return create_error_response("NO_TOKEN", AUTH_ERRORS)
 
     token = auth_header.split(" ", 1)[1]
     try:
         payload = decode_access_token(token)
         user_id = payload["sub"]
-    except Exception:
-        return JsonResponse({"success": False, "error": "Bad token"}, status=401)
+    except ExpiredSignatureError:
+        return create_error_response("EXPIRED_TOKEN", AUTH_ERRORS)
+    except InvalidTokenError:
+        return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
 
     try:
         user = User.objects.get(pk=user_id)
 
+
         # Generate presigned URL for user profile picture
         user_profile_url = ""
         if user.profile:
-            user_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_USER_PROFILES,
-                key=user.profile.name,
-                operation="download",
-                expiration=3600,
-            )
-            user_profile_url = user_presign["url"]
+            try:
+                user_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_USER_PROFILES,
+                    key=user.profile.name,
+                    operation="download",
+                    expiration=3600,
+                )
+                user_profile_url = user_presign["url"]
+            except Exception:
+                return create_error_response("S3_ERROR", SERVER_ERRORS)
 
         # Get organizations with presigned URLs for their profiles
         org_users = OrgUser.objects.filter(user=user).select_related("org")
@@ -1302,13 +1312,16 @@ def get_user(request):
             org = org_user.org
             org_profile_url = ""
             if org.profile:
-                org_presign = generate_s3_presigned(
-                    bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-                    key=org.profile.name,
-                    operation="download",
-                    expiration=3600,
-                )
-                org_profile_url = org_presign["url"]
+                try:
+                    org_presign = generate_s3_presigned(
+                        bucket_name=settings.CT_BUCKET_ORG_PROFILES,
+                        key=org.profile.name,
+                        operation="download",
+                        expiration=3600,
+                    )
+                    org_profile_url = org_presign["url"]
+                except Exception:
+                    return create_error_response("S3_ERROR", SERVER_ERRORS)
 
             orgs.append(
                 {
@@ -1333,8 +1346,10 @@ def get_user(request):
 
         return JsonResponse(user_data, status=200)
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except User.DoesNotExist:
+        return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS)
+    except Exception:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_http_methods(["POST", "PATCH"])
