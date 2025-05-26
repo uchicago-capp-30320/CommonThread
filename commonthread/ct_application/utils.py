@@ -108,6 +108,8 @@ RESOURCE_ERRORS = {
     'PROJECT_NOT_FOUND': (404, "Project not found"),
     'ORG_NOT_FOUND': (404, "Organization not found"),
     'USER_NOT_FOUND': (404, "User not found"),
+    "INVALID_QUERY_PARAM": (400, "Invalid query parameter."), 
+    "BAD_FILTER": (400, "Specify exactly one of org_id, project_id, story_id, or user_id.")
 }
 
 # Validation Errors (4xx)

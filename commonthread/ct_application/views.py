@@ -104,29 +104,19 @@ def verify_user(required_access="user"):
                 access_token = request.headers.get("Authorization", "")
                 logger.debug("Access Token: %r", access_token)
                 if not access_token:
-                    return JsonResponse(
-                        {"success": False, "error": "No token"},
-                        status=401,
-                    )
+                    return create_error_response("NO_TOKEN", AUTH_ERRORS)
                 elif not access_token.startswith("Bearer "):
-                    return JsonResponse(
-                        {"success": False, "error": "Token malformed"},
-                        status=401,
-                    )
+                    return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
                 access_token = access_token.split(" ", 1)[1]
                 decoded = decode_access_token(access_token)
                 real_user_id = decoded["sub"]
 
             except ExpiredSignatureError:
                 # Expired Token: 299 Code used by front-end to know to request new one
-                return JsonResponse(
-                    {"success": False, "error": "Access Expired"}, status=299
-                )
+                return create_error_response("ACCESS_TOKEN_EXPIRED", AUTH_ERRORS)
             except InvalidTokenError:
                 # Something broke in the process
-                return JsonResponse(
-                    {"success": False, "error": "Bad token"}, status=401
-                )
+                return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
 
             request.user_id = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
@@ -141,12 +131,13 @@ def verify_user(required_access="user"):
                     body = json.loads((request.body or "{}"))
                 except:
                     logging.debug("Request failed to load")
-                    return JsonResponse(
-                        {"success": False, "error": "Body not loaded"}, status=400
-                    )
+                    return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
                 auth_level, search_success = id_searcher(
                     real_user_id, body, required_access
                 )
+            logger.debug("Test Checking")
+            logger.debug(auth_level)
+            logger.debug(search_success)
             if search_success:
                 auth_level_check(auth_level, required_access)
             else:
@@ -180,17 +171,13 @@ def id_searcher(real_user_id, id_set, required_access):
             else:
                 return check_org_auth(real_user_id, id_set["org_id"])
         elif required_access != "user":
-            logger.debug("Flag 2.1")
             # If there's a user id in there but we need admin/creator for some purpose.
             # This essentially serves as a failsafe against things that might include user ids
             if "org_id" not in id_set:
                 if "project_id" not in id_set:
                     if "story_id" not in id_set:
                         return (
-                            JsonResponse(
-                                {"success": False, "error": "No Identifier Provided"},
-                                status=400,
-                            ),
+                            create_error_response("BAD_FILTER", RESOURCE_ERRORS),
                             False,
                         )
                     else:
@@ -203,12 +190,7 @@ def id_searcher(real_user_id, id_set, required_access):
             return "user", True
 
     except:
-        return (
-            JsonResponse(
-                {"success": False, "error": "Identifier read failed"}, status=400
-            ),
-            False,
-        )
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS), False
 
 
 def check_org_auth(user_id: str, org_id: str):
@@ -220,16 +202,8 @@ def check_org_auth(user_id: str, org_id: str):
         try:
             org = Organization.objects.get(id=org_id)
         except:
-            return (
-                JsonResponse({"success": False, "error": "Org not found"}, status=404),
-                False,
-            )
-        return (
-            JsonResponse(
-                {"success": False, "error": "Not authorized to access page"}, status=403
-            ),
-            False,
-        )
+            return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS), False
+        return create_error_response("USER_NOT_IN_ORG", AUTH_ERRORS), False
 
 
 def check_project_auth(user_id: str, project_id: str):
@@ -239,10 +213,7 @@ def check_project_auth(user_id: str, project_id: str):
         logger.debug("Found Project, looking for org")
         return check_org_auth(user_id, project.org.id)
     except Project.DoesNotExist:
-        return (
-            JsonResponse({"success": False, "error": "Project not found."}, status=404),
-            False,
-        )
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS), False
 
 
 def check_story_auth(user_id: str, story_id: str):
@@ -251,10 +222,7 @@ def check_story_auth(user_id: str, story_id: str):
         story = Story.objects.get(id=story_id)
         return check_project_auth(user_id, story.proj.id)
     except Story.DoesNotExist:
-        return (
-            JsonResponse({"success": False, "error": "Story not found"}, status=404),
-            False,
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS), False
 
 
 def auth_level_check(user_level: str, required_level: str):
@@ -276,9 +244,7 @@ def auth_level_check(user_level: str, required_level: str):
             )
             return True
         elif auth_dict[user_level] < auth_dict[required_level]:
-            return JsonResponse(
-                {"success": False, "error": "Insufficient Permissions"}, status=401
-            )
+            return create_error_response("INSUFFICIENT_PERMISSIONS", AUTH_ERRORS), False
     except:
         logger.debug(
             "Improperly Listed Permission Level?" "Required Access Level: %r",
@@ -288,9 +254,7 @@ def auth_level_check(user_level: str, required_level: str):
             "Given Access Level: %r",
             auth_dict[user_level],
         )
-        return JsonResponse(
-            {"success": False, "error": "Authorization Check Failed"}, status=401
-        )
+        return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS), False
 
 
 @require_GET
@@ -303,9 +267,7 @@ def check_ml_status(request, story_id):
     try:
         ml_task = MLProcessingQueue.objects.get(story_id=story_id)
     except MLProcessingQueue.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "ML status not found"}, status=404
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
     return JsonResponse(
         {
@@ -453,7 +415,7 @@ def get_project(request, project_id):
             "org_id": project.org.id,
             "org_name": project.org.name,
             "date": project.date,
-            "insight": project.insight,
+            "insight": project.insight_json,
             "curator": project.curator.name if project.curator else None,
             "required_tags": list(required_tags),
             "optional_tags": list(optional_tags),
@@ -463,19 +425,22 @@ def get_project(request, project_id):
         return JsonResponse(data)
 
     except Project.DoesNotExist:
-        logger.error(f"Project with id={project_id} not found.")
-        return JsonResponse({"error": "Project not found."}, status=404)
+        logger.warning(f"Project with id={project_id} not found.")
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS)
 
     except Exception as e:
-        logger.error(f"Error in get_project: {e}")
-        return JsonResponse({"error": "Internal server error."}, status=500)
+        logger.error(f"Error in get_project: {e}", exc_info=True)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_GET
 @verify_user("user")
 def get_org(request, org_id):
     try:
-        org = get_object_or_404(Organization, id=org_id)
+        try:
+            org = Organization.objects.get(id=org_id)
+        except Organization.DoesNotExist:
+            return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
 
         # Get all projects and stories
         projects = Project.objects.filter(org=org).only("id", "curator")
@@ -509,13 +474,17 @@ def get_org(request, org_id):
         # Generate presigned URL
         profile_pic_url = ""
         if org.profile:
-            presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-                key=org.profile.name,
-                operation="download",
-                expiration=3600,
-            )
-            profile_pic_url = presign["url"]
+            try:
+                presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_ORG_PROFILES,
+                    key=org.profile.name,
+                    operation="download",
+                    expiration=3600,
+                )
+                profile_pic_url = presign["url"]
+            except Exception as e:
+                logger.error(f"Failed to generate S3 URL: {e}", exc_info=True)
+                return create_error_response("S3_ERROR", SERVER_ERRORS)
 
         return JsonResponse(
             {
@@ -532,15 +501,13 @@ def get_org(request, org_id):
         )
 
     except Exception as e:
-        logging.error(f"Error in get_org: {e}")
-        return JsonResponse({"error": "Something went wrong."}, status=500)
+        logger.error(f"Unhandled error in get_org: {e}", exc_info=True)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_GET
+@verify_user("user")
 def get_stories(request):
-
-    if request.method != "GET":
-        return JsonResponse({"error": "Method not allowed"}, status=405)
 
     try:
         # Existing filter logic remains the same
@@ -558,26 +525,24 @@ def get_stories(request):
         active_filter = {k: v for k, v in filters.items() if v is not None}
 
         if len(active_filter) != 1:
-            return JsonResponse(
-                {
-                    "error": "Specify exactly one of org_id, project_id, story_id, or user_id."
-                },
-                status=400,
-            )
+            return create_error_response("BAD_FILTER", RESOURCE_ERRORS)
 
         id_type, id_value = next(iter(active_filter.items()))
 
-        # Existing filtering logic remains the same
         if id_type == "org_id":
             stories = Story.objects.filter(proj__org__id=id_value)
+
         elif id_type == "project_id":
             stories = Story.objects.filter(proj__id=id_value)
+
         elif id_type == "story_id":
             stories = Story.objects.filter(id=id_value)
+
         elif id_type == "user_id":
             stories = Story.objects.filter(curator__id=id_value)
+
         else:
-            return JsonResponse({"error": "Invalid query parameter."}, status=400)
+            return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
 
         # Optimize tag fetching
         stories = stories.select_related("proj", "curator").prefetch_related(
@@ -624,7 +589,7 @@ def get_stories(request):
 
     except Exception as e:
         logger.error(f"Error in get_stories: {e}")
-        return JsonResponse({"error": "Internal server error."}, status=500)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_GET
@@ -678,10 +643,7 @@ def get_story(request, story_id):
 
     except Story.DoesNotExist:
         logging.debug("Story not found with ID: %s", story_id)
-        return HttpResponseNotFound(
-            "Could not find that story. It may have been deleted or never existed.",
-            status=404,
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
 
 ## POST methods ----------------------------------------------------------------
@@ -778,69 +740,71 @@ def create_story(request):
 
         logger.debug("Curator ID: %s", story_data.get("curator"))
 
-        try:
-            # Create the story
-            story = Story.objects.create(
-                storyteller=story_data.get("storyteller"),
-                curator_id=request.user_id,
-                date=timezone.now(),
-                text_content=story_data.get("text_content"),
-                proj=project,
-                audio_content=story_data.get("audio_path"),
-                image_content=story_data.get("image_path"),
-            )
-            logger.debug("Created story: %s", story)
-
-            # Handle tags
-            all_tags = [
-                (tag_data, True) for tag_data in story_data.get("required_tags", [])
-            ] + [(tag_data, False) for tag_data in story_data.get("optional_tags", [])]
-
-            story_tags_to_create = []
-            for tag_data, is_required in all_tags:
-                if (
-                    not isinstance(tag_data, dict)
-                    or "name" not in tag_data
-                    or "value" not in tag_data
-                ):
-                    logger.warning("Invalid tag format: %s", tag_data)
-                    continue
-
-                try:
-                    tag, created = Tag.objects.get_or_create(
-                        name=tag_data["name"],
-                        value=tag_data["value"],
-                        created_by="user",
-                        required=is_required,
-                    )
-                    if created:
-                        logger.debug(
-                            "Created new tag: name=%s, value=%s, required=%s",
-                            tag.name,
-                            tag.value,
-                            is_required,
-                        )
-                    story_tags_to_create.append(
-                        StoryTag(story_id=story.id, tag_id=tag.id)
-                    )
-                except Exception as e:
-                    logger.warning("Failed to create tag %s: %s", tag_data, str(e))
-
-            if story_tags_to_create:
-                StoryTag.objects.bulk_create(story_tags_to_create)
-                logger.debug(
-                    "Created %d story tag relationships for story %s",
-                    len(story_tags_to_create),
-                    story.id,
+        with transaction.atomic():
+            try:
+                # Create the story
+                story = Story.objects.create(
+                    storyteller=story_data.get("storyteller"),
+                    curator_id=request.user_id,
+                    date=timezone.now(),
+                    text_content=story_data.get("text_content"),
+                    proj=project,
+                    audio_content=story_data.get("audio_path"),
+                    image_content=story_data.get("image_path"),
                 )
+                logger.debug("Created story: %s", story)
 
-        except ValueError as _:
-            story.delete()
-            return create_error_response("INVALID_TAG_FORMAT", VALIDATION_ERRORS)
-        except Exception as e:
-            logger.error("Database operation failed: %s", str(e))
-            story.delete()
-            return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+                # Handle tags
+                all_tags = [
+                    (tag_data, True) for tag_data in story_data.get("required_tags", [])
+                ] + [
+                    (tag_data, False)
+                    for tag_data in story_data.get("optional_tags", [])
+                ]
+
+                story_tags_to_create = []
+                for tag_data, is_required in all_tags:
+                    if (
+                        not isinstance(tag_data, dict)
+                        or "name" not in tag_data
+                        or "value" not in tag_data
+                    ):
+                        logger.warning("Invalid tag format: %s", tag_data)
+                        continue
+
+                    try:
+                        tag, created = Tag.objects.get_or_create(
+                            name=tag_data["name"],
+                            value=tag_data["value"],
+                            created_by="user",
+                            required=is_required,
+                        )
+                        if created:
+                            logger.debug(
+                                "Created new tag: name=%s, value=%s, required=%s",
+                                tag.name,
+                                tag.value,
+                                is_required,
+                            )
+                        story_tags_to_create.append(
+                            StoryTag(story_id=story.id, tag_id=tag.id)
+                        )
+                    except Exception as e:
+                        logger.warning("Failed to create tag %s: %s", tag_data, str(e))
+
+                if story_tags_to_create:
+                    StoryTag.objects.bulk_create(story_tags_to_create)
+                    logger.debug(
+                        "Created %d story tag relationships for story %s",
+                        len(story_tags_to_create),
+                        story.id,
+                    )
+
+            except ValueError as _:
+                return create_error_response("INVALID_TAG_FORMAT", VALIDATION_ERRORS)
+            except Exception as e:
+                logger.error("Database operation failed: %s", str(e))
+                return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
         # Queue ML processing
         # For now, we are not giving back error for ML queue failure to the client
@@ -867,6 +831,7 @@ def create_story(request):
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 def create_user(request):
     """
     Receives a request with user_id, username and password values in its body
@@ -880,21 +845,16 @@ def create_user(request):
     try:
         user_data = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     username = user_data.get("username")
     password = user_data.get("password")
     if not username or not password:
-        return JsonResponse(
-            {"success": False, "error": "Username and password are required"},
-            status=400,
-        )
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
 
     #  check for existing user
     if User.objects.filter(username=username).exists():
-        return JsonResponse(
-            {"success": False, "error": "Username already exists"}, status=400
-        )
+        return create_error_response("DUPLICATE_USERNAME", BUSINESS_ERRORS)
 
     try:
         # this needs to be CustomUser
@@ -906,8 +866,8 @@ def create_user(request):
             email=user_data.get("email", ""),
             city=user_data.get("city", ""),
         )
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
     # add get user id
     return JsonResponse({"success": True, "user_id": user.id}, status=201)
@@ -970,7 +930,7 @@ def edit_story(request, story_id):
     try:
         story_updates = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     try:
         story = Story.objects.get(id=story_id)
@@ -978,9 +938,7 @@ def edit_story(request, story_id):
         curator = CustomUser.objects.get(id=story_updates.get("curator"))
         logging.debug("curator id: %r", curator.id)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Story does not exist"}, status=404
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
     try:
         story.storyteller = story_updates["storyteller"]
@@ -996,12 +954,12 @@ def edit_story(request, story_id):
 
     except Exception as e:
         logger.debug("error:", e)
-        return JsonResponse({"success": False, "error": "Data edit failed"}, status=400)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
     try:
         story.save()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1013,14 +971,13 @@ def delete_story(request, story_id):
         org_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ###############################################################################
 @csrf_exempt
 @require_POST
+@transaction.atomic
 @verify_user("admin")
 def create_project(request):
     try:
@@ -1039,26 +996,31 @@ def create_project(request):
     # Need to get org as object to pass to the project creation
     try:
         org = Organization.objects.get(pk=org_id)
+        logger.debug("Found organization: %s", org)
     except Organization.DoesNotExist:
         return JsonResponse(
             {"success": False, "error": "Organization not found"}, status=404
         )
 
-    curator = CustomUser.objects.get(id=project_data["curator"])
+    curator = CustomUser.objects.get(id=request.user_id)
+    logger.debug("Curator ID: %s", curator)
 
     try:
         logger.debug("Creating project with data: %s", project_data)
         project = Project.objects.create(
-            name=project_data["name"],
+            name=project_data["project_name"],
             description=project_data["description"],
             curator=curator,
             org=org,
-            date=project_data.get("date", str(date.today())),
+            date=str(date.today()),
         )
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])
         optional_tags = project_data.get("optional_tags", [])
 
+        logger.debug("Creating tags for project %s", project.id)
+        logger.debug("Required tags: %s", required_tags)
+        logger.debug("Optional tags: %s", optional_tags)
         for rtag in required_tags:
             tag = Tag.objects.create(name=rtag, required=True)
             ProjectTag.objects.create(
@@ -1098,63 +1060,60 @@ def edit_project(request, org_id, project_id):
     try:
         body = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     name = body.get("name")
     curator_id = body.get("curator")
     date_str = body.get("date")
 
     if not all([name, curator_id, date_str]):
-        return JsonResponse(
-            {"success": False, "error": "Missing required fields"}, status=400
-        )
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
 
     # 2) fetch the Project
     try:
         project = Project.objects.get(pk=project_id, org_id=org_id)
     except Project.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "Project not found."}, status=404
-        )
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS)
 
     # 3) assign new values
     project.name = name
     try:
         project.curator = CustomUser.objects.get(pk=curator_id)
     except CustomUser.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "Curator not found."}, status=400
+        return create_error_response(
+            "USER_NOT_FOUND", RESOURCE_ERRORS, "Curator not in Users"
         )
 
     # parse & assign date
     try:
         project.date = datetime.date.fromisoformat(date_str)
     except (ValueError, TypeError):
-        return JsonResponse(
-            {"success": False, "error": "Invalid date format"}, status=400
-        )
+        return create_error_response("INVALID_DATE_FORMAT", VALIDATION_ERRORS)
 
     # 4) save
-    project.save()
-    return JsonResponse({"success": True}, status=200)
+    try:
+        project.save()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
 @verify_user("admin")
-def delete_project(request, org_id, project_id):
+def delete_project(request, project_id):
     try:
         proj_to_delete = Project.objects.get(id=project_id)
+
         proj_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 @verify_user("user")
 def create_org(request: HttpRequest) -> JsonResponse:
     """
@@ -1232,14 +1191,12 @@ def edit_org(request, org_id):
     try:
         org_updates = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     try:
         org = Organization.objects.get(id=org_id)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Organization does not exist"}, status=404
-        )
+        return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
 
     try:
         org.name = (org_updates["name"],)
@@ -1247,7 +1204,7 @@ def edit_org(request, org_id):
         org.save()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1259,9 +1216,7 @@ def delete_org(request, org_id):
         org_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ## User methods ----------------------------------------------------------------
@@ -1272,14 +1227,16 @@ def delete_org(request, org_id):
 def get_user(request):
     auth_header = request.headers.get("Authorization", "")
     if not auth_header.startswith("Bearer "):
-        return JsonResponse({"success": False, "error": "No token"}, status=401)
+        return create_error_response("NO_TOKEN", AUTH_ERRORS)
 
     token = auth_header.split(" ", 1)[1]
     try:
         payload = decode_access_token(token)
         user_id = payload["sub"]
-    except Exception:
-        return JsonResponse({"success": False, "error": "Bad token"}, status=401)
+    except ExpiredSignatureError:
+        return create_error_response("ACCESS_TOKEN_EXPIRED", AUTH_ERRORS)
+    except InvalidTokenError:
+        return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
 
     try:
         user = User.objects.get(pk=user_id)
@@ -1287,13 +1244,16 @@ def get_user(request):
         # Generate presigned URL for user profile picture
         user_profile_url = ""
         if user.profile:
-            user_presign = generate_s3_presigned(
-                bucket_name=settings.CT_BUCKET_USER_PROFILES,
-                key=user.profile.name,
-                operation="download",
-                expiration=3600,
-            )
-            user_profile_url = user_presign["url"]
+            try:
+                user_presign = generate_s3_presigned(
+                    bucket_name=settings.CT_BUCKET_USER_PROFILES,
+                    key=user.profile.name,
+                    operation="download",
+                    expiration=3600,
+                )
+                user_profile_url = user_presign["url"]
+            except Exception:
+                return create_error_response("S3_ERROR", SERVER_ERRORS)
 
         # Get organizations with presigned URLs for their profiles
         org_users = OrgUser.objects.filter(user=user).select_related("org")
@@ -1302,13 +1262,16 @@ def get_user(request):
             org = org_user.org
             org_profile_url = ""
             if org.profile:
-                org_presign = generate_s3_presigned(
-                    bucket_name=settings.CT_BUCKET_ORG_PROFILES,
-                    key=org.profile.name,
-                    operation="download",
-                    expiration=3600,
-                )
-                org_profile_url = org_presign["url"]
+                try:
+                    org_presign = generate_s3_presigned(
+                        bucket_name=settings.CT_BUCKET_ORG_PROFILES,
+                        key=org.profile.name,
+                        operation="download",
+                        expiration=3600,
+                    )
+                    org_profile_url = org_presign["url"]
+                except Exception:
+                    return create_error_response("S3_ERROR", SERVER_ERRORS)
 
             orgs.append(
                 {
@@ -1333,8 +1296,10 @@ def get_user(request):
 
         return JsonResponse(user_data, status=200)
 
-    except Exception as e:
-        return JsonResponse({"error": str(e)}, status=500)
+    except User.DoesNotExist:
+        return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS)
+    except Exception:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
 
 @require_http_methods(["POST", "PATCH"])
@@ -1344,13 +1309,11 @@ def edit_user(request, user_id, **kwargs):
     try:
         user_updates = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     username = user_updates.get("username")
     if User.objects.filter(username=username).exists():
-        return JsonResponse(
-            {"success": False, "error": "Username already exists"}, status=400
-        )
+        return create_error_response("DUPLICATE_USERNAME", BUSINESS_ERRORS)
 
     user = CustomUser.objects.get(id=user_id)  # kwargs['real_user_id']
 
@@ -1365,7 +1328,8 @@ def edit_user(request, user_id, **kwargs):
         return JsonResponse({"success": True}, status=200)
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        logger.debug(e)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1380,9 +1344,7 @@ def delete_user(request, user_id):
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ## Org methods -----------------------------------------------------------------

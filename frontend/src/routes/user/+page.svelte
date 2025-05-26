@@ -168,13 +168,7 @@
 							</div>
 							<div class="field is-grouped mt-4">
 								<div class="control mr-2">
-									<CreateButton
-										bind:orgData
-										type="org"
-										data={org}
-										redirectPath="/user"
-										updateData={addOrg}
-									/>
+									<CreateButton type="org" data={org} redirectPath="/user" />
 								</div>
 								<div class="control mr-2">
 									<button

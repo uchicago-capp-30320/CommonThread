@@ -7,7 +7,7 @@
 
 	// To be consistent with the API, the type prop must have the values: "story", "project", "org", "user"
 	// Derive props and set initial state
-	let { type, data, redirectPath = null, updateData } = $props();
+	let { type, data, redirectPath = null } = $props();
 	let showModal = $state(false);
 
 	$inspect(showModal);
@@ -39,7 +39,10 @@
 		}
 
 		if (createResponse.data.success) {
-			addOrg({ ...data, org_id: createResponse.data.id });
+			if (redirectPath) {
+				// If a redirect path is provided, use it
+				goto(redirectPath);
+			}
 			showModal = false;
 		}
 	}

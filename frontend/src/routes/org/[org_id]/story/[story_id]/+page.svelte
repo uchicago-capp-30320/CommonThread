@@ -84,21 +84,20 @@
 	</div>
 	<div class="container-is-fullhd">
 		<div class="columns">
-			<div class="column is-1"></div>
 			<!-- STORY TEXT -->
 			{#if media}
-				<div class="column is-6">
+				<div class="column is-three-quarters" id="text">
 					<StoryFullView story={storyData}></StoryFullView>
 				</div>
 			{:else}
-				<div class="column is-10">
+				<div class="column is-full">
 					<StoryFullView story={storyData}></StoryFullView>
 				</div>
 			{/if}
 
 			<!-- AUDIOVISUAL MEDIA -->
 			{#if media}
-				<div class="column is-4" id="media">
+				<div class="column is-one-quarter" id="media">
 					<!-- Are we displaying a single image or multiple? -->
 					<div class="row">
 						{#if includesAudio}
@@ -117,7 +116,6 @@
 					</div>
 				</div>
 			{/if}
-			<div class="column is-1"></div>
 		</div>
 	</div>
 </div>
