@@ -1283,7 +1283,7 @@ def get_user(request):
         payload = decode_access_token(token)
         user_id = payload["sub"]
     except ExpiredSignatureError:
-        return create_error_response("EXPIRED_TOKEN", AUTH_ERRORS)
+        return create_error_response("ACCESS_TOKEN_EXPIRED", AUTH_ERRORS)
     except InvalidTokenError:
         return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
 
