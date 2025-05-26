@@ -35,6 +35,7 @@
 	]);
 
 	$inspect(orgData);
+	$inspect(projects);
 
 	onMount(async () => {
 		// Fetch the data when the component mounts
@@ -65,8 +66,6 @@
 			// Sort in descending order (largest to smallest)
 			return bStories - aStories;
 		});
-
-		console.log('orgResponse', orgResponse.data);
 
 		orgData = orgResponse.data;
 
