@@ -453,7 +453,7 @@ def get_project(request, project_id):
             "org_id": project.org.id,
             "org_name": project.org.name,
             "date": project.date,
-            "insight": project.insight,
+            "insight": project.insight_json,
             "curator": project.curator.name if project.curator else None,
             "required_tags": list(required_tags),
             "optional_tags": list(optional_tags),
