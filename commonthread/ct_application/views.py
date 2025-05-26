@@ -428,7 +428,7 @@ def get_project(request, project_id):
     except Exception as e:
         logger.error(f"Error in get_project: {e}", exc_info=True)
         return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
-    
+
 
 @require_GET
 @verify_user("user")
@@ -503,6 +503,7 @@ def get_org(request, org_id):
 
 
 @require_GET
+@verify_user("user")
 def get_stories(request):
 
     try:
@@ -527,20 +528,16 @@ def get_stories(request):
 
         if id_type == "org_id":
             stories = Story.objects.filter(proj__org__id=id_value)
-            if not stories.exists():
-                return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
+
         elif id_type == "project_id":
             stories = Story.objects.filter(proj__id=id_value)
-            if not stories.exists():
-                return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS)
+
         elif id_type == "story_id":
             stories = Story.objects.filter(id=id_value)
-            if not stories.exists():
-                return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
+
         elif id_type == "user_id":
             stories = Story.objects.filter(curator__id=id_value)
-            if not stories.exists():
-                return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS)
+
         else:
             return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
 
@@ -644,7 +641,6 @@ def get_story(request, story_id):
     except Story.DoesNotExist:
         logging.debug("Story not found with ID: %s", story_id)
         return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
-    
 
 
 ## POST methods ----------------------------------------------------------------
@@ -758,7 +754,10 @@ def create_story(request):
                 # Handle tags
                 all_tags = [
                     (tag_data, True) for tag_data in story_data.get("required_tags", [])
-                ] + [(tag_data, False) for tag_data in story_data.get("optional_tags", [])]
+                ] + [
+                    (tag_data, False)
+                    for tag_data in story_data.get("optional_tags", [])
+                ]
 
                 story_tags_to_create = []
                 for tag_data, is_required in all_tags:
@@ -1227,7 +1226,6 @@ def get_user(request):
 
     try:
         user = User.objects.get(pk=user_id)
-
 
         # Generate presigned URL for user profile picture
         user_profile_url = ""
