@@ -104,29 +104,19 @@ def verify_user(required_access="user"):
                 access_token = request.headers.get("Authorization", "")
                 logger.debug("Access Token: %r", access_token)
                 if not access_token:
-                    return JsonResponse(
-                        {"success": False, "error": "No token"},
-                        status=401,
-                    )
+                    return create_error_response("NO_TOKEN", AUTH_ERRORS)
                 elif not access_token.startswith("Bearer "):
-                    return JsonResponse(
-                        {"success": False, "error": "Token malformed"},
-                        status=401,
-                    )
+                    return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
                 access_token = access_token.split(" ", 1)[1]
                 decoded = decode_access_token(access_token)
                 real_user_id = decoded["sub"]
 
             except ExpiredSignatureError:
                 # Expired Token: 299 Code used by front-end to know to request new one
-                return JsonResponse(
-                    {"success": False, "error": "Access Expired"}, status=299
-                )
+                return create_error_response("ACCESS_TOKEN_EXPIRED", AUTH_ERRORS)
             except InvalidTokenError:
                 # Something broke in the process
-                return JsonResponse(
-                    {"success": False, "error": "Bad token"}, status=401
-                )
+                return create_error_response("INVALID_TOKEN", AUTH_ERRORS)
 
             request.user_id = decoded["sub"]
             # Identifying what kind of request/auth level the user has for their request
@@ -141,12 +131,13 @@ def verify_user(required_access="user"):
                     body = json.loads((request.body or "{}"))
                 except:
                     logging.debug("Request failed to load")
-                    return JsonResponse(
-                        {"success": False, "error": "Body not loaded"}, status=400
-                    )
+                    return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
                 auth_level, search_success = id_searcher(
                     real_user_id, body, required_access
                 )
+            logger.debug("Test Checking")
+            logger.debug(auth_level)
+            logger.debug(search_success)
             if search_success:
                 auth_level_check(auth_level, required_access)
             else:
@@ -180,19 +171,12 @@ def id_searcher(real_user_id, id_set, required_access):
             else:
                 return check_org_auth(real_user_id, id_set["org_id"])
         elif required_access != "user":
-            logger.debug("Flag 2.1")
             # If there's a user id in there but we need admin/creator for some purpose.
             # This essentially serves as a failsafe against things that might include user ids
             if "org_id" not in id_set:
                 if "project_id" not in id_set:
                     if "story_id" not in id_set:
-                        return (
-                            JsonResponse(
-                                {"success": False, "error": "No Identifier Provided"},
-                                status=400,
-                            ),
-                            False,
-                        )
+                        return create_error_response("BAD_FILTER", RESOURCE_ERRORS),False,
                     else:
                         return check_story_auth(real_user_id, id_set["story_id"])
                 else:
@@ -203,12 +187,7 @@ def id_searcher(real_user_id, id_set, required_access):
             return "user", True
 
     except:
-        return (
-            JsonResponse(
-                {"success": False, "error": "Identifier read failed"}, status=400
-            ),
-            False,
-        )
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS), False
 
 
 def check_org_auth(user_id: str, org_id: str):
@@ -220,16 +199,8 @@ def check_org_auth(user_id: str, org_id: str):
         try:
             org = Organization.objects.get(id=org_id)
         except:
-            return (
-                JsonResponse({"success": False, "error": "Org not found"}, status=404),
-                False,
-            )
-        return (
-            JsonResponse(
-                {"success": False, "error": "Not authorized to access page"}, status=403
-            ),
-            False,
-        )
+            return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS), False
+        return create_error_response("USER_NOT_IN_ORG", AUTH_ERRORS), False
 
 
 def check_project_auth(user_id: str, project_id: str):
@@ -239,10 +210,7 @@ def check_project_auth(user_id: str, project_id: str):
         logger.debug("Found Project, looking for org")
         return check_org_auth(user_id, project.org.id)
     except Project.DoesNotExist:
-        return (
-            JsonResponse({"success": False, "error": "Project not found."}, status=404),
-            False,
-        )
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS), False
 
 
 def check_story_auth(user_id: str, story_id: str):
@@ -251,10 +219,7 @@ def check_story_auth(user_id: str, story_id: str):
         story = Story.objects.get(id=story_id)
         return check_project_auth(user_id, story.proj.id)
     except Story.DoesNotExist:
-        return (
-            JsonResponse({"success": False, "error": "Story not found"}, status=404),
-            False,
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS), False
 
 
 def auth_level_check(user_level: str, required_level: str):
@@ -276,9 +241,7 @@ def auth_level_check(user_level: str, required_level: str):
             )
             return True
         elif auth_dict[user_level] < auth_dict[required_level]:
-            return JsonResponse(
-                {"success": False, "error": "Insufficient Permissions"}, status=401
-            )
+            return create_error_response("INSUFFICIENT_PERMISSIONS", AUTH_ERRORS), False
     except:
         logger.debug(
             "Improperly Listed Permission Level?" "Required Access Level: %r",
@@ -288,9 +251,7 @@ def auth_level_check(user_level: str, required_level: str):
             "Given Access Level: %r",
             auth_dict[user_level],
         )
-        return JsonResponse(
-            {"success": False, "error": "Authorization Check Failed"}, status=401
-        )
+        return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS), False
 
 
 @require_GET
@@ -303,9 +264,7 @@ def check_ml_status(request, story_id):
     try:
         ml_task = MLProcessingQueue.objects.get(story_id=story_id)
     except MLProcessingQueue.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "ML status not found"}, status=404
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
     return JsonResponse(
         {
@@ -884,21 +843,16 @@ def create_user(request):
     try:
         user_data = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     username = user_data.get("username")
     password = user_data.get("password")
     if not username or not password:
-        return JsonResponse(
-            {"success": False, "error": "Username and password are required"},
-            status=400,
-        )
-
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
+    
     #  check for existing user
     if User.objects.filter(username=username).exists():
-        return JsonResponse(
-            {"success": False, "error": "Username already exists"}, status=400
-        )
+        return create_error_response("DUPLICATE_USERNAME", BUSINESS_ERRORS)
 
     try:
         # this needs to be CustomUser
@@ -910,8 +864,8 @@ def create_user(request):
             email=user_data.get("email", ""),
             city=user_data.get("city", ""),
         )
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
     # add get user id
     return JsonResponse({"success": True, "user_id": user.id}, status=201)
@@ -974,7 +928,7 @@ def edit_story(request, story_id):
     try:
         story_updates = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     try:
         story = Story.objects.get(id=story_id)
@@ -982,9 +936,7 @@ def edit_story(request, story_id):
         curator = CustomUser.objects.get(id=story_updates.get("curator"))
         logging.debug("curator id: %r", curator.id)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Story does not exist"}, status=404
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
     try:
         story.storyteller = story_updates["storyteller"]
@@ -1000,12 +952,12 @@ def edit_story(request, story_id):
 
     except Exception as e:
         logger.debug("error:", e)
-        return JsonResponse({"success": False, "error": "Data edit failed"}, status=400)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
     try:
         story.save()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1017,9 +969,7 @@ def delete_story(request, story_id):
         org_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ###############################################################################
@@ -1101,46 +1051,40 @@ def edit_project(request, org_id, project_id):
     try:
         body = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     name = body.get("name")
     curator_id = body.get("curator")
     date_str = body.get("date")
 
     if not all([name, curator_id, date_str]):
-        return JsonResponse(
-            {"success": False, "error": "Missing required fields"}, status=400
-        )
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
 
     # 2) fetch the Project
     try:
         project = Project.objects.get(pk=project_id, org_id=org_id)
     except Project.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "Project not found."}, status=404
-        )
+        return create_error_response("PROJECT_NOT_FOUND", RESOURCE_ERRORS)
 
     # 3) assign new values
     project.name = name
     try:
         project.curator = CustomUser.objects.get(pk=curator_id)
     except CustomUser.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "Curator not found."}, status=400
-        )
+        return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS, "Curator not in Users")
 
     # parse & assign date
     try:
         project.date = datetime.date.fromisoformat(date_str)
     except (ValueError, TypeError):
-        return JsonResponse(
-            {"success": False, "error": "Invalid date format"}, status=400
-        )
+        return create_error_response("INVALID_DATE_FORMAT", VALIDATION_ERRORS)
 
     # 4) save
-    project.save()
-    return JsonResponse({"success": True}, status=200)
-
+    try:
+        project.save()
+        return JsonResponse({"success": True}, status=200)
+    except:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
@@ -1151,9 +1095,7 @@ def delete_project(request, org_id, project_id):
         proj_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1236,14 +1178,12 @@ def edit_org(request, org_id):
     try:
         org_updates = json.loads(request.body)
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     try:
         org = Organization.objects.get(id=org_id)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Organization does not exist"}, status=404
-        )
+        return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
 
     try:
         org.name = (org_updates["name"],)
@@ -1251,7 +1191,7 @@ def edit_org(request, org_id):
         org.save()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse({"success": False, "error": "DB Update Failed"}, status=500)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1263,9 +1203,7 @@ def delete_org(request, org_id):
         org_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ## User methods ----------------------------------------------------------------
@@ -1359,13 +1297,11 @@ def edit_user(request, user_id, **kwargs):
     try:
         user_updates = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     username = user_updates.get("username")
     if User.objects.filter(username=username).exists():
-        return JsonResponse(
-            {"success": False, "error": "Username already exists"}, status=400
-        )
+        return create_error_response("DUPLICATE_USERNAME", BUSINESS_ERRORS)
 
     user = CustomUser.objects.get(id=user_id)  # kwargs['real_user_id']
 
@@ -1380,7 +1316,8 @@ def edit_user(request, user_id, **kwargs):
         return JsonResponse({"success": True}, status=200)
 
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=500)
+        logger.debug(e)
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 @csrf_exempt
@@ -1395,9 +1332,7 @@ def delete_user(request, user_id):
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ## Org methods -----------------------------------------------------------------
