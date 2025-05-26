@@ -3,6 +3,7 @@
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
+	import Chatbox from '$lib/components/Chatbox.svelte'; // Added Chatbox import
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
 	import { onMount } from 'svelte';
@@ -38,6 +39,9 @@
 
 	$inspect(orgData);
 	$inspect(storyData);
+
+	// Construct chat API endpoint
+	const chatApiEndpoint = `/story/${story_id}/chat`;
 
 	// API call
 	onMount(async () => {
@@ -136,6 +140,24 @@
 		justify-content: center;
 	}
 
+	.story-chat-container {
+		margin-top: 30px; /* Increased margin-top */
+		padding: 20px;    /* Increased padding */
+		border: 1px solid #ddd; /* Slightly darker border */
+		border-radius: 8px; /* Added border-radius for rounded corners */
+		background-color: #f9f9f9; /* Light background color for the container */
+		max-width: 700px; /* Max width for the chat container */
+		margin-left: auto; /* Center the chat container */
+		margin-right: auto; /* Center the chat container */
+	}
+
+	.story-chat-container h3 {
+		font-size: 1.5em;
+		color: #333;
+		margin-bottom: 15px;
+		text-align: center;
+	}
+
 	#images {
 		/* max-height: 300px; */
 		max-width: 100%;
@@ -155,3 +177,9 @@
 		color: #133335 !important;
 	}
 </style>
+
+<!-- Chatbox Integration -->
+<div class="story-chat-container">
+	<h3>Chat about this Story</h3>
+	<Chatbox {chatApiEndpoint} />
+</div>

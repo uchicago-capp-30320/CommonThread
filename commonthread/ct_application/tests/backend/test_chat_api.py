@@ -192,3 +192,127 @@ class ProjectChatAPITests(TestCase):
     def tearDown(self):
         # Clean up any created objects if necessary, though Django's test runner handles transaction rollbacks.
         pass
+
+
+class StoryChatAPITests(TestCase):
+    def setUp(self):
+        self.client = Client() # Ensure a fresh client for this test class
+        self.user = User.objects.create_user(username='teststoryuser', password='password123', email='teststory@example.com', name='Test Story User')
+        login_successful = self.client.login(username='teststoryuser', password='password123')
+        self.assertTrue(login_successful, "Client login for StoryChatAPITests failed")
+
+        self.organization = Organization.objects.create(name='Test Org For Story Chat')
+        # Ensure project curator is set if your models/logic require it, using self.user
+        self.project = Project.objects.create(name='Test Project For Story Chat', org=self.organization, date='2023-01-01', curator=self.user)
+        
+        self.story_content = "This is the specific content of our test story for chat."
+        self.story = Story.objects.create(
+            proj=self.project,
+            storyteller="Test Storyteller",
+            date='2023-01-02',
+            text_content=self.story_content,
+            curator=self.user # Ensure curator is set
+        )
+        self.empty_story = Story.objects.create(
+            proj=self.project,
+            storyteller="Empty",
+            date='2023-01-03',
+            text_content="", # Empty content
+            curator=self.user # Ensure curator is set
+        )
+        self.chat_url = reverse('story-chat-api', kwargs={'story_id': self.story.id})
+        self.empty_story_chat_url = reverse('story-chat-api', kwargs={'story_id': self.empty_story.id})
+        # For non_existent_story_chat_url, it's better to use an ID that is unlikely to exist.
+        # Using self.story.id + 999 might clash if many stories are created. A fixed large number is safer.
+        self.non_existent_story_chat_url = reverse('story-chat-api', kwargs={'story_id': 999999})
+        self.valid_payload = {"user_message": "Tell me about this story"}
+
+    def test_story_chat_api_unauthenticated(self):
+        self.client.logout()
+        response = self.client.post(self.chat_url, self.valid_payload, content_type='application/json')
+        self.assertEqual(response.status_code, 401) # verify_user returns 401 for no token
+
+    @patch('commonthread.ct_application.ml.perplexity_service.get_perplexity_chat_response')
+    def test_story_chat_api_success(self, mock_get_perplexity_chat_response):
+        mock_get_perplexity_chat_response.return_value = {
+            "choices": [{"message": {"content": "Mocked story AI response"}}]
+        }
+
+        response = self.client.post(self.chat_url, self.valid_payload, content_type='application/json')
+        
+        self.assertEqual(response.status_code, 200)
+        response_json = response.json()
+        self.assertEqual(response_json.get('reply'), "Mocked story AI response")
+
+        mock_get_perplexity_chat_response.assert_called_once_with(
+            settings.PERPLEXITY_API_KEY,
+            self.story_content, # Expected context is the story's text_content
+            self.valid_payload['user_message']
+        )
+
+    def test_story_chat_api_story_not_found(self):
+        response = self.client.post(self.non_existent_story_chat_url, self.valid_payload, content_type='application/json')
+        # The view's try-except Story.DoesNotExist should catch this before verify_user's id_searcher for story_id.
+        self.assertEqual(response.status_code, 404)
+        response_json = response.json()
+        self.assertIn("Story not found", response_json.get('error', ''))
+
+
+    def test_story_chat_api_missing_message(self):
+        response = self.client.post(self.chat_url, {}, content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        response_json = response.json()
+        self.assertIn("Missing user_message", response_json.get('error', ''))
+
+    @patch('commonthread.ct_application.ml.perplexity_service.get_perplexity_chat_response')
+    def test_story_chat_api_service_error(self, mock_get_perplexity_chat_response):
+        mock_get_perplexity_chat_response.return_value = {
+            "error": "Service down", 
+            "details": "Perplexity is napping", # Added details to match view's expectation
+            "status_code": 503
+        }
+
+        response = self.client.post(self.chat_url, self.valid_payload, content_type='application/json')
+        
+        self.assertEqual(response.status_code, 503)
+        response_json = response.json()
+        self.assertEqual(response_json.get('error'), "Failed to get response from AI service.")
+        self.assertEqual(response_json.get('details'), "Service down") # Check details propagation
+
+    @patch('commonthread.ct_application.ml.perplexity_service.get_perplexity_chat_response')
+    def test_story_chat_api_empty_story_content(self, mock_get_perplexity_chat_response):
+        mock_get_perplexity_chat_response.return_value = {
+            "choices": [{"message": {"content": "Response for empty story"}}]
+        }
+
+        response = self.client.post(self.empty_story_chat_url, self.valid_payload, content_type='application/json')
+        
+        self.assertEqual(response.status_code, 200)
+        response_json = response.json()
+        self.assertEqual(response_json.get('reply'), "Response for empty story")
+
+        mock_get_perplexity_chat_response.assert_called_once_with(
+            settings.PERPLEXITY_API_KEY,
+            "", # Expected context is an empty string
+            self.valid_payload['user_message']
+        )
+
+    def test_story_chat_api_disallowed_methods(self):
+        methods = {
+            "GET": self.client.get,
+            "PUT": lambda url, **kwargs: self.client.put(url, data=json.dumps(self.valid_payload), content_type='application/json', **kwargs), # PUT needs data
+            "DELETE": self.client.delete,
+            "PATCH": lambda url, **kwargs: self.client.patch(url, data=json.dumps(self.valid_payload), content_type='application/json', **kwargs) # PATCH needs data
+        }
+        for method_name, method_func in methods.items():
+            with self.subTest(method=method_name):
+                response = method_func(self.chat_url)
+                self.assertEqual(response.status_code, 405) # Method Not Allowed
+                response_json = response.json()
+                # The exact detail message can vary slightly depending on Django version or specific configuration
+                # For Django 4.x/5.x, it's usually "Method \"METHOD\" not allowed."
+                self.assertTrue(response_json.get('detail', '').startswith(f'Method "{method_name}" not allowed.'))
+    
+    def tearDown(self):
+        # Clean up any created objects if necessary
+        pass

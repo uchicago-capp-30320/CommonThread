@@ -3,7 +3,7 @@
     import { authRequest } from '$lib/authRequest.js';
     import { accessToken, refreshToken } from '$lib/store.js'; // Assuming store.js exists and exports these
 
-    export let projectId;
+    export let apiEndpoint; // Changed from projectId to apiEndpoint
 
     let messages = [];
     let userInput = '';
@@ -37,7 +37,7 @@
         try {
             const postData = { user_message: currentUserMessage };
             const response = await authRequest(
-                `/project/${projectId}/chat`,
+                apiEndpoint, // Changed from /project/${projectId}/chat
                 'POST',
                 $accessToken,
                 $refreshToken,

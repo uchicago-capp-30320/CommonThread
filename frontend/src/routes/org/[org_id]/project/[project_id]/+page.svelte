@@ -22,6 +22,7 @@
 	let searchValue = $state('');
 	let storiesTotalSearch = $state(0);
 	const projectId = $page.params.project_id; // Extracted projectId
+	const projectChatApiEndpoint = `/project/${projectId}/chat`; // Create the endpoint URL
 
 	$inspect(projectData);
 	$inspect(stories);
@@ -174,7 +175,7 @@
 
 <!-- Chatbox Component -->
 <div class="chatbox-container">
-	<Chatbox {projectId} />
+	<Chatbox apiEndpoint={projectChatApiEndpoint} />
 </div>
 
 <style>

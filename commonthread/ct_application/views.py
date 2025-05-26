@@ -105,6 +105,55 @@ def project_chat_api(request, project_id):
         logger.error(f"Unexpected error processing Perplexity service response in view: {e}. Response data: {response_data}")
         return JsonResponse({"error": "An unexpected server error occurred while processing AI response."}, status=500)
 
+@csrf_exempt
+@verify_user('user')
+def story_chat_api(request, story_id):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+
+    try:
+        data = json.loads(request.body)
+        user_message = data.get("user_message")
+        if not user_message:
+            return JsonResponse({"error": "Missing user_message"}, status=400)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+
+    try:
+        story = Story.objects.get(id=story_id)
+        context = story.text_content
+        if not context.strip(): 
+            logger.warning(f"Story {story_id} has no text_content. Chat context will be empty.")
+            # Proceeding with potentially empty context as per instructions
+    except Story.DoesNotExist:
+        logger.error(f"Story with id={story_id} not found for chat.")
+        return JsonResponse({"error": "Story not found."}, status=404)
+
+    # Temporary logging
+    logger.info(f"[STORY_CHAT_DEBUG] Story ID: {story_id}")
+    logger.info(f"[STORY_CHAT_DEBUG] Context preview (first 500 chars): {context[:500]}")
+
+    # Call the Perplexity service
+    response_data = get_perplexity_chat_response(settings.PERPLEXITY_API_KEY, context, user_message)
+
+    if "error" in response_data:
+        logger.error(f"Error from Perplexity service for story {story_id}: {response_data}")
+        return JsonResponse({
+            "error": "Failed to get response from AI service.",
+            "details": response_data.get("error") # Matching the structure from project_chat_api's error details
+        }, status=response_data.get("status_code", 500))
+
+    try:
+        ai_reply = response_data.get("choices", [{}])[0].get("message", {}).get("content")
+        if not ai_reply:
+            logger.error(f"Could not extract AI reply from Perplexity response for story {story_id}: {response_data}")
+            return JsonResponse({"error": "Failed to parse AI response."}, status=500)
+        
+        return JsonResponse({"reply": ai_reply})
+    except Exception as e: # Catch any other unexpected errors during response parsing
+        logger.error(f"Unexpected error processing Perplexity service response in story_chat_api view: {e}. Response data: {response_data}")
+        return JsonResponse({"error": "An unexpected server error occurred while processing AI response."}, status=500)
+
 ## Home test -------------------------------------------------------------------
 
 
