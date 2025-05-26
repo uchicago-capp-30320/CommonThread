@@ -778,69 +778,68 @@ def create_story(request):
 
         logger.debug("Curator ID: %s", story_data.get("curator"))
 
-        try:
-            # Create the story
-            story = Story.objects.create(
-                storyteller=story_data.get("storyteller"),
-                curator_id=request.user_id,
-                date=timezone.now(),
-                text_content=story_data.get("text_content"),
-                proj=project,
-                audio_content=story_data.get("audio_path"),
-                image_content=story_data.get("image_path"),
-            )
-            logger.debug("Created story: %s", story)
-
-            # Handle tags
-            all_tags = [
-                (tag_data, True) for tag_data in story_data.get("required_tags", [])
-            ] + [(tag_data, False) for tag_data in story_data.get("optional_tags", [])]
-
-            story_tags_to_create = []
-            for tag_data, is_required in all_tags:
-                if (
-                    not isinstance(tag_data, dict)
-                    or "name" not in tag_data
-                    or "value" not in tag_data
-                ):
-                    logger.warning("Invalid tag format: %s", tag_data)
-                    continue
-
-                try:
-                    tag, created = Tag.objects.get_or_create(
-                        name=tag_data["name"],
-                        value=tag_data["value"],
-                        created_by="user",
-                        required=is_required,
-                    )
-                    if created:
-                        logger.debug(
-                            "Created new tag: name=%s, value=%s, required=%s",
-                            tag.name,
-                            tag.value,
-                            is_required,
-                        )
-                    story_tags_to_create.append(
-                        StoryTag(story_id=story.id, tag_id=tag.id)
-                    )
-                except Exception as e:
-                    logger.warning("Failed to create tag %s: %s", tag_data, str(e))
-
-            if story_tags_to_create:
-                StoryTag.objects.bulk_create(story_tags_to_create)
-                logger.debug(
-                    "Created %d story tag relationships for story %s",
-                    len(story_tags_to_create),
-                    story.id,
+        with transaction.atomic():
+            try:
+                # Create the story
+                story = Story.objects.create(
+                    storyteller=story_data.get("storyteller"),
+                    curator_id=request.user_id,
+                    date=timezone.now(),
+                    text_content=story_data.get("text_content"),
+                    proj=project,
+                    audio_content=story_data.get("audio_path"),
+                    image_content=story_data.get("image_path"),
                 )
+                logger.debug("Created story: %s", story)
 
-        except ValueError as _:
-            story.delete()
-            return create_error_response("INVALID_TAG_FORMAT", VALIDATION_ERRORS)
-        except Exception as e:
-            logger.error("Database operation failed: %s", str(e))
-            story.delete()
-            return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+                # Handle tags
+                all_tags = [
+                    (tag_data, True) for tag_data in story_data.get("required_tags", [])
+                ] + [(tag_data, False) for tag_data in story_data.get("optional_tags", [])]
+
+                story_tags_to_create = []
+                for tag_data, is_required in all_tags:
+                    if (
+                        not isinstance(tag_data, dict)
+                        or "name" not in tag_data
+                        or "value" not in tag_data
+                    ):
+                        logger.warning("Invalid tag format: %s", tag_data)
+                        continue
+
+                    try:
+                        tag, created = Tag.objects.get_or_create(
+                            name=tag_data["name"],
+                            value=tag_data["value"],
+                            created_by="user",
+                            required=is_required,
+                        )
+                        if created:
+                            logger.debug(
+                                "Created new tag: name=%s, value=%s, required=%s",
+                                tag.name,
+                                tag.value,
+                                is_required,
+                            )
+                        story_tags_to_create.append(
+                            StoryTag(story_id=story.id, tag_id=tag.id)
+                        )
+                    except Exception as e:
+                        logger.warning("Failed to create tag %s: %s", tag_data, str(e))
+
+                if story_tags_to_create:
+                    StoryTag.objects.bulk_create(story_tags_to_create)
+                    logger.debug(
+                        "Created %d story tag relationships for story %s",
+                        len(story_tags_to_create),
+                        story.id,
+                    )
+
+            except ValueError as _:
+                return create_error_response("INVALID_TAG_FORMAT", VALIDATION_ERRORS)
+            except Exception as e:
+                logger.error("Database operation failed: %s", str(e))
+                return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
         # Queue ML processing
         # For now, we are not giving back error for ML queue failure to the client
@@ -867,6 +866,7 @@ def create_story(request):
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 def create_user(request):
     """
     Receives a request with user_id, username and password values in its body
@@ -1021,6 +1021,7 @@ def delete_story(request, story_id):
 ###############################################################################
 @csrf_exempt
 @require_POST
+@transaction.atomic
 @verify_user("admin")
 def create_project(request):
     try:
@@ -1153,6 +1154,7 @@ def delete_project(request, org_id, project_id):
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 @verify_user("user")
 def create_org(request: HttpRequest) -> JsonResponse:
     """
