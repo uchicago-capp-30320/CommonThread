@@ -14,23 +14,29 @@
 		email: 'Loading...',
 		data_added: 'Loading...'
 	});
-	let orgData = $state({
-		name: 'Loading...',
-		description: 'Loading...',
-		project_count: 0,
-		story_count: 0,
-		date: 'Loading...'
-	});
+	let orgData = $state([
+		{
+			name: 'Loading...',
+			description: 'Loading...',
+			project_count: 0,
+			story_count: 0,
+			date: 'Loading...'
+		}
+	]);
 	let orgLoaded = $state(false);
 	let themeColor = $state('#133335');
 	$inspect(userData);
+	$inspect(orgData);
 
 	onMount(async () => {
 		// first get user data
 		const userResponse = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
 		userData = userResponse.data;
 
+		console.log('userResponse:', userResponse);
+
 		if (userResponse.newAccessToken) {
+			console.log('New access token received:', userResponse.newAccessToken);
 			accessToken.set(userResponse.newAccessToken);
 		}
 
@@ -55,19 +61,9 @@
 		orgLoaded = true;
 	});
 
-	async function addOrg(org) {
-		// logic to add the project
-		console.log('Adding org:', org);
-
-		const addOrgResponse = await authRequest(
-			'/org/create',
-			'POST',
-			$accessToken,
-			$refreshToken,
-			org
-		);
-		console.log('org added:', addOrgResponse);
-	}
+	const addOrg = (org) => {
+		orgData = [{ ...org }, ...orgData];
+	};
 </script>
 
 <svelte:head>
@@ -172,7 +168,13 @@
 							</div>
 							<div class="field is-grouped mt-4">
 								<div class="control mr-2">
-									<CreateButton type="org" data={org} redirectPath="/user" />
+									<CreateButton
+										bind:orgData
+										type="org"
+										data={org}
+										redirectPath="/user"
+										updateData={addOrg}
+									/>
 								</div>
 								<div class="control mr-2">
 									<button
