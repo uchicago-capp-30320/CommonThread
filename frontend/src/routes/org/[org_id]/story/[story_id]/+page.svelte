@@ -1,7 +1,7 @@
 <script>
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
-	import AudioPlayer from '$lib/components/AudioPlayer.svelte';
+	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
@@ -29,9 +29,9 @@
 
 	// Story page
 	let storyData = $state({
-		storyteller: 'Loading...',
-		project_name: 'Loading...',
-		curator: 'Loading...',
+		storyteller: '...',
+		project_name: '...',
+		curator: '...',
 		text_content: 'Loading...',
 		summary: 'Loading...'
 	});
@@ -61,6 +61,7 @@
 </script>
 
 <div id="container" class="mb-6">
+	<!-- NAVIGATION BAR  -->
 	<div class="breadcrumb-nav mb-5 mt-3">
 		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 			<ul>
@@ -83,28 +84,26 @@
 	</div>
 	<div class="container-is-fullhd">
 		<div class="columns">
-			<div class="column is-1"></div>
+			<!-- STORY TEXT -->
 			{#if media}
-				<div class="column is-6">
+				<div class="column is-three-quarters" id="text">
 					<StoryFullView story={storyData}></StoryFullView>
 				</div>
 			{:else}
-				<div class="column is-10">
+				<div class="column is-full">
 					<StoryFullView story={storyData}></StoryFullView>
 				</div>
 			{/if}
 
+			<!-- AUDIOVISUAL MEDIA -->
 			{#if media}
-				<div class="column">
+				<div class="column is-one-quarter" id="media">
 					<!-- Are we displaying a single image or multiple? -->
 					<div class="row">
 						{#if includesAudio}
-							<div class="media">
-								<div class="media-right" id="audio">
-									<div class="audio">
-										<AudioPlayer src={storyData.audio_path}></AudioPlayer>
-									</div>
-								</div>
+							<div class="media-right" id="audio">
+								<AudioPlayer src={storyData.audio_path} storyteller={storyData.storyteller}
+								></AudioPlayer>
 							</div>
 						{/if}
 						{#if includesImage}
@@ -117,7 +116,6 @@
 					</div>
 				</div>
 			{/if}
-			<div class="column is-1"></div>
 		</div>
 	</div>
 </div>
@@ -143,15 +141,29 @@
 		object-fit: contain;
 	}
 
-	.audio {
-		object-fit: contain;
+	/* #media {
+		display: flex; 
+		} */
+
+	.row {
+		width: 100%;
+	}
+
+	#audio {
+		/* display:flex; */
+		/* object-fit: contain; */
+		width: 100%;
 	}
 
 	li a {
 		color: black;
 	}
 
-	li.is-active {
-		color: #133335 !important;
+	li a:hover {
+		color: #56bcb3;
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
 	}
 </style>

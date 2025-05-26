@@ -38,10 +38,6 @@
 			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
 		]);
 
-		if (storiesResponse.newAccessToken) {
-			accessToken.set(storiesResponse.newAccessToken);
-		}
-
 		projectData = projectResponse.data;
 
 		const loadedData = storiesResponse.data;

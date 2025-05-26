@@ -25,7 +25,7 @@
 		<div class="content">
 			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
 			{#if project.insight}
-				{project.insight.slice(0, 100) + (project.insight.length > 100 ? '...' : '')}
+				{project.insight[Object.keys(project.insight)[0]]}
 			{:else}
 				<em>No insight available</em>
 			{/if}

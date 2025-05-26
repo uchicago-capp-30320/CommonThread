@@ -13,17 +13,27 @@
 </script>
 
 <div class="columns">
-	<div class="card columns column is-half">
-		<div class="card-image column is-one-fifth">
-			<figure class="image is-4by3">
-				<img src={project_pic} alt="Placeholder" />
-			</figure>
-		</div>
+	<div class="card columns column">
 		<div class="card-content column">
 			<div class="media">
 				<div class="media-content">
 					<p class="title is-4">{project_name}</p>
-					<p class="subtitle is-6">{insight || 'No AI Insight'}</p>
+
+					<p class="subtitle is-5 mt-2 mb-0"><i>AI Insight</i></p>
+					{#if typeof insight === 'object' && insight !== null}
+						<div class="content">
+							<ul class="fa-ul">
+								{#each Object.entries(insight) as [key, value]}
+									<li>
+										<span class="fa-li"><i class="fas fa-circle-notch"></i></span>
+										{value}
+									</li>
+								{/each}
+							</ul>
+						</div>
+					{:else}
+						{insight || 'No AI Insight'}
+					{/if}
 				</div>
 			</div>
 

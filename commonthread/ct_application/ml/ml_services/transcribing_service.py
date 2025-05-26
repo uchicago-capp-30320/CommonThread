@@ -42,13 +42,13 @@ class TranscribingService:
             audio_source = get_story_presigned_url(story_id)
             audio_input = AudioInput(presigned_url=audio_source)
             transcribed_text = self.transcribing_strategy.transcribe(audio_input)
-
+            
             # Overwrite the Story.text_content with the transcription
             story = Story.objects.get(id=story_id)
             story.text_content = transcribed_text
             story.save(update_fields=["text_content"])
             logger.info(f"Saved transcription into text_content for story {story_id}")
 
-        except Exception:
-            logger.exception(f"Failed to process transcription for story {story_id}")
+        except Exception as e:
+            logger.exception(f"Failed to process transcription for story {story_id},{str(e)}")
             return False
