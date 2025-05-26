@@ -253,8 +253,14 @@ def test_get_ml_status_ok_independent(client):
 def test_get_ml_status_not_found_independent(client):
     # no MLProcessingQueue exists for story=9999
     resp = client.get("/story/9999/ml-status")
+    #STORY_NOT_FOUND → 404
     assert resp.status_code == 404
-    assert resp.json() == {"success": False, "error": "ML status not found"}
+    data = resp.json()
+    assert data["success"] is False
+    err = data["error"]
+    assert err["code"] == "STORY_NOT_FOUND"
+    assert err["message"] == "Story not found"
+    datetime.datetime.fromisoformat(err["timestamp"])
 
 
 # ───────── create happy‑paths ─────────
@@ -594,26 +600,45 @@ def test_create_user_conflict(client, seed):
     resp = client.post(
         "/user/create", json.dumps(payload), content_type="application/json"
     )
-    assert resp.status_code == 400
-    assert resp.json() == {"success": False, "error": "Username already exists"}
+    #Duplicate username → 409 Conflict
+    assert resp.status_code == 409
+    data = resp.json()
+    assert data["success"] is False
+    err=data["error"]
+    assert err["code"] == "DUPLICATE_USERNAME"
+    assert err["message"] == "Username already exists"
+
+    #timestamp is ISO format
+    datetime.datetime.fromisoformat(err["timestamp"])
 
 
 def test_create_user_missing_fields(client):
     # No username or password
     resp = client.post("/user/create", json.dumps({}), content_type="application/json")
+    
+    #missing required fields → 400 Bad Request
     assert resp.status_code == 400
-    assert resp.json() == {
-        "success": False,
-        "error": "Username and password are required",
-    }
+    data = resp.json()
+    assert data["success"] is False
+    err = data["error"]
+    assert err["code"] == "MISSING_REQUIRED_FIELDS"
+    assert err["message"] == "Missing required fields"
+    #timestamp is ISO format
+    datetime.datetime.fromisoformat(err["timestamp"])
 
 
 def test_create_user_invalid_json(client):
     resp = client.post(
         "/user/create", "this-is-not-json", content_type="application/json"
     )
+    #INVALID_JSON → 400 Bad Request
     assert resp.status_code == 400
-    assert resp.json() == {"success": False, "error": "Invalid JSON"}
+    data = resp.json()
+    assert data["success"] is False
+    err = data["error"]
+    assert err["code"] == "INVALID_JSON"
+    assert err["message"] == "Invalid JSON format"
+    datetime.datetime.fromisoformat(err["timestamp"])
 
 
 @pytest.mark.django_db

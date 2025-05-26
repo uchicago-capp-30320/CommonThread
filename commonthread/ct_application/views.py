@@ -264,9 +264,7 @@ def check_ml_status(request, story_id):
     try:
         ml_task = MLProcessingQueue.objects.get(story_id=story_id)
     except MLProcessingQueue.DoesNotExist:
-        return JsonResponse(
-            {"success": False, "error": "ML status not found"}, status=404
-        )
+        return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
     return JsonResponse(
         {
@@ -845,21 +843,16 @@ def create_user(request):
     try:
         user_data = json.loads(request.body or "{}")
     except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
     username = user_data.get("username")
     password = user_data.get("password")
     if not username or not password:
-        return JsonResponse(
-            {"success": False, "error": "Username and password are required"},
-            status=400,
-        )
-
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
+    
     #  check for existing user
     if User.objects.filter(username=username).exists():
-        return JsonResponse(
-            {"success": False, "error": "Username already exists"}, status=400
-        )
+        return create_error_response("DUPLICATE_USERNAME", BUSINESS_ERRORS)
 
     try:
         # this needs to be CustomUser
@@ -871,8 +864,8 @@ def create_user(request):
             email=user_data.get("email", ""),
             city=user_data.get("city", ""),
         )
-    except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
+    except Exception:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
 
     # add get user id
     return JsonResponse({"success": True, "user_id": user.id}, status=201)
