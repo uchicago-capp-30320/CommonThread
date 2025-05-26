@@ -1045,12 +1045,13 @@ def create_project(request):
     curator = CustomUser.objects.get(id=project_data["curator"])
 
     try:
+        logger.debug("Creating project with data: %s", project_data)
         project = Project.objects.create(
             name=project_data["name"],
             description=project_data["description"],
             curator=curator,
             org=org,
-            date=project_data.get("date", date.today()),
+            date=project_data.get("date", str(date.today())),
         )
         # move the tag loop inside the try
         required_tags = project_data.get("required_tags", [])
@@ -1059,14 +1060,14 @@ def create_project(request):
         for rtag in required_tags:
             tag = Tag.objects.create(name=rtag, required=True)
             ProjectTag.objects.create(
-                tag=tag.id,
-                proj=project.id,
+                tag=tag,
+                proj=project,
             )
         for otag in optional_tags:
             tag = Tag.objects.create(name=otag, required=False)
             ProjectTag.objects.create(
-                tag=tag.id,
-                proj=project.id,
+                tag=tag,
+                proj=project,
             )
 
         return JsonResponse(
