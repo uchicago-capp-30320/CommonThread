@@ -905,9 +905,9 @@ def test_create_story_bad_json_400(client, auth_headers):
 
 
 # ───────── refresh edges ─────────
-def test_refresh_missing_token_400(client):
+def test_refresh_missing_token_401(client):
     r = client.post("/create_access", json.dumps({}), content_type="application/json")
-    assert r.status_code == 400
+    assert r.status_code == 401
 
 
 def test_refresh_invalid_token_401(client):
