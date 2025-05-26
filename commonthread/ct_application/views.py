@@ -424,7 +424,7 @@ def get_new_access_token(request):
 
 
 @require_GET
-# @verify_user("user")
+@verify_user("user")
 def get_project(request, project_id):
     try:
         project = Project.objects.select_related("org", "curator").get(id=project_id)
