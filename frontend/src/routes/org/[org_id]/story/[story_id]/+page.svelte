@@ -200,6 +200,7 @@
 
 	.row {
 		width: 100%;
+		padding-bottom: 20%;
 	}
 
 	#audio {
