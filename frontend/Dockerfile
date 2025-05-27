@@ -6,10 +6,11 @@ FROM node:24-alpine AS builder
 # make your code available within image at /app
 ADD . /frontend
 WORKDIR /frontend
-COPY package.json package-lock.json 
+COPY . . 
 #Line unnecessary since it's in the folder afaik
 # install dependencies
 RUN npm install
+RUN npm run build
 # place installed packages at front of path
 # ENV PATH="/frontend/node_modules:$PATH"
 
@@ -23,5 +24,5 @@ EXPOSE 9000
 # ENV DEBUG=true 
 
 # run application
-CMD ["npm", "run", "build"]
+#CMD ["node", "--env-file=.env", "build/index.js"]
 #RUN npm prune --production

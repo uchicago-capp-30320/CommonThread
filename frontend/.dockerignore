@@ -1,10 +1,7 @@
 __pycache__
-.env
-.env.example
 .venv
 .pytest_cache
 pytest.ini
-**/frontend
 /docs
 **/node_modules/
 **/dist

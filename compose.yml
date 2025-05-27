@@ -1,17 +1,21 @@
 services:
   backend:
     restart: on-failure
+    env_file: commonthread/.env
     build: ./commonthread
-    command: python manage.py runserver
+    command: gunicorn commonthread.wsgi -b 0.0.0.0:9000
     ports:
       - '8030:9000'
   frontend:
     restart: on-failure
     build: ./frontend
+    env_file: frontend/.env.production
+    command: node --env-file=.env build/index.js
     ports:
       - '8031:9000'
   machine:
     build: ./commonthread
-    command: python commonthread/ct_application/cloud/consumer_service.py
+    env_file: commonthread/.env
+    command: python -m ct_application.cloud.consumer_service
     ports:
     - '8032:9000'
