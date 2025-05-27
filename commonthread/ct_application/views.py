@@ -880,6 +880,7 @@ def create_user(request):
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 @verify_user("creator")
 def add_user_to_org(request, org_id):
     """
@@ -889,35 +890,58 @@ def add_user_to_org(request, org_id):
     """
 
     try:
-        org_user_data = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+        logger.debug("Received request body: %s", request.body)
 
-    user = find_user_by_email(org_user_data["email"], CustomUser)
+        try:
+            org_user_data = json.loads(request.body or "{}")
+            logger.debug("Parsed org user data: %s", org_user_data)
 
-    if not user:
-        return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS)
+        except json.JSONDecodeError:
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
-    # check if user already exists in org
-    if OrgUser.objects.filter(user_id=user.id, org_id=org_id).exists():
-        return create_error_response("USER_ALREADY_IN_ORG", BUSINESS_ERRORS)
-    try:
-        OrgUser.objects.create(
-            user_id=user.id,
-            org_id=org_id,
-            access=org_user_data["access"],
-        )
+        try:
+            user = find_user_by_email(org_user_data["email"], CustomUser)
+            logger.debug("Found user: %s", user)
+
+            if OrgUser.objects.filter(user_id=user.id, org_id=org_id).exists():
+                return create_error_response("USER_ALREADY_IN_ORG", BUSINESS_ERRORS)
+
+            try:
+                orguser = OrgUser.objects.create(
+                    user_id=user.id,
+                    org_id=org_id,
+                    access=org_user_data["access"]
+                )
+                logger.debug("Created OrgUser relationship %s", orguser)
+
+            except Exception as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+        except user.DoesNotExist:
+            logger.error("User with email %s does not exist", org_user_data["email"])
+            return create_error_response(
+                "USER_NOT_FOUND",
+                RESOURCE_ERRORS,
+                {"add_user_id": org_user_data["add_user_id"]},
+            )
+
+        except KeyError:
+            return create_error_response(
+                "MISSING_REQUIRED_FIELDS",
+                VALIDATION_ERRORS,
+                {"missing_field": "email"},
+            )
+        except Exception as e:
+            logger.warning("Failed to add user %s: %s", user.id, str(e))
+            return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
+
+        return JsonResponse({"success": True, "orguser_id": orguser.id}, status=200)
+
+
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
-
-    logger.debug(
-        "User %s added to organization %s with access level %s",
-        user.id,
-        org_id,
-        org_user_data["access"],
-    )
-    return JsonResponse({"success": True}, status=201)
-
+        logger.exception("Unexpected error in add_user_to_org: %s", str(e))
+        return create_error_response("UNEXPECTED_ERROR", SERVER_ERRORS)
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
@@ -933,9 +957,7 @@ def delete_user_from_org(request, org_id, del_user_id):
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ###############################################################################

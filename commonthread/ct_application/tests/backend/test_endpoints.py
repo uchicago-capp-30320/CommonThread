@@ -436,7 +436,7 @@ def test_add_user_to_org(client, seed, auth_headers):
         content_type="application/json",
         **auth_headers(),
     )
-    assert r.status_code == 201
+    assert r.status_code == 200
     assert OrgUser.objects.filter(user_id=brenda.id, org_id=org1.id).exists()
 
 
