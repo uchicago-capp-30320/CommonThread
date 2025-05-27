@@ -25,7 +25,8 @@
 		background-color: var(--gray);
 		filter: alpha(opacity=60);
 		width: 100%;
-		padding: 20px;
+		padding: 10px;
+		height: 5vh;
 	}
 
 	p {
