@@ -8,7 +8,7 @@
 
 	// To be consistent with the API, the type prop must have the values: "story", "project", "org", "user"
 	// Derive props and set initial state
-	let { type, id, redirectPath } = $props();
+	let { type, id, redirectPath = null } = $props();
 	let showModal = $state(false);
 	let url = '';
 
@@ -35,6 +35,12 @@
 		content = 'text, tags, and audivisual materials';
 	}
 
+	const closeModal = () => {
+		showModal = false;
+		const dialog = document.getElementById('modalDialog');
+		dialog.close();
+	};
+
 	// Define delete request
 	const sendDeleteRequest = async () => {
 		if (type === 'user-org') {
@@ -42,13 +48,15 @@
 		} else {
 			url = `/${type}/${id}/delete`;
 		}
-		const deleteResponse = await authRequest(url, 'DELETE', $accessToken, $refreshToken);
-		console.log(deleteResponse);
 
-		if (redirectPath) {
-			if (deleteResponse.data.success) {
-				goto(redirectPath);
-			}
+		const deleteResponse = await authRequest(url, 'DELETE', $accessToken, $refreshToken);
+
+		/* Wait till response is done to close dialog. */
+		if (deleteResponse.data.success) {
+			closeModal();
+			/* Since this is a deletion, send user back to where they came
+			from after deletion is complete */
+			history.back();
 		}
 	};
 </script>
@@ -80,7 +88,13 @@
         id="cancel-delete"
         onclick={showModal=false}
         >No, go back.</button> -->
-		<button class="button is-link" id="confirm-delete" onclick={sendDeleteRequest}>
+		<button
+			class="button is-link"
+			id="confirm-delete"
+			onclick={() => {
+				sendDeleteRequest();
+			}}
+		>
 			<b>Yes, delete.</b></button
 		>
 	</div>
