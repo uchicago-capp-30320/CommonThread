@@ -27,6 +27,7 @@ from .utils import (
     decode_refresh_token,
     decode_access_token,
     create_error_response,
+    find_user_by_email,
     AUTH_ERRORS,
     RESOURCE_ERRORS,
     VALIDATION_ERRORS,
@@ -49,6 +50,7 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Prefetch
+from botocore.exceptions import ClientError, ParamValidationError 
 
 # HANDLERES SET UP -------------------------------------------------------------
 import traceback
@@ -298,7 +300,7 @@ def login(request):  # need not pass username and password as query params
             # name of the JS object that holds such data as key. So it needs
             # an extra unpacking step.
             data = data.get("post_data")
-        except Exception as e:
+        except json.JSONDecodeError as e:
             logger.debug("LOGIN ➤ JSON parse failed: %r", e)
             return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
     else:
@@ -450,19 +452,17 @@ def get_org(request, org_id):
         story_count = stories.count()
         project_ids = list(projects.values_list("id", flat=True))
 
-        # Collect unique curator IDs
-        project_curator_ids = projects.values_list("curator", flat=True)
-        story_curator_ids = stories.values_list("curator", flat=True)
-        user_ids = set(project_curator_ids) | set(story_curator_ids)
+        # get all users from OrgUser table
+        org_users = OrgUser.objects.filter(org=org).values_list("user_id", flat=True)
 
-        users = CustomUser.objects.filter(id__in=user_ids).values(
+        users = CustomUser.objects.filter(id__in=org_users).values(
             "id", "name", "email", "position"
         )
         users_data = list(users)
 
         # Query OrgUser table for access levels
         org_user_access = OrgUser.objects.filter(
-            org_id=org.id, user_id__in=user_ids
+            org_id=org.id, user_id__in=org_users
         ).values("user_id", "access")
 
         orguser_map = {entry["user_id"]: entry["access"] for entry in org_user_access}
@@ -482,7 +482,7 @@ def get_org(request, org_id):
                     expiration=3600,
                 )
                 profile_pic_url = presign["url"]
-            except Exception as e:
+            except ClientError as e:
                 logger.error(f"Failed to generate S3 URL: {e}", exc_info=True)
                 return create_error_response("S3_ERROR", SERVER_ERRORS)
 
@@ -515,35 +515,40 @@ def get_stories(request):
         project_id = request.GET.get("project_id")
         story_id = request.GET.get("story_id")
         user_id = request.GET.get("user_id")
+    
+    except KeyError as e:
+        logger.error(f"Error in get_stories: {e}")
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
 
-        filters = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "story_id": story_id,
-            "user_id": user_id,
-        }
-        active_filter = {k: v for k, v in filters.items() if v is not None}
+    filters = {
+        "org_id": org_id,
+        "project_id": project_id,
+        "story_id": story_id,
+        "user_id": user_id,
+    }
+    active_filter = {k: v for k, v in filters.items() if v is not None}
 
-        if len(active_filter) != 1:
-            return create_error_response("BAD_FILTER", RESOURCE_ERRORS)
+    if len(active_filter) != 1:
+        return create_error_response("BAD_FILTER", RESOURCE_ERRORS)
 
-        id_type, id_value = next(iter(active_filter.items()))
+    id_type, id_value = next(iter(active_filter.items()))
 
-        if id_type == "org_id":
-            stories = Story.objects.filter(proj__org__id=id_value)
+    if id_type == "org_id":
+        stories = Story.objects.filter(proj__org__id=id_value)
 
-        elif id_type == "project_id":
-            stories = Story.objects.filter(proj__id=id_value)
+    elif id_type == "project_id":
+        stories = Story.objects.filter(proj__id=id_value)
 
-        elif id_type == "story_id":
-            stories = Story.objects.filter(id=id_value)
+    elif id_type == "story_id":
+        stories = Story.objects.filter(id=id_value)
 
-        elif id_type == "user_id":
-            stories = Story.objects.filter(curator__id=id_value)
+    elif id_type == "user_id":
+        stories = Story.objects.filter(curator__id=id_value)
 
-        else:
-            return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
+    else:
+        return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
 
+    try: 
         # Optimize tag fetching
         stories = stories.select_related("proj", "curator").prefetch_related(
             Prefetch(
@@ -602,7 +607,7 @@ def get_story(request, story_id):
         story = Story.objects.select_related("proj", "curator").get(id=story_id)
         story_tags = StoryTag.objects.filter(story=story).select_related("tag")
 
-        tags = [{"name": st.tag.name, "value": st.tag.value} for st in story_tags]
+        tags = [{"name": st.tag.name, "value": st.tag.value, "created_by": st.tag.created_by} for st in story_tags]
 
         audio_url = ""
         if story.audio_content:
@@ -873,51 +878,85 @@ def create_user(request):
     return JsonResponse({"success": True, "user_id": user.id}, status=201)
 
 
+@csrf_exempt
 @require_POST
 @verify_user("creator")
-def add_user_to_org(request, org_id, add_user_id):
+def add_user_to_org(request, org_id):
     """
     Receives a request with user_id and org_id its body and registers new user
     user-org relationship in the login table of the db.
     # TODO: Update docstrings and specify exceptions
     """
-    try:
-        org_user_data = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
-
-    if not org_user_data["user_id"]:
-        return JsonResponse(
-            {
-                "success": False,
-                "error": f"User ID is missing",
-            }
-        )
 
     try:
-        OrgUser.objects.create(
-            user_id=add_user_id,
-            org_id=org_id,
-            access=org_user_data["access"],
-        )
+        logger.debug("Received request body: %s", request.body)
+
+        try:
+            org_user_data = json.loads(request.body or "{}")
+            logger.debug("Parsed org user data: %s", org_user_data)
+
+        except json.JSONDecodeError:
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+
+        try:
+            user = find_user_by_email(org_user_data["email"], CustomUser)
+            logger.debug("Found user: %s", user)
+
+            if OrgUser.objects.filter(user_id=user.id, org_id=org_id).exists():
+                return create_error_response("USER_ALREADY_IN_ORG", BUSINESS_ERRORS)
+
+            try:
+                orguser = OrgUser.objects.create(
+                    user_id=user.id,
+                    org_id=org_id,
+                    access=org_user_data["access"]
+                )
+                logger.debug("Created OrgUser relationship %s", orguser)
+
+            except Exception as e:
+                return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+
+        except user.DoesNotExist:
+            logger.error("User with email %s does not exist", org_user_data["email"])
+            return create_error_response(
+                "USER_NOT_FOUND",
+                RESOURCE_ERRORS,
+                {"add_user_id": org_user_data["add_user_id"]},
+            )
+
+        except KeyError:
+            return create_error_response(
+                "MISSING_REQUIRED_FIELDS",
+                VALIDATION_ERRORS,
+                {"missing_field": "email"},
+            )
+        except Exception as e:
+            logger.warning("Failed to add user %s: %s", user.id, str(e))
+            return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
+
+        return JsonResponse({"success": True, "orguser_id": orguser.id}, status=200)
+
+
     except Exception as e:
-        return JsonResponse({"success": False, "error": str(e)}, status=400)
-    return JsonResponse({"success": True}, status=201)
-
+        logger.exception("Unexpected error in add_user_to_org: %s", str(e))
+        return create_error_response("UNEXPECTED_ERROR", SERVER_ERRORS)
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
 @verify_user("creator")
 def delete_user_from_org(request, org_id, del_user_id):
 
+    # check if user already is not in org
+    if not OrgUser.objects.filter(user_id=del_user_id, org_id=org_id).exists():
+        return create_error_response("USER_NOT_IN_ORG", BUSINESS_ERRORS)
+
     try:
         user_to_delete = OrgUser.objects.get(org_id=org_id, user_id=del_user_id)
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
     except:
-        return JsonResponse(
-            {"success": False, "error": "Deletion Unsuccessful"}, status=400
-        )
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
 
 
 ###############################################################################

@@ -62,7 +62,7 @@ urlpatterns = [
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
     path(
-        "org/<int:org_id>/add-user/<int:add_user_id>",
+        "org/<int:org_id>/add-user",
         add_user_to_org,
         name="add-user-to-org",
     ),

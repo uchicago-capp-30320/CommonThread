@@ -35,13 +35,20 @@
 			isNew: false
 		}
 	]);
+	const org_id = $page.params.org_id;
 	let projectResponses = $state([]);
+	let newUserEmail = $state('');
+	let newUser = $derived({
+		email: newUserEmail,
+		org_id: org_id,
+		isNew: true,
+		access: 'admin'
+	});
 
 	$inspect(projects);
 	$inspect(userData);
 	$inspect(orgData);
-
-	const org_id = $page.params.org_id;
+	$inspect('newUser', newUser);
 
 	// get project data from the backend
 	onMount(async () => {
@@ -123,6 +130,7 @@
 		<OrgHeader
 			org_name={orgData.name}
 			description={orgData.description}
+			profile_pic_path={orgData.profile_pic_path}
 			numProjects={orgData.project_count}
 			numStories={orgData.story_count}
 			--card-color={themeColor}
@@ -135,32 +143,16 @@
 		<div class="mb-5">
 			<div class="field has-addons">
 				<div class="control is-expanded" style="max-width: 25%;">
-					<input class="input" type="text" placeholder="Enter email address" id="newUserEmail" />
+					<input
+						class="input"
+						type="text"
+						placeholder="Enter email address"
+						id="newUserEmail"
+						bind:value={newUserEmail}
+					/>
 				</div>
 				<div class="control">
-					<button
-						class="button is-primary"
-						style="background-color: #56BDB3;"
-						onclick={() => {
-							const email = document.getElementById('newUserEmail').value;
-							if (email) {
-								users = [
-									{
-										name: 'New User',
-										email: email,
-										data_added: new Date().toISOString().split('T')[0]
-									},
-									...users
-								];
-								document.getElementById('newUserEmail').value = '';
-							}
-						}}
-					>
-						<span class="icon">
-							<i class="fa fa-plus"></i>
-						</span>
-						<span>Add User</span>
-					</button>
+					<CreateButton type="user-org" data={newUser} />
 				</div>
 			</div>
 
@@ -171,7 +163,7 @@
 							<th>Name</th>
 							<th>Email</th>
 							<th>Date Added</th>
-							<th>Actions</th>
+							<th></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -185,16 +177,7 @@
 								</td>
 								<td>{user.data_added ? user.data_added : 'No Date'}</td>
 								<td>
-									<div class="buttons">
-										<button
-											class="button is-small is-danger"
-											onclick={() => {
-												users = users.filter((_, index) => index !== i);
-											}}
-										>
-											Remove
-										</button>
-									</div>
+									<DeleteButton type={'user-org'} id={user.id} />
 								</td>
 							</tr>
 						{/each}

@@ -4,15 +4,20 @@
 	import { accessToken, refreshToken, ipAddress } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	// To be consistent with the API, the type prop must have the values: "story", "project", "org", "user"
 	// Derive props and set initial state
-	let { type, id, redirectPath } = $props();
+	let { type, id, redirectPath = null } = $props();
 	let showModal = $state(false);
+	let url = '';
+
+	const org_id = $page.params.org_id;
+
 	$inspect(showModal);
 
 	// Check input
-	const validType = ['user', 'org', 'project', 'story'].includes(type);
+	const validType = ['user', 'user-org', 'org', 'project', 'story'].includes(type);
 
 	if (!validType) {
 		console.error('Cannot delete object of type ' + type);
@@ -30,24 +35,36 @@
 		content = 'text, tags, and audivisual materials';
 	}
 
+	const closeModal = () => {
+		showModal = false;
+		const dialog = document.getElementById('modalDialog');
+		dialog.close();
+	};
+
 	// Define delete request
 	const sendDeleteRequest = async () => {
-		const deleteResponse = await authRequest(
-			`/${type}/${id}/delete`,
-			'DELETE',
-			$accessToken,
-			$refreshToken
-		);
-		console.log(deleteResponse);
+		if (type === 'user-org') {
+			url = `/org/${org_id}/delete-user/${id}`;
+		} else {
+			url = `/${type}/${id}/delete`;
+		}
 
+		const deleteResponse = await authRequest(url, 'DELETE', $accessToken, $refreshToken);
+
+		/* Wait till response is done to close dialog. */
 		if (deleteResponse.data.success) {
 			if (type === 'user') {
 				// delete user from store
 				$accessToken = '';
 				$refreshToken = '';
 			}
-
+  
+      closeModal();
+      
+      if (redirectPath) {
 			window.location.href = redirectPath;
+      }
+
 		}
 	};
 </script>
@@ -79,7 +96,13 @@
         id="cancel-delete"
         onclick={showModal=false}
         >No, go back.</button> -->
-		<button class="button is-link" id="confirm-delete" onclick={sendDeleteRequest}>
+		<button
+			class="button is-link"
+			id="confirm-delete"
+			onclick={() => {
+				sendDeleteRequest();
+			}}
+		>
 			<b>Yes, delete.</b></button
 		>
 	</div>

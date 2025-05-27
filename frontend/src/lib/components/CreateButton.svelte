@@ -9,6 +9,7 @@
 	// Derive props and set initial state
 	let { type, data, redirectPath = null } = $props();
 	let showModal = $state(false);
+	let url = '';
 
 	$inspect(showModal);
 	$inspect('type', type);
@@ -24,13 +25,12 @@
 
 	// Define create request
 	async function sendCreateRequest() {
-		const createResponse = await authRequest(
-			`/${type}/create`,
-			'POST',
-			$accessToken,
-			$refreshToken,
-			data
-		);
+		if (type === 'user-org') {
+			url = `/org/${data.org_id}/add-user`;
+		} else {
+			url = `/${type}/${id}/create`;
+		}
+		const createResponse = await authRequest(url, 'POST', $accessToken, $refreshToken, data);
 		console.log(createResponse);
 		if (!createResponse) {
 			console.error('No response from create request');
