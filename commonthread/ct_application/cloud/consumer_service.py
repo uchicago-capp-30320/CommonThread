@@ -6,7 +6,6 @@ This module has 2 main functions:
 
 import os
 import django
-from datetime import datetime
 import json
 import boto3
 import logging
@@ -18,11 +17,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
 django.setup()
 
 # THIS HAS TO BE BELOW THE DJANGO SETUP
-from ..ml.ml_services.summarizing_service import SummarizingService
-from ..ml.ml_services.tagging_service import TaggingService
-from ..ml.ml_services.transcribing_service import TranscribingService
-from ..models import MLProcessingQueue, Story, Project
-from commonthread.settings import CT_SQS_QUEUE_URL
+from ..ml.ml_services.summarizing_service import SummarizingService #noqa: E402
+from ..ml.ml_services.tagging_service import TaggingService #noqa: E402
+from ..ml.ml_services.transcribing_service import TranscribingService #noqa: E402
+from ..models import MLProcessingQueue, Story, Project #noqa: E402
+from commonthread.settings import CT_SQS_QUEUE_URL #noqa: E402
 
 
 logger = logging.getLogger(__name__)

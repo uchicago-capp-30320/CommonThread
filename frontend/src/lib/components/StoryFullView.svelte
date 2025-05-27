@@ -5,6 +5,12 @@
 	import { fail, redirect } from '@sveltejs/kit';
 	let { story } = $props();
 
+	const host = window.location.hostname;
+	const path = window.location.pathname.split('/');
+	const deleteRedirectPath = `org/${path[2]}`;
+	console.log('This is our redirect path');
+	console.log(deleteRedirectPath);
+
 	// Highlight searched terms
 	let searchTerm = $state('');
 	let editor;
@@ -47,7 +53,8 @@
 			</h2>
 		</div>
 		<div class="level-right" id="trash">
-			<DeleteButton type={'story'} id={story.story_id} redirectPath={'home'}></DeleteButton>
+			<DeleteButton type={'story'} id={story.story_id} redirectPath={deleteRedirectPath}
+			></DeleteButton>
 		</div>
 	</header>
 	<div class="content">
@@ -74,10 +81,9 @@
 
 		<!-- SEARCH INPUT BOX -->
 		<div class="columns is-multiline">
-			<div class="column is-7"></div>
-			<div class="column is-4 is-right" id="search-container">
-				<div class="field is-right">
-					<div class="control is-small is-right">
+			<div class="column is-4 is-left" id="search-container">
+				<div class="field is-left">
+					<div class="control is-small is-left">
 						<input
 							class="input is-small"
 							type="text"
@@ -87,6 +93,7 @@
 					</div>
 				</div>
 			</div>
+			<div class="column is-7"></div>
 		</div>
 
 		<!-- TEXT CONTENT -->

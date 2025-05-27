@@ -20,6 +20,9 @@
 	let type = $state('dash');
 	let searchValue = $state('');
 	let storiesTotalSearch = $state(0);
+	let isLoading = $state(true);
+
+	const org_id = $page.params.org_id;
 
 	$inspect(projectData);
 	$inspect(stories);
@@ -35,13 +38,13 @@
 			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
 		]);
 
-		if (storiesResponse.newAccessToken) {
-			accessToken.set(storiesResponse.newAccessToken);
-		}
-
 		projectData = projectResponse.data;
 
 		const loadedData = storiesResponse.data;
+
+		if (storiesResponse.data !== null) {
+			isLoading = false;
+		}
 		stories = loadedData['stories'];
 
 		storiesTotalSearch = projectData.stories;
@@ -149,7 +152,7 @@
 
 	<hr />
 
-	{#if stories.length === 0}
+	{#if isLoading}
 		{#each [1, 2, 3] as project}
 			<div class="columns mt-4 is-multiline">
 				{#each [1, 2, 3] as _}
@@ -159,14 +162,21 @@
 				{/each}
 			</div>
 		{/each}
-	{:else if type === 'dash'}
-		<DataDashboard {stories} />
-	{:else if type === 'story'}
-		{#each filteredItems as story}
-			<div class="">
-				<StoryPreview {story} />
-			</div>
-		{/each}
+	{:else if !isLoading && stories.length !== 0}
+		{#if type === 'dash'}
+			<DataDashboard {stories} />
+		{:else if type === 'story'}
+			{#each filteredItems as story}
+				<div class="">
+					<StoryPreview {story} />
+				</div>
+			{/each}
+		{/if}
+	{:else}
+		<div class="has-text-centered my-6">
+			<p class="mb-2">No stories have been created for this project. Please create some stories.</p>
+			<a href="/org/{org_id}/story/new" class="button is-primary is-small"> Create a Story</a>
+		</div>
 	{/if}
 </div>
 

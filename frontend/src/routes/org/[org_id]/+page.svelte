@@ -35,6 +35,7 @@
 	]);
 
 	$inspect(orgData);
+	$inspect(projects);
 
 	onMount(async () => {
 		// Fetch the data when the component mounts
@@ -66,15 +67,9 @@
 			return bStories - aStories;
 		});
 
-		console.log('orgResponse', orgResponse.data);
-
 		orgData = orgResponse.data;
 
 		changeOrgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
-
-		if (storiesResponse.newAccessToken) {
-			accessToken.set(storiesResponse.newAccessToken);
-		}
 
 		if (storiesResponse.data !== null) {
 			isLoading = false;

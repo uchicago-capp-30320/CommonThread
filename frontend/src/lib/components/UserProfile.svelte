@@ -1,5 +1,6 @@
 <script>
 	const { user } = $props();
+	import DeleteButton from './DeleteButton.svelte';
 
 	// Use mutable state for editing mode
 	let editing = $state(false);
@@ -131,6 +132,7 @@
 								{#if editing}
 									<button class="button is-light ml-2" onclick={cancelEdit}> Cancel </button>
 								{/if}
+								<DeleteButton type="user" id={user.user_id} redirectPath="/" />
 							</div>
 						</div>
 					</div>
