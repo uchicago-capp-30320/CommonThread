@@ -120,7 +120,11 @@
 				<label class="label" for="email">Email</label>
 				<div class="control has-icons-left has-icons-right">
 					<input
-						class="input is-danger"
+						class="input {signupData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email)
+							? 'is-danger'
+							: signupData.email
+								? 'is-success'
+								: ''}"
 						type="email"
 						id="email"
 						bind:value={signupData.email}
@@ -130,17 +134,31 @@
 						<i class="fa fa-envelope"></i>
 					</span>
 					<span class="icon is-small is-right">
-						<i class="fa fa-exclamation-triangle"></i>
+						{#if signupData.email}
+							{#if /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email)}
+								<i class="fa fa-check"></i>
+							{:else}
+								<i class="fa fa-exclamation-triangle"></i>
+							{/if}
+						{/if}
 					</span>
 				</div>
-				<p class="help is-danger">This email is invalid</p>
+				{#if signupData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signupData.email)}
+					<p class="help is-danger">This email is invalid</p>
+				{:else if signupData.email}
+					<p class="help is-success">Email format is valid</p>
+				{/if}
 			</div>
 
 			<div class="field">
 				<label class="label" for="password">Password</label>
 				<div class="control has-icons-left has-icons-right">
 					<input
-						class="input is-success"
+						class="input {signupData.password && signupData.password.length < 8
+							? 'is-danger'
+							: signupData.password
+								? 'is-success'
+								: ''}"
 						type="password"
 						id="password"
 						placeholder="********"
@@ -150,9 +168,20 @@
 						<i class="fa fa-lock"></i>
 					</span>
 					<span class="icon is-small is-right">
-						<i class="fa fa-check"></i>
+						{#if signupData.password}
+							{#if signupData.password.length >= 8}
+								<i class="fa fa-check"></i>
+							{:else}
+								<i class="fa fa-exclamation-triangle"></i>
+							{/if}
+						{/if}
 					</span>
 				</div>
+				{#if signupData.password && signupData.password.length < 8}
+					<p class="help is-danger">Password must be at least 8 characters</p>
+				{:else if signupData.password && signupData.password.length >= 8}
+					<p class="help is-success">Password length is valid</p>
+				{/if}
 			</div>
 
 			<div class="field">
