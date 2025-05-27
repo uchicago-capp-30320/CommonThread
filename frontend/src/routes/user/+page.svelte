@@ -29,36 +29,55 @@
 	$inspect(orgData);
 
 	onMount(async () => {
-		// first get user data
-		const userResponse = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
-		userData = userResponse.data;
+		try {
+			// first get user data
+			const userResponse = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
+			
+			// Check for user errors
+			if (userResponse?.error) {
+				showError('USER_NOT_FOUND');
+				return;
+			}
+			
+			userData = userResponse.data;
 
-		console.log('userResponse:', userResponse);
+			if (userResponse.newAccessToken) {
+				console.log('New access token received:', userResponse.newAccessToken);
+				accessToken.set(userResponse.newAccessToken);
+			}
 
-		if (userResponse.newAccessToken) {
-			console.log('New access token received:', userResponse.newAccessToken);
-			accessToken.set(userResponse.newAccessToken);
+			// then get org data
+			const org_ids = userData.orgs.map((org) => org.org_id);
+
+			// get project info from all projects concurrently
+			const orgPromises = org_ids.map((org_ids) =>
+				authRequest(`/org/${org_ids}`, 'GET', $accessToken, $refreshToken)
+			);
+
+			const orgResponses = await Promise.all(orgPromises);
+
+			// Check for org errors in responses
+			for (const response of orgResponses) {
+				if (response?.error) {
+					showError('ORG_NOT_FOUND');
+					return;
+				}
+			}
+
+			// Extract project data from the responses
+			orgData = orgResponses.map((response) => {
+				const org = response.data;
+				return {
+					...org,
+					isOpen: false
+				};
+			});
+			orgLoaded = true;
+		} catch (error) {
+			console.error('Unexpected error loading user page:', error);
+			showError('INTERNAL_ERROR');
+			orgLoaded = false;
 		}
-
-		// then get org data
-		const org_ids = userData.orgs.map((org) => org.org_id);
-
-		// get project info from all projects concurrently
-		const orgPromises = org_ids.map((org_ids) =>
-			authRequest(`/org/${org_ids}`, 'GET', $accessToken, $refreshToken)
-		);
-
-		const orgResponses = await Promise.all(orgPromises);
-
-		// Extract project data from the responses
-		orgData = orgResponses.map((response) => {
-			const org = response.data;
-			return {
-				...org,
-				isOpen: false
-			};
-		});
-		orgLoaded = true;
 	});
 
 	const addOrg = (org) => {
