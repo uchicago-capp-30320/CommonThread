@@ -27,6 +27,7 @@ from .utils import (
     decode_refresh_token,
     decode_access_token,
     create_error_response,
+    find_user_by_email,
     AUTH_ERRORS,
     RESOURCE_ERRORS,
     VALIDATION_ERRORS,
@@ -450,19 +451,17 @@ def get_org(request, org_id):
         story_count = stories.count()
         project_ids = list(projects.values_list("id", flat=True))
 
-        # Collect unique curator IDs
-        project_curator_ids = projects.values_list("curator", flat=True)
-        story_curator_ids = stories.values_list("curator", flat=True)
-        user_ids = set(project_curator_ids) | set(story_curator_ids)
+        # get all users from OrgUser table
+        org_users = OrgUser.objects.filter(org=org).values_list("user_id", flat=True)
 
-        users = CustomUser.objects.filter(id__in=user_ids).values(
+        users = CustomUser.objects.filter(id__in=org_users).values(
             "id", "name", "email", "position"
         )
         users_data = list(users)
 
         # Query OrgUser table for access levels
         org_user_access = OrgUser.objects.filter(
-            org_id=org.id, user_id__in=user_ids
+            org_id=org.id, user_id__in=org_users
         ).values("user_id", "access")
 
         orguser_map = {entry["user_id"]: entry["access"] for entry in org_user_access}
@@ -873,35 +872,44 @@ def create_user(request):
     return JsonResponse({"success": True, "user_id": user.id}, status=201)
 
 
+@csrf_exempt
 @require_POST
 @verify_user("creator")
-def add_user_to_org(request, org_id, add_user_id):
+def add_user_to_org(request, org_id):
     """
     Receives a request with user_id and org_id its body and registers new user
     user-org relationship in the login table of the db.
     # TODO: Update docstrings and specify exceptions
     """
+
     try:
         org_user_data = json.loads(request.body or "{}")
     except json.JSONDecodeError:
         return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
 
-    if not org_user_data["user_id"]:
-        return JsonResponse(
-            {
-                "success": False,
-                "error": f"User ID is missing",
-            }
-        )
+    user = find_user_by_email(org_user_data["email"], CustomUser)
 
+    if not user:
+        return create_error_response("USER_NOT_FOUND", RESOURCE_ERRORS)
+
+    # check if user already exists in org
+    if OrgUser.objects.filter(user_id=user.id, org_id=org_id).exists():
+        return create_error_response("USER_ALREADY_IN_ORG", BUSINESS_ERRORS)
     try:
         OrgUser.objects.create(
-            user_id=add_user_id,
+            user_id=user.id,
             org_id=org_id,
             access=org_user_data["access"],
         )
     except Exception as e:
         return JsonResponse({"success": False, "error": str(e)}, status=400)
+
+    logger.debug(
+        "User %s added to organization %s with access level %s",
+        user.id,
+        org_id,
+        org_user_data["access"],
+    )
     return JsonResponse({"success": True}, status=201)
 
 
@@ -909,6 +917,10 @@ def add_user_to_org(request, org_id, add_user_id):
 @require_http_methods(["DELETE"])
 @verify_user("creator")
 def delete_user_from_org(request, org_id, del_user_id):
+
+    # check if user already is not in org
+    if not OrgUser.objects.filter(user_id=del_user_id, org_id=org_id).exists():
+        return create_error_response("USER_NOT_IN_ORG", BUSINESS_ERRORS)
 
     try:
         user_to_delete = OrgUser.objects.get(org_id=org_id, user_id=del_user_id)

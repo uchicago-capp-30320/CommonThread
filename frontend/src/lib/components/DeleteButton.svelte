@@ -4,15 +4,20 @@
 	import { accessToken, refreshToken, ipAddress } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 
 	// To be consistent with the API, the type prop must have the values: "story", "project", "org", "user"
 	// Derive props and set initial state
 	let { type, id, redirectPath } = $props();
 	let showModal = $state(false);
+	let url = '';
+
+	const org_id = $page.params.org_id;
+
 	$inspect(showModal);
 
 	// Check input
-	const validType = ['user', 'org', 'project', 'story'].includes(type);
+	const validType = ['user', 'user-org', 'org', 'project', 'story'].includes(type);
 
 	if (!validType) {
 		console.error('Cannot delete object of type ' + type);
@@ -32,16 +37,18 @@
 
 	// Define delete request
 	const sendDeleteRequest = async () => {
-		const deleteResponse = await authRequest(
-			`/${type}/${id}/delete`,
-			'DELETE',
-			$accessToken,
-			$refreshToken
-		);
+		if (type === 'user-org') {
+			url = `/org/${org_id}/delete-user/${id}`;
+		} else {
+			url = `/${type}/${id}/delete`;
+		}
+		const deleteResponse = await authRequest(url, 'DELETE', $accessToken, $refreshToken);
 		console.log(deleteResponse);
 
-		if (deleteResponse.data.success) {
-			goto(redirectPath);
+		if (redirectPath) {
+			if (deleteResponse.data.success) {
+				goto(redirectPath);
+			}
 		}
 	};
 </script>
