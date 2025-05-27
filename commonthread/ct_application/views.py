@@ -50,6 +50,7 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Prefetch
+from botocore.exceptions import ClientError, ParamValidationError 
 
 # HANDLERES SET UP -------------------------------------------------------------
 import traceback
@@ -299,7 +300,7 @@ def login(request):  # need not pass username and password as query params
             # name of the JS object that holds such data as key. So it needs
             # an extra unpacking step.
             data = data.get("post_data")
-        except Exception as e:
+        except json.JSONDecodeError as e:
             logger.debug("LOGIN ➤ JSON parse failed: %r", e)
             return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
     else:
@@ -481,7 +482,7 @@ def get_org(request, org_id):
                     expiration=3600,
                 )
                 profile_pic_url = presign["url"]
-            except Exception as e:
+            except ClientError as e:
                 logger.error(f"Failed to generate S3 URL: {e}", exc_info=True)
                 return create_error_response("S3_ERROR", SERVER_ERRORS)
 
@@ -514,35 +515,40 @@ def get_stories(request):
         project_id = request.GET.get("project_id")
         story_id = request.GET.get("story_id")
         user_id = request.GET.get("user_id")
+    
+    except KeyError as e:
+        logger.error(f"Error in get_stories: {e}")
+        return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
 
-        filters = {
-            "org_id": org_id,
-            "project_id": project_id,
-            "story_id": story_id,
-            "user_id": user_id,
-        }
-        active_filter = {k: v for k, v in filters.items() if v is not None}
+    filters = {
+        "org_id": org_id,
+        "project_id": project_id,
+        "story_id": story_id,
+        "user_id": user_id,
+    }
+    active_filter = {k: v for k, v in filters.items() if v is not None}
 
-        if len(active_filter) != 1:
-            return create_error_response("BAD_FILTER", RESOURCE_ERRORS)
+    if len(active_filter) != 1:
+        return create_error_response("BAD_FILTER", RESOURCE_ERRORS)
 
-        id_type, id_value = next(iter(active_filter.items()))
+    id_type, id_value = next(iter(active_filter.items()))
 
-        if id_type == "org_id":
-            stories = Story.objects.filter(proj__org__id=id_value)
+    if id_type == "org_id":
+        stories = Story.objects.filter(proj__org__id=id_value)
 
-        elif id_type == "project_id":
-            stories = Story.objects.filter(proj__id=id_value)
+    elif id_type == "project_id":
+        stories = Story.objects.filter(proj__id=id_value)
 
-        elif id_type == "story_id":
-            stories = Story.objects.filter(id=id_value)
+    elif id_type == "story_id":
+        stories = Story.objects.filter(id=id_value)
 
-        elif id_type == "user_id":
-            stories = Story.objects.filter(curator__id=id_value)
+    elif id_type == "user_id":
+        stories = Story.objects.filter(curator__id=id_value)
 
-        else:
-            return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
+    else:
+        return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
 
+    try: 
         # Optimize tag fetching
         stories = stories.select_related("proj", "curator").prefetch_related(
             Prefetch(
@@ -601,7 +607,7 @@ def get_story(request, story_id):
         story = Story.objects.select_related("proj", "curator").get(id=story_id)
         story_tags = StoryTag.objects.filter(story=story).select_related("tag")
 
-        tags = [{"name": st.tag.name, "value": st.tag.value} for st in story_tags]
+        tags = [{"name": st.tag.name, "value": st.tag.value, "created_by": st.tag.created_by} for st in story_tags]
 
         audio_url = ""
         if story.audio_content:
