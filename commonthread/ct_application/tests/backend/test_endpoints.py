@@ -229,7 +229,7 @@ def test_get_ml_status_ok_independent(client):
         text_content="hello world",
         is_transcript=False,
     )
-    
+
     _ = MLProcessingQueue.objects.create(
         story=story, project=project, task_type="tag", status="processing"
     )
@@ -429,9 +429,9 @@ def test_create_story_queue_failure(
 def test_add_user_to_org(client, seed, auth_headers):
     brenda = seed["brenda"]
     org1 = seed["org1"]
-    payload = {"user_id": brenda.id, "access": "user"}
+    payload = {"email": "brenda@example.com", "org_id": org1.id, "access": "user"}
     r = client.post(
-        f"/org/{org1.id}/add-user/{brenda.id}",
+        f"/org/{org1.id}/add-user",
         data=json.dumps(payload),
         content_type="application/json",
         **auth_headers(),
