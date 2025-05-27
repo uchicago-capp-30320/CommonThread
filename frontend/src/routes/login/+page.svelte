@@ -2,6 +2,7 @@
 	// Load design assets
 	import background_texture from '$lib/assets/background_texture.png';
 	import { authRequest } from '$lib/authRequest';
+	import { showError } from '$lib/errorStore.js';
 
 	import { accessToken, refreshToken, ipAddress, userExpirationTimestamp } from '$lib/store.js';
 
@@ -12,48 +13,59 @@
 	let password = $state('');
 
 	async function login(data) {
-		data = { post_data: data };
-		console.log('login data', data);
-		// Send POST request to login endpoint
-		const response = await fetch(`${ipAddress}/login`, {
-			method: 'POST',
-			body: JSON.stringify(data),
-			headers: {
-				'Content-Type': 'application/json'
+		try {
+			data = { post_data: data };
+			console.log('login data', data);
+			// Send POST request to login endpoint
+			const response = await fetch(`${ipAddress}/login`, {
+				method: 'POST',
+				body: JSON.stringify(data),
+				headers: {
+					'Content-Type': 'application/json'
+				}
+			});
+
+			let response_data = await response.json();
+			console.log('response_data', response_data);
+
+			// Check for login errors
+			if (!response_data.success || response_data.error) {
+				showError('INVALID_CREDENTIALS');
+				return;
 			}
-		});
 
-		let response_data = {};
+			accessToken.set(response_data.access_token);
+			console.log('accessToken', $accessToken);
 
-		await response.json().then((d) => {
-			response_data = d;
-		});
+			refreshToken.set(response_data.refresh_token);
+			console.log('refreshToken', $refreshToken);
 
-		console.log('response_data', response_data);
-		console.log('accessToken', $accessToken);
+			// Set expiration timestamp for 7 days from now
+			userExpirationTimestamp.set(
+				utcFormat(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))('%Y-%m-%dT%H:%M:%S')
+			);
 
-		accessToken.set(response_data.access_token);
-		console.log('accessToken', $accessToken);
+			// Get user data and handle any errors
+			const userResponse = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
+			
+			if (userResponse?.error) {
+				showError('USER_NOT_FOUND');
+				return;
+			}
 
-		refreshToken.set(response_data.refresh_token);
-		console.log('refreshToken', $refreshToken);
+			console.log('user', userResponse);
 
-		// Set expiration timestamp for 7 days from now
-		userExpirationTimestamp.set(
-			utcFormat(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000))('%Y-%m-%dT%H:%M:%S')
-		);
+			// const org_id = userResponse.data.orgs[0].org_id;
 
-		const ok = response_data.success;
-
-		// Handle redirect if login is successful
-		if (ok) {
-			const user = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
-			console.log('user', user);
+			// TODO find org_id from response data?
+			//const org_id = response_data.org_id;
 
 			// Use window.location for client-side navigation
 			window.location.href = `/user`;
-		} else {
-			goto('/signup');
+
+		} catch (error) {
+			console.error('Unexpected error during login:', error);
+			showError('INTERNAL_ERROR');
 		}
 	}
 </script>
