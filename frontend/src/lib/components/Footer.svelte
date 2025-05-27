@@ -3,8 +3,11 @@
 </script>
 
 <footer class="footer">
-	<div class="content has-text-centered">
-		<p>
+	<div
+		class="content has-text-centered is-flex is-justify-content-center is-align-items-center"
+		style="height: 100%;"
+	>
+		<p class="is-align-self-center is-fullwidth">
 			<strong>CommonThread</strong> is an
 			<a href="https://github.com/uchicago-capp-30320/CommonThread">
 				open source project
@@ -26,7 +29,10 @@
 		filter: alpha(opacity=60);
 		width: 100%;
 		padding: 10px;
-		height: 5vh;
+		height: 8vh;
+		max-height: 75px;
+		min-height: 50px;
+		margin: auto;
 	}
 
 	p {
