@@ -41,8 +41,8 @@ class SummarizingService:
                 return False
 
             trend_summary = self.collective_strategy.summarize_multiple(story_summaries)
-            project.insight = trend_summary
-            project.save(update_fields=["insight"])
+            project.insight_json = trend_summary
+            project.save(update_fields=["insight_json"])
             return True
 
         except Project.DoesNotExist:

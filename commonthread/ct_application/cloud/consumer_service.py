@@ -6,7 +6,6 @@ This module has 2 main functions:
 
 import os
 import django
-from datetime import datetime
 import json
 import boto3
 import logging
@@ -18,11 +17,11 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "commonthread.settings")
 django.setup()
 
 # THIS HAS TO BE BELOW THE DJANGO SETUP
-from ..ml.ml_services.summarizing_service import SummarizingService
-# from ..ml.ml_services.tagging_service import TaggingService
-from ..ml.ml_services.transcribing_service import TranscribingService
-from ..models import MLProcessingQueue, Story, Project
-from commonthread.settings import CT_SQS_QUEUE_URL
+from ..ml.ml_services.summarizing_service import SummarizingService #noqa: E402
+from ..ml.ml_services.tagging_service import TaggingService #noqa: E402
+from ..ml.ml_services.transcribing_service import TranscribingService #noqa: E402
+from ..models import MLProcessingQueue, Story, Project #noqa: E402
+from commonthread.settings import CT_SQS_QUEUE_URL #noqa: E402
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ sqs = boto3.client("sqs", region_name="us-east-1")
 
 class MLWorkerService:
     def __init__(self):
-        # self.tagging_service = TaggingService()
+        self.tagging_service = TaggingService()
         self.summarizing_service = SummarizingService()
         self.transcribing_service = TranscribingService()
 
@@ -56,11 +55,8 @@ class MLWorkerService:
                 success = self.transcribing_service.process_story_transcription(
                     story_id
                 )
-            # Tagging logic moved to the transcribing service by Onur
-            # NEEDS TO BE CHECKED BY PRAVEEN!!!
-            # IF THIS COMMENT EXISTS, TELL PRAVEEN TO CHECK.
-            # elif task_type == "tag":
-            #     success = self.tagging_service.process_story_tags(story_id)
+            elif task_type == "tag":
+                success = self.tagging_service.process_story_tags(story_id)
 
             elif task_type == "summarization":
                 success = self.summarizing_service.process_project_summary(project_id)
@@ -131,7 +127,7 @@ class MLWorkerService:
             return {"status": "ok"}
 
         if not CT_SQS_QUEUE_URL:
-            logger.error("AWS_SQS_QUEUE_URL not set. Exiting.")
+            logger.error("CT_SQS_QUEUE_URL not set. Exiting.")
             return
         logger.info("Starting SQS poll loop on %s", CT_SQS_QUEUE_URL)
         while True:

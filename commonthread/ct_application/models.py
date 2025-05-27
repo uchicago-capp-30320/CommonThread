@@ -35,6 +35,7 @@ class Project(models.Model):
     curator = models.ForeignKey(CustomUser, models.SET_NULL, blank=True, null=True)
     date = models.DateField()
     insight = models.TextField(null=True, blank=True)
+    insight_json = models.JSONField(null=True, blank=True)
 
 
 # story

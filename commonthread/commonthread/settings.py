@@ -44,7 +44,7 @@ CT_BUCKET_USER_PROFILES = os.getenv("CT_BUCKET_USER_PROFILES")
 CT_BUCKET_ORG_PROFILES = os.getenv("CT_BUCKET_ORG_PROFILES")
 CT_BUCKET_STORY_IMAGES = os.getenv("CT_BUCKET_STORY_IMAGES")
 CT_BUCKET_STORY_AUDIO = os.getenv("CT_BUCKET_STORY_AUDIO")
-CT_SQS_QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
+CT_SQS_QUEUE_URL = os.getenv("SQS_QUEUE_URL")
 
 # if not SECRET_KEY:
 # raise ImproperlyConfigured("Secret Key not set in .env! Please set SECRET_KEY in an .env file next to your manage.py")
@@ -54,6 +54,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
+    "0.0.0.0",
     "[::1]",
 ]
 
@@ -112,6 +113,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8030",
+    "http://127.0.0.1:8031",
+    "http://127.0.0.1:8032",
+    "http://127.0.0.1:9000",
 ]
 
 ROOT_URLCONF = "commonthread.urls"

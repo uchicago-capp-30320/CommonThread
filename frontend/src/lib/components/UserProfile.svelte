@@ -1,17 +1,18 @@
 <script>
 	const { user } = $props();
+	import DeleteButton from './DeleteButton.svelte';
 
 	// Use mutable state for editing mode
 	let editing = $state(false);
 
 	// Create mutable state from user properties
-	let first_name = $state(user.First_name);
-	let last_name = $state(user.Last_name);
-	let email = $state(user.Email);
-	let profile_pic_path = $state(user.Profile_pic_path);
-	let bio = $state(user.Bio);
-	let city = $state(user.City);
-	let position = $state(user.Position);
+	let first_name = $state(user.first_name);
+	let last_name = $state(user.last_name);
+	let email = $state(user.email);
+	let profile_pic_path = $state(user.profile_pic_path);
+	let bio = $state(user.bio);
+	let city = $state(user.city);
+	let position = $state(user.position);
 
 	// Create a backup of original values to restore on cancel
 	let originalValues = $state({});
@@ -55,7 +56,7 @@
 				<div class="column is-one-quarter">
 					<figure class="image is-1by1">
 						<img
-							src={user.Profile_pic_path || 'https://bulma.io/images/placeholders/256x256.png'}
+							src={user.profile_pic_path || 'https://bulma.io/images/placeholders/256x256.png'}
 							alt="Profile picture"
 							class="is-rounded"
 						/>
@@ -67,7 +68,7 @@
 									class="input"
 									type="text"
 									placeholder="Image URL"
-									bind:value={profile_pic_path}
+									bind:value={user.profile_pic_path}
 								/>
 							</div>
 						</div>
@@ -80,19 +81,19 @@
 							<div class="field">
 								<label class="label">First Name</label>
 								<div class="control">
-									<input class="input" type="text" bind:value={user.First_name} />
+									<input class="input" type="text" bind:value={user.first_name} />
 								</div>
 							</div>
 							<div class="field">
 								<label class="label">Last Name</label>
 								<div class="control">
-									<input class="input" type="text" bind:value={user.Last_name} />
+									<input class="input" type="text" bind:value={user.last_name} />
 								</div>
 							</div>
 							<div class="field">
 								<label class="label">Email</label>
 								<div class="control">
-									<input class="input" type="email" bind:value={user.Email} />
+									<input class="input" type="email" bind:value={user.email} />
 								</div>
 							</div>
 							<div class="field">
@@ -114,13 +115,13 @@
 								</div>
 							</div>
 						{:else}
-							<h1 class="title is-3">{user.First_name} {user.Last_name}</h1>
-							<p class="subtitle is-5">{user.Position || 'No Position'}</p>
-							<p><strong>Email:</strong> {user.Email}</p>
-							<p><strong>Location:</strong> {user.City || 'No City'}</p>
+							<h1 class="title is-3">{user.first_name} {user.last_name}</h1>
+							<p class="subtitle is-5">{user.position || 'No Position'}</p>
+							<p><strong>Email:</strong> {user.email}</p>
+							<p><strong>Location:</strong> {user.city || 'No City'}</p>
 							<div class="block">
 								<strong>Bio:</strong>
-								{user.Bio || 'No bio provided yet.'}
+								{user.bio || 'No bio provided yet.'}
 							</div>
 						{/if}
 						<div class="field">
@@ -131,6 +132,7 @@
 								{#if editing}
 									<button class="button is-light ml-2" onclick={cancelEdit}> Cancel </button>
 								{/if}
+								<DeleteButton type="user" id={user.user_id} redirectPath="/" />
 							</div>
 						</div>
 					</div>

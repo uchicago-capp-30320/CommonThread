@@ -3,19 +3,22 @@
 </script>
 
 <footer class="footer">
-	<div class="content has-text-centered">
-		<p>
+	<div
+		class="content has-text-centered is-flex is-justify-content-center is-align-items-center"
+		style="height: 100%;"
+	>
+		<p class="is-align-self-center is-fullwidth">
 			<strong>CommonThread</strong> is an
-			<a href="https://github.com/uchicago-capp-30320/CommonThread"> open source project</a>, part
-			of
+			<a href="https://github.com/uchicago-capp-30320/CommonThread">
+				open source project
+				<span class="icon">
+					<b><i class="fa fa-code-fork"></i></b>
+				</span>
+			</a>
+			part of
 			<a href="https://github.com/uchicago-capp-30320">
 				Software Engineering for Civic Tech (CAPP 30320)</a
 			>.
-			<br />
-			The source code is licensed under
-			<a href="https://www.gnu.org/licenses/agpl-3.0.html">AGPL-3.0 license</a>. The website content
-			is licensed
-			<a href="https://creativecommons.org/licenses/by-nc-sa/4.0//">CC BY NC SA 4.0</a>.
 		</p>
 	</div>
 </footer>
@@ -25,6 +28,21 @@
 		background-color: var(--gray);
 		filter: alpha(opacity=60);
 		width: 100%;
-		padding: 20px;
+		padding: 10px;
+		height: 8vh;
+		max-height: 75px;
+		min-height: 50px;
+		margin: auto;
+	}
+
+	p {
+		color: #133335;
+	}
+	a {
+		color: #56bcb3;
+	}
+
+	a:hover {
+		text-decoration: underline;
 	}
 </style>
