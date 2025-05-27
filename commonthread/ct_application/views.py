@@ -880,6 +880,7 @@ def create_user(request):
 
 @csrf_exempt
 @require_POST
+@transaction.atomic
 @verify_user("creator")
 def add_user_to_org(request, org_id):
     """
