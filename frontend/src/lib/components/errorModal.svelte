@@ -2,11 +2,9 @@
   import Modal from '$lib/components/Modal.svelte';
   import { errorStore, ERROR_ACTIONS } from '$lib/errorStore.js';
   
-  // This component watches for errors automatically
   let showModal = $state(false);
   let currentError = $state(null);
   
-  // Svelte 5 reactive effect - runs when errorStore changes
   $effect(() => {
     if ($errorStore) {
       currentError = $errorStore;
