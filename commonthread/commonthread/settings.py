@@ -54,6 +54,7 @@ DEBUG = False
 ALLOWED_HOSTS = [
     "localhost",
     "127.0.0.1",
+    "0.0.0.0",
     "[::1]",
 ]
 
@@ -112,6 +113,11 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "http://127.0.0.1:3000",
+    "http://127.0.0.1:8000",
+    "http://127.0.0.1:8030",
+    "http://127.0.0.1:8031",
+    "http://127.0.0.1:8032",
+    "http://127.0.0.1:9000",
 ]
 
 ROOT_URLCONF = "commonthread.urls"
