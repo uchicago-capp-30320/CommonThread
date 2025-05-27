@@ -5,8 +5,8 @@
 
 	import { accessToken, refreshToken, ipAddress, userExpirationTimestamp } from '$lib/store.js';
 
-	import { redirect } from '@sveltejs/kit';
 	import { utcFormat } from 'd3-time-format';
+	import { goto } from '$app/navigation';
 
 	let username = $state('');
 	let password = $state('');
@@ -50,15 +50,10 @@
 			const user = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
 			console.log('user', user);
 
-			const org_id = user.data.orgs[0].org_id;
-
-			// TODO find org_id from response data?
-			//const org_id = response_data.org_id;
-
 			// Use window.location for client-side navigation
-			window.location.href = `/org/${org_id}`;
+			window.location.href = `/user`;
 		} else {
-			redirect(303, '/signup');
+			goto('/signup');
 		}
 	}
 </script>

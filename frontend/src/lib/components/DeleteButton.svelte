@@ -53,10 +53,18 @@
 
 		/* Wait till response is done to close dialog. */
 		if (deleteResponse.data.success) {
-			closeModal();
-			/* Since this is a deletion, send user back to where they came
-			from after deletion is complete */
-			history.back();
+			if (type === 'user') {
+				// delete user from store
+				$accessToken = '';
+				$refreshToken = '';
+			}
+  
+      closeModal();
+      
+      if (redirectPath) {
+			window.location.href = redirectPath;
+      }
+
 		}
 	};
 </script>
