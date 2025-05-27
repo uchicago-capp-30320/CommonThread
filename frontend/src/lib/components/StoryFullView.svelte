@@ -5,11 +5,10 @@
 	import { fail, redirect } from '@sveltejs/kit';
 	let { story } = $props();
 
+	// Define redirect path
 	const host = window.location.hostname;
 	const path = window.location.pathname.split('/');
 	const deleteRedirectPath = `org/${path[2]}`;
-	console.log('This is our redirect path');
-	console.log(deleteRedirectPath);
 
 	// Highlight searched terms
 	let searchTerm = $state('');
@@ -62,19 +61,29 @@
 		<h1>Story by <span class="storyteller"><b>{story.storyteller}</b></span></h1>
 
 		<!-- TAGS -->
-		<div class="tags">
+		<div class="tags is-justify-content-start">
 			<div class="column" id="user-tags">
-				<span class="has-text-left">USER TAGS</span>
+				<span class="icon">
+					<i class="fa fa-pencil"></i>
+				</span>
+				<span class="has-text-left">HUMAN GENERATED TAGS</span>
 				<br />
 				{#each story.tags as tag}
-					<span class="tag is-medium m-1">{tag.value}</span>
+					{#if tag.created_by != 'computer'}
+						<span class="tag is-medium m-1">{tag.value}</span>
+					{/if}
 				{/each}
 			</div>
 			<div class="column" id="ml-tags">
-				<span class="has-text-left">AUTOMATICALLY GENEARATED TAGS</span>
+				<span class="icon">
+					<i class="fa fa-lightbulb-o"></i>
+				</span>
+				<span class="has-text-left">AI GENEARATED TAGS</span>
 				<br />
 				{#each story.tags as tag}
-					<span class="tag is-medium m-1">{tag.value}</span>
+					{#if tag.created_by == 'computer'}
+						<span class="tag is-medium m-1">{tag.value}</span>
+					{/if}
 				{/each}
 			</div>
 		</div>

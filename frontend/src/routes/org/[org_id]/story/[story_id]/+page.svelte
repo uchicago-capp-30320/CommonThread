@@ -106,6 +106,8 @@
 								></AudioPlayer>
 							</div>
 						{/if}
+					</div>
+					<div class="row">
 						{#if includesImage}
 							<div class="media">
 								<div class="media-right" id="images">
@@ -147,6 +149,7 @@
 
 	.row {
 		width: 100%;
+		padding-bottom: 20%;
 	}
 
 	#audio {
