@@ -5,11 +5,13 @@
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
+	import { showError } from '$lib/errorStore.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 
 	// Page state
 	let themeColor = $state('#133335');
+	let loading = $state(true);
 
 	// Fetch the data when the component mounts
 	const org_id = $page.params.org_id;
@@ -39,86 +41,137 @@
 	$inspect(orgData);
 	$inspect(storyData);
 
-	// API call
+	// API call with error handling
 	onMount(async () => {
-		// Make both requests concurrently using Promise.all
-		const [orgResponse, storyResponse] = await Promise.all([
-			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
-			authRequest(`/story/${story_id}`, 'GET', $accessToken, $refreshToken)
-		]);
+		try {
+			console.log('Making requests for org:', org_id, 'story:', story_id);
+			
+			const [orgResponse, storyResponse] = await Promise.all([
+				authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
+				authRequest(`/story/${story_id}`, 'GET', $accessToken, $refreshToken)
+			]);
 
-		if (orgResponse.newAccessToken) {
-			accessToken.set(orgResponse.newAccessToken);
+			console.log('orgResponse:', orgResponse);
+			console.log('storyResponse:', storyResponse);
+
+			// Check for org errors
+			if (orgResponse?.error) {
+				showError(orgResponse.error.code === 'ORG_NOT_FOUND' ? 'ORG_NOT_FOUND' : orgResponse.error);
+				loading = false;
+				return;
+			}
+
+			// Check for story errors
+			if (storyResponse?.error) {
+				console.log('Story error detected:', storyResponse.error);
+				console.log('Calling showError with:', 'STORY_NOT_FOUND', { org_id });
+				
+				if (storyResponse.error.code === 'STORY_NOT_FOUND') {
+					showError('STORY_NOT_FOUND', null, { org_id });
+				} else {
+					showError(storyResponse.error.code);
+				}
+				loading = false;
+				return;
+			}
+
+			// Check if responses are null (handled by authRequest)
+			if (!orgResponse || !storyResponse) {
+				loading = false;
+				return;
+			}
+
+			// Success - update data
+			if (orgResponse.newAccessToken) {
+				accessToken.set(orgResponse.newAccessToken);
+			}
+
+			orgData = orgResponse.data;
+			storyData = storyResponse.data;
+
+			includesAudio = storyData.audio_path != '';
+			includesImage = storyData.image_path != '';
+			if (includesAudio || includesImage) media = true;
+
+			loading = false;
+
+		} catch (error) {
+			console.error('Unexpected error loading story:', error);
+			showError('INTERNAL_ERROR');
+			loading = false;
 		}
-
-		orgData = orgResponse.data;
-		storyData = storyResponse.data;
-
-		includesAudio = storyData.audio_path != '';
-		includesImage = storyData.image_path != '';
-		if (includesAudio || includesImage) media = true;
 	});
 </script>
 
-<div id="container" class="mb-6">
-	<!-- NAVIGATION BAR  -->
-	<div class="breadcrumb-nav mb-5 mt-3">
-		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
-			<ul>
-				<li><a href="/">Home</a></li>
-				<li>
-					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
-				</li>
-				<li class="">
-					<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
-						><b>Project</b>: {storyData.project_name}</a
-					>
-				</li>
-				<li class="is-active">
-					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
-						><b>Story</b>: {story_id}</a
-					>
-				</li>
-			</ul>
-		</nav>
-	</div>
-	<div class="container-is-fullhd">
-		<div class="columns">
-			<!-- STORY TEXT -->
-			{#if media}
-				<div class="column is-three-quarters" id="text">
-					<StoryFullView story={storyData}></StoryFullView>
-				</div>
-			{:else}
-				<div class="column is-full">
-					<StoryFullView story={storyData}></StoryFullView>
-				</div>
-			{/if}
-
-			<!-- AUDIOVISUAL MEDIA -->
-			{#if media}
-				<div class="column is-one-quarter" id="media">
-					<!-- Are we displaying a single image or multiple? -->
-					<div class="row">
-						{#if includesAudio}
-							<div class="media-right" id="audio">
-								<AudioPlayer src={storyData.audio_path} storyteller={storyData.storyteller}
-								></AudioPlayer>
-							</div>
-						{/if}
-						{#if includesImage}
-							<div class="media">
-								<div class="media-right" id="images">
-									<img src={storyData.image_path} alt="Story image" />
-								</div>
-							</div>
-						{/if}
-					</div>
-				</div>
-			{/if}
+<!-- Just show loading or content - modal handles errors -->
+{#if loading}
+	<div class="loading-container">
+		<div class="has-text-centered">
+			<p class="title is-4">Loading story...</p>
 		</div>
 	</div>
-</div>
+{:else}
+	<!-- Show normal content -->
+	<div id="container" class="mb-6">
+		<!-- NAVIGATION BAR  -->
+		<div class="breadcrumb-nav mb-5 mt-3">
+			<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
+				<ul>
+					<li><a href="/">Home</a></li>
+					<li>
+						<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
+					</li>
+					<li class="">
+						<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
+							><b>Project</b>: {storyData.project_name}</a
+						>
+					</li>
+					<li class="is-active">
+						<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
+							><b>Story</b>: {story_id}</a
+						>
+					</li>
+				</ul>
+			</nav>
+		</div>
+		<div class="container-is-fullhd">
+			<div class="columns">
+				<!-- STORY TEXT -->
+				{#if media}
+					<div class="column is-three-quarters" id="text">
+						<StoryFullView story={storyData}></StoryFullView>
+					</div>
+				{:else}
+					<div class="column is-full">
+						<StoryFullView story={storyData}></StoryFullView>
+					</div>
+				{/if}
+
+				<!-- AUDIOVISUAL MEDIA -->
+				{#if media}
+					<div class="column is-one-quarter" id="media">
+						<!-- Are we displaying a single image or multiple? -->
+						<div class="row">
+							{#if includesAudio}
+								<div class="media-right" id="audio">
+									<AudioPlayer src={storyData.audio_path} storyteller={storyData.storyteller}
+									></AudioPlayer>
+								</div>
+							{/if}
+							{#if includesImage}
+								<div class="media">
+									<div class="media-right" id="images">
+										<img src={storyData.image_path} alt="Story image" />
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	p {
@@ -165,5 +218,13 @@
 
 	li.is-active a {
 		color: #56bcb3 !important;
+	}
+
+	.loading-container {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		min-height: 50vh;
+		padding: 2rem;
 	}
 </style>
