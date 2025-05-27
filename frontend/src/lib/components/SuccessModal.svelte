@@ -1,15 +1,10 @@
-<!-- 
-    Modal component to display pop up messages
-    Ref: https://svelte.dev/playground/modal?version=5.33.2
--->
-
 <script>
-	let { showModal = $bindable(), header, children, modalId } = $props();
+	let { showModalSuccess = $bindable(), header, children, modalId } = $props();
 
 	let dialog = $state(); // HTMLDialogElement
 
 	$effect(() => {
-		if (showModal) {
+		if (showModalSuccess) {
 			dialog.showModal();
 		} else {
 			dialog.close();
@@ -17,11 +12,10 @@
 	});
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <dialog
 	id={modalId}
 	bind:this={dialog}
-	onclose={() => (showModal = false)}
+	onclose={() => (showModalSuccess = false)}
 	onclick={(e) => {
 		if (e.target === dialog) dialog.close();
 	}}
