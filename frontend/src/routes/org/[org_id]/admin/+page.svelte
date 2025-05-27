@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import { authRequest } from '$lib/authRequest.js';
 	import { page } from '$app/stores';
+	import { showError } from '$lib/errorStore.js';
 
 	let themeColor = $state('#133335');
 	let saveResponse = $state('...');
@@ -52,28 +53,47 @@
 
 	// get project data from the backend
 	onMount(async () => {
-		const orgResponse = await authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken);
+		try {
+			const orgResponse = await authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken);
 
-		orgData = orgResponse.data;
-		userData = orgData.users;
+			// Check for org errors
+			if (orgResponse?.error) {
+				showError(orgResponse.error.code === 'ORG_NOT_FOUND' ? 'ORG_NOT_FOUND' : orgResponse.error);
+				return;
+			}
 
-		const project_ids = orgData.project_ids;
+			orgData = orgResponse.data;
+			userData = orgData.users;
 
-		// get project info from all projects concurrently
-		const projectPromises = project_ids.map((project_id) =>
-			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
-		);
+			const project_ids = orgData.project_ids;
 
-		projectResponses = await Promise.all(projectPromises);
+			// get project info from all projects concurrently
+			const projectPromises = project_ids.map((project_id) =>
+				authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+			);
 
-		// Extract project data from the responses
-		projects = projectResponses.map((response) => {
-			const project = response.data;
-			return {
-				...project,
-				isOpen: false
-			};
-		});
+			projectResponses = await Promise.all(projectPromises);
+
+			// Check for project errors in responses
+			for (const response of projectResponses) {
+				if (response?.error) {
+					showError('PROJECT_NOT_FOUND');
+					return;
+				}
+			}
+
+			// Extract project data from the responses
+			projects = projectResponses.map((response) => {
+				const project = response.data;
+				return {
+					...project,
+					isOpen: false
+				};
+			});
+		} catch (error) {
+			console.error('Unexpected error loading admin page:', error);
+			showError('INTERNAL_ERROR');
+		}
 	});
 
 	let totalUsers = $derived(userData.length);
