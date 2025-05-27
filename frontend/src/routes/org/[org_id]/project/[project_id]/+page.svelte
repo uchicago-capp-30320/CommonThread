@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { accessToken, refreshToken } from '$lib/store.js';
+	import { showError } from '$lib/errorStore.js';
 
 	let stories = $state([]);
 	let projectData = $state({
@@ -32,22 +33,35 @@
 		// Fetch the data when the component mounts
 		const project_id = $page.params.project_id;
 
-		// Make both requests concurrently using Promise.all
-		const [storiesResponse, projectResponse] = await Promise.all([
-			authRequest(`/stories?project_id=${project_id}`, 'GET', $accessToken, $refreshToken),
-			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
-		]);
+		try {
+			// Make both requests concurrently using Promise.all
+			const [storiesResponse, projectResponse] = await Promise.all([
+				authRequest(`/stories?project_id=${project_id}`, 'GET', $accessToken, $refreshToken),
+				authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+			]);
 
-		projectData = projectResponse.data;
+			// Check for project errors
+			if (projectResponse?.error) {
+				showError('PROJECT_NOT_FOUND');
+				isLoading = false;
+				return;
+			}
 
-		const loadedData = storiesResponse.data;
+			projectData = projectResponse.data;
 
-		if (storiesResponse.data !== null) {
+			const loadedData = storiesResponse.data;
+
+			if (storiesResponse.data !== null) {
+				isLoading = false;
+			}
+			stories = loadedData['stories'];
+
+			storiesTotalSearch = projectData.stories;
+		} catch (error) {
+			console.error('Error loading project:', error);
+			showError('INTERNAL_ERROR');
 			isLoading = false;
 		}
-		stories = loadedData['stories'];
-
-		storiesTotalSearch = projectData.stories;
 	});
 
 	// Create a function to filter items based on search value
