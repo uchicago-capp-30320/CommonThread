@@ -57,6 +57,7 @@ class DeepgramTranscribingStrategy(TranscribingStrategy):
     def transcribe(self, audio_input: AudioInput) -> str:
         options = PrerecordedOptions(
             smart_format=True,
+            paragraphs=True,
             model="nova-3",
         )
 

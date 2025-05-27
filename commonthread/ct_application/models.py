@@ -31,9 +31,11 @@ class Organization(models.Model):
 class Project(models.Model):
     org = models.ForeignKey(Organization, on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    description = models.TextField(null=True, blank=True)
     curator = models.ForeignKey(CustomUser, models.SET_NULL, blank=True, null=True)
     date = models.DateField()
     insight = models.TextField(null=True, blank=True)
+    insight_json = models.JSONField(null=True, blank=True)
 
 
 # story
@@ -48,7 +50,7 @@ class Story(models.Model):
     audio_content = models.FileField(upload_to="audio/", null=True, blank=True)
     image_content = models.FileField(upload_to="images/", null=True, blank=True)
     summary = models.TextField(null=True, blank=True)
-    transcription = models.TextField(null=True, blank=True)
+    is_transcript = models.BooleanField(null=True, blank=False)
 
 
 ####################################### TAG TABLES #######################################

@@ -3,15 +3,23 @@
 	import StoryDetails from './StoryDetails.svelte';
 	import StoryMedia from './StoryMedia.svelte';
 
+	let { projects } = $props();
+
 	let currentStep = $state(1);
 	let storyData = $state({
 		storyteller: '',
 		author: '',
 		project: '',
-		content: '',
+		text_content: '',
 		tags: [],
-		image: null
+		image: null,
+		audio: null,
+		project_id: '',
+		audio_path: null,
+		image_path: null
 	});
+
+	$inspect(storyData);
 
 	function handleStepClick(step) {
 		if (step < currentStep || canNavigateToStep(step)) {
@@ -24,7 +32,9 @@
 			case 2:
 				return storyData.storyteller && storyData.author;
 			case 3:
-				return storyData.storyteller && storyData.author && storyData.content;
+				return (
+					storyData.storyteller && storyData.author && (storyData.text_content || storyData.audio)
+				);
 			default:
 				return false;
 		}
@@ -84,11 +94,11 @@
 			<div class="box">
 				<pre>Current Step: {currentStep}</pre>
 				{#if currentStep === 1}
-					<StoryBasicInfo bind:currentStep bind:storyData />
+					<StoryBasicInfo bind:currentStep bind:storyData {projects} />
 				{:else if currentStep === 2}
-					<StoryDetails bind:currentStep bind:storyData />
+					<StoryDetails bind:currentStep bind:storyData {projects} />
 				{:else if currentStep === 3}
-					<StoryMedia bind:currentStep bind:storyData />
+					<StoryMedia bind:currentStep bind:storyData {projects} />
 				{/if}
 			</div>
 		</div>

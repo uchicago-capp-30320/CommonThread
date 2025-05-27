@@ -1,0 +1,9 @@
+__pycache__
+.venv
+.pytest_cache
+pytest.ini
+/docs
+**/node_modules/
+**/dist
+.git
+*.pyc

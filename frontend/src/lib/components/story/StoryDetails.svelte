@@ -1,34 +1,40 @@
 <script>
-	let { currentStep = $bindable(), storyData = $bindable() } = $props();
-	let wordCount = $derived(() => storyData.content.trim().split(/\s+/).length);
+	import { text } from '@sveltejs/kit';
 
-	// --- Hardcoded tag categories to be removed---
-	const defaultTagCategories = {
-		required: [
-			{ id: 'city', label: 'City' },
-			{ id: 'area', label: 'Area' }
-		],
-		optional: [
-			{ id: 'mood', label: 'Mood' },
-			{ id: 'season', label: 'Season' },
-			{ id: 'topic', label: 'Topic' }
-		]
-	};
+	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
+	let wordCount = $derived(storyData.text_content.trim().split(/\s+/).length);
+	let required;
+	let optional;
 
-	let tagCategories = defaultTagCategories;
-	let selectedOptionalCategory = $state(tagCategories.optional[0].id);
+	let project = $derived(
+		projects.filter((project) => project.project_id === storyData.project_id)[0]
+	);
+
+	if (project.required_tags.length === 0) {
+		required = [];
+	} else {
+		required = project.required_tags.map((tag) => ({
+			id: tag,
+			label: tag
+		}));
+	}
+
+	if (project.optional_tags.length === 0) {
+		optional = [];
+	} else {
+		optional = project.optional_tags.map((tag) => ({
+			id: tag,
+			label: tag
+		}));
+	}
+
+	let tagCategories = $state({ required: required, optional: optional });
+	let selectedOptionalCategory = $state(optional[0]?.id || '');
 	let optionalTagValue = $state('');
+	let textActive = $state(true);
+	let audioActive = $state(false);
 
-	/* for future
-	$onMount(async () => {
-		const res = await fetch('/api/sdasda/dsadsa');
-		const data = await res.json();
-		tagCategories = {
-			required: data.required_tags,
-			optional: data.optional_tags
-		};
-	});
-	*/
+	$inspect(tagCategories, textActive, audioActive);
 
 	function getTagMap() {
 		return new Map((storyData.tags || []).map((tag) => [tag.category, tag]));
@@ -84,7 +90,7 @@
 	}
 
 	function handleNext() {
-		if (storyData.content && hasAllRequiredTags()) {
+		if ((storyData.text_content || storyData.audio) && hasAllRequiredTags()) {
 			currentStep = 3;
 		}
 	}
@@ -95,85 +101,172 @@
 
 	<div class="field">
 		<label class="label" for="story-text">Your Story</label>
-		<div class="control">
-			<textarea
-				class="textarea"
-				id="story-text"
-				bind:value={storyData.content}
-				placeholder="Share your story here..."
-				rows="6"
-				required
-			></textarea>
+		<p class="help mb-2">Share your story in your own words. Share either text or an audio file.</p>
+
+		<div class="tabs is-boxed">
+			<ul>
+				<li class={textActive ? 'is-active' : ''}>
+					<a
+						onclick={() => {
+							if (!storyData.audio && storyData.text_content === '') {
+								textActive = !textActive;
+								audioActive = !audioActive;
+							}
+						}}
+					>
+						<span class="icon is-small"><i class="fa fa-font"></i></span>
+						<span>Text</span>
+					</a>
+				</li>
+				<li class={audioActive ? 'is-active' : ''}>
+					<a
+						onclick={() => {
+							if (storyData.text_content === '' && !storyData.audio) {
+								audioActive = !audioActive;
+								textActive = !textActive;
+							}
+						}}
+					>
+						<span class="icon is-small"><i class="fa fa-microphone"></i></span>
+						<span>Audio</span>
+					</a>
+				</li>
+			</ul>
+		</div>
+
+		<div class="tab-content">
+			<!-- Text Tab Content -->
+			{#if textActive}
+				<div class="control">
+					<textarea
+						class="textarea"
+						id="story-text"
+						bind:value={storyData.text_content}
+						placeholder="Share your story here..."
+						rows="6"
+						required
+					></textarea>
+				</div>
+			{:else}
+				<!-- Audio Tab Content -->
+				<div class="control">
+					<div class="file has-name is-fullwidth">
+						<label class="file-label">
+							<input
+								class="file-input"
+								type="file"
+								accept="audio/*"
+								onchange={(e) => {
+									if (e.target.files.length > 0) {
+										storyData = {
+											...storyData,
+											audio: e.target.files[0]
+										};
+									}
+								}}
+							/>
+							<span class="file-cta">
+								<span class="file-icon">
+									<i class="fa fa-upload"></i>
+								</span>
+								<span class="file-label">Choose an audio file...</span>
+							</span>
+							<span class="file-name">
+								{storyData.audio?.name || 'No file selected'}
+							</span>
+						</label>
+					</div>
+				</div>
+			{/if}
 		</div>
 	</div>
 	<div class="is-flex is-justify-content-flex-end mb-2">
 		<div class="label mb-0">
 			Word count:
-			<span class="tag is-link word-count-tag">{wordCount()}</span>
+			<span class="tag is-link word-count-tag">{wordCount}</span>
 		</div>
 	</div>
 
 	<!-- Required Tags Section -->
 	<div class="field mt-4">
 		<div class="label">Required Tags</div>
-		{#each tagCategories.required as cat}
-			<div class="required-tag-row mb-2">
-				<label class="label mb-0 required-tag-label"
-					>{cat.label}
-					<input
-						class="input is-rounded is-small required-tag-input compact-input"
-						type="text"
-						placeholder={'Enter ' + cat.label}
-						value={getTagValue(cat.id)}
-						oninput={(e) => setTagValue(cat.id, e.target.value)}
-						required
-					/>
-				</label>
+		{#if Object.keys(tagCategories.required).length === 0}
+			<p>No required tags for this project.</p>
+		{:else}
+			<div class="tags mb-3">
+				{#each storyData.tags as tag, index}
+					{#if tagCategories.required.some((cat) => cat.id === tag.category)}
+						<span class="tag is-medium">
+							<strong class="mr-1">{tag.categoryLabel}:</strong>
+							{tag.value}
+							<button class="delete is-small ml-2" onclick={() => removeTag(index)}></button>
+						</span>
+					{/if}
+				{/each}
 			</div>
-		{/each}
+			{#each tagCategories.required as cat}
+				<div class="required-tag-row mb-2">
+					<label class="label mb-0 required-tag-label"
+						>{cat.label}
+						<input
+							class="input is-rounded is-small required-tag-input compact-input"
+							type="text"
+							placeholder={'Enter ' + cat.label}
+							value={getTagValue(cat.id)}
+							oninput={(e) => setTagValue(cat.id, e.target.value)}
+							required
+						/>
+					</label>
+				</div>
+			{/each}
+		{/if}
 	</div>
 
 	<!-- Optional Tags Section -->
 	<div class="field mt-4">
 		<label class="label">Optional Tags</label>
 		<div class="tags mb-3">
-			{#each storyData.tags as tag, index}
-				{#if tagCategories.optional.some((cat) => cat.id === tag.category)}
-					<span class="tag is-medium">
-						<strong class="mr-1">{tag.categoryLabel}:</strong>
-						{tag.value}
-						<button class="delete is-small ml-2" onclick={() => removeTag(index)}></button>
-					</span>
-				{/if}
-			{/each}
-		</div>
-		<div class="field has-addons">
-			<div class="control is-expanded">
-				<div class="select is-fullwidth">
-					<select bind:value={selectedOptionalCategory}>
-						{#each tagCategories.optional as category}
-							<option value={category.id}>{category.label}</option>
-						{/each}
-					</select>
+			{#if Object.keys(tagCategories.optional).length === 0}
+				<p>No optional tags for this project.</p>
+			{:else}
+				{#each storyData.tags as tag, index}
+					{#if tagCategories.optional.some((cat) => cat.id === tag.category)}
+						<span class="tag is-medium">
+							<strong class="mr-1">{tag.categoryLabel}:</strong>
+							{tag.value}
+							<button class="delete is-small ml-2" onclick={() => removeTag(index)}></button>
+						</span>
+					{/if}
+				{/each}
+				<div class="field has-addons">
+					<div class="control is-expanded">
+						<div class="select is-fullwidth">
+							<select bind:value={selectedOptionalCategory}>
+								{#each tagCategories.optional as category}
+									<option value={category.id}>{category.label}</option>
+								{/each}
+							</select>
+						</div>
+					</div>
+					<div class="control is-expanded">
+						<input
+							class="input"
+							type="text"
+							placeholder="Enter tag value..."
+							bind:value={optionalTagValue}
+						/>
+					</div>
+					<div class="control">
+						<button
+							class="button add-tag-btn"
+							onclick={addOptionalTag}
+							disabled={!optionalTagValue.trim()}
+						>
+							Add
+						</button>
+					</div>
 				</div>
-			</div>
-			<div class="control is-expanded">
-				<input
-					class="input"
-					type="text"
-					placeholder="Enter tag value..."
-					bind:value={optionalTagValue}
-				/>
-			</div>
-			<div class="control">
-				<button
-					class="button add-tag-btn"
-					onclick={addOptionalTag}
-					disabled={!optionalTagValue.trim()}
-				>
-					Add
-				</button>
-			</div>
+			{/if}
 		</div>
 	</div>
 
@@ -182,7 +275,7 @@
 			<button
 				class="button is-primary"
 				onclick={handleNext}
-				disabled={!storyData.content ||
+				disabled={(!storyData.text_content && !storyData.audio) ||
 					!tagCategories.required.every((cat) =>
 						(storyData.tags || []).some((tag) => tag.category === cat.id && tag.value.trim())
 					)}
