@@ -49,7 +49,13 @@
 
 			// Check for org errors
 			if (orgResponse?.error) {
-				showError(orgResponse.error.code === 'ORG_NOT_FOUND' ? 'ORG_NOT_FOUND' : orgResponse.error);
+				console.error('Error fetching organization:', orgResponse.error);
+				if (orgResponse.code === 'ORG_NOT_FOUND' || orgResponse.code === 'USER_NOT_IN_ORG') {
+					showError(orgResponse.error.code);
+				} else {
+					showError(orgResponse.error);
+				}
+
 				isLoading = false;
 				return;
 			}
@@ -107,11 +113,10 @@
 			storiesTotal = stories.length;
 
 			isLoading = false;
-
 		} catch (error) {
 			console.error('Unexpected error loading org page:', error);
-			showError('INTERNAL_ERROR');
-			isLoading = false;
+			// showError('INTERNAL_ERROR');
+			// isLoading = false;
 		}
 	});
 
