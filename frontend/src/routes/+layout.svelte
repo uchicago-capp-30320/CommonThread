@@ -3,6 +3,7 @@
 	import '../app.css';
 	import Header from '$lib/components/Header.svelte';
 	import Footer from '$lib/components/Footer.svelte';
+	import ErrorModal from '$lib/components/errorModal.svelte';
 
 	let { children } = $props();
 </script>
@@ -19,6 +20,8 @@ Ref: https://stackoverflow.com/questions/12239166/footer-at-bottom-of-page-or-co
 	</article>
 	<Footer />
 </div>
+
+<ErrorModal />
 
 <style>
 	:global(html),
