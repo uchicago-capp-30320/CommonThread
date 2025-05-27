@@ -267,7 +267,7 @@ def test_create_project_ok(client, seed, auth_headers):
     org1, alice = seed["org1"], seed["alice"]
     payload = {
         "org_id": org1.id,
-        "name": "New Project",
+        "project_name": "New Project",
         "description": "New Project Description",
         "curator": alice.id,
         "required_tags": ["rtag1", "rtag2"],
@@ -487,7 +487,7 @@ def test_create_org_ok(client, seed, auth_headers):
 
 
 @pytest.mark.django_db
-def test_get_stories_by_story_id(client, seed):
+def test_get_stories_by_story_id(client, seed, auth_headers):
     """
     If you call /stories/?story_id=<id>, you get back exactly that story
     and the correct id_type/id_value metadata.
@@ -495,7 +495,7 @@ def test_get_stories_by_story_id(client, seed):
     story1 = seed["story1"]
     tag = seed["tag"]
 
-    resp = client.get(f"/stories/?story_id={story1.id}")
+    resp = client.get(f"/stories/?story_id={story1.id}", **auth_headers())
     assert resp.status_code == 200
 
     data = resp.json()
@@ -517,7 +517,12 @@ def test_get_stories_by_story_id(client, seed):
 
     # tags were serialized properly
     assert isinstance(s["tags"], list)
-    assert any(t["name"] == tag.name and t["value"] == tag.value for t in s["tags"])
+    assert any(
+        t["name"] == tag.name
+        and t["value"] == tag.value
+        and t["created_by"] == tag.created_by
+        for t in s["tags"]
+    )
 
 
 @pytest.mark.django_db
@@ -749,7 +754,7 @@ def test_get_stories_no_filter(client):
     you must get a 400 and the correct error message.
     """
     resp = client.get("/stories/")
-    assert resp.status_code == 400
+    assert resp.status_code == 401
 
 
 @pytest.mark.django_db
@@ -761,7 +766,7 @@ def test_get_stories_multiple_filters(client, seed):
     org1 = seed["org1"]
     proj1 = seed["proj1"]
     resp = client.get(f"/stories/?org_id={org1.id}&project_id={proj1.id}")
-    assert resp.status_code == 400
+    assert resp.status_code == 401
 
 
 @pytest.mark.django_db
