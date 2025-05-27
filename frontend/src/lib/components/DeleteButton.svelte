@@ -41,7 +41,13 @@
 		console.log(deleteResponse);
 
 		if (deleteResponse.data.success) {
-			goto(redirectPath);
+			if (type === 'user') {
+				// delete user from store
+				$accessToken = '';
+				$refreshToken = '';
+			}
+
+			window.location.href = redirectPath;
 		}
 	};
 </script>
