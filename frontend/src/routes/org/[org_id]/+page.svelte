@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { accessToken, refreshToken } from '$lib/store.js';
+	import { showError } from '$lib/errorStore.js';
 
 	const org_id = page.params.org_id;
 
@@ -38,48 +39,80 @@
 	$inspect(projects);
 
 	onMount(async () => {
-		// Fetch the data when the component mounts
+		try {
+			// Make both requests concurrently using Promise.all
+			const [storiesResponse, orgResponse, userRequest] = await Promise.all([
+				authRequest(`/stories?org_id=${org_id}`, 'GET', $accessToken, $refreshToken),
+				authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
+				authRequest(`/user`, 'GET', $accessToken, $refreshToken)
+			]);
 
-		// Make both requests concurrently using Promise.all
-		const [storiesResponse, orgResponse, userRequest] = await Promise.all([
-			authRequest(`/stories?org_id=${org_id}`, 'GET', $accessToken, $refreshToken),
-			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
-			authRequest(`/user`, 'GET', $accessToken, $refreshToken)
-		]);
+			// Check for org errors
+			if (orgResponse?.error) {
+				showError(orgResponse.error.code === 'ORG_NOT_FOUND' ? 'ORG_NOT_FOUND' : orgResponse.error);
+				isLoading = false;
+				return;
+			}
 
-		// get project info from all projects concurrently
-		const project_ids = orgResponse.data.project_ids;
-		const projectPromises = project_ids.map((project_id) =>
-			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
-		);
-		const projectResponses = await Promise.all(projectPromises);
-		// Extract project data from the responses
-		projects = projectResponses.map((response) => {
-			return response.data;
-		});
+			// Check for stories errors
+			if (storiesResponse?.error) {
+				showError('STORIES_NOT_FOUND');
+				isLoading = false;
+				return;
+			}
 
-		// Sort projects by number of stories (largest to smallest)
-		projects = projects.sort((a, b) => {
-			// Check if projects have a stories property, otherwise use 0
-			const aStories = a.stories ? a.stories : 0;
-			const bStories = b.stories ? b.stories : 0;
-			// Sort in descending order (largest to smallest)
-			return bStories - aStories;
-		});
+			// Check for user errors
+			if (userRequest?.error) {
+				showError('USER_NOT_FOUND');
+				isLoading = false;
+				return;
+			}
 
-		orgData = orgResponse.data;
+			// get project info from all projects concurrently
+			const project_ids = orgResponse.data.project_ids;
+			const projectPromises = project_ids.map((project_id) =>
+				authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+			);
+			const projectResponses = await Promise.all(projectPromises);
 
-		changeOrgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
+			// Check for project errors in responses
+			for (const response of projectResponses) {
+				if (response?.error) {
+					showError('PROJECT_NOT_FOUND');
+					isLoading = false;
+					return;
+				}
+			}
 
-		if (storiesResponse.data !== null) {
+			// Extract project data from the responses
+			projects = projectResponses.map((response) => {
+				return response.data;
+			});
+
+			// Sort projects by number of stories (largest to smallest)
+			projects = projects.sort((a, b) => {
+				// Check if projects have a stories property, otherwise use 0
+				const aStories = a.stories ? a.stories : 0;
+				const bStories = b.stories ? b.stories : 0;
+				// Sort in descending order (largest to smallest)
+				return bStories - aStories;
+			});
+
+			orgData = orgResponse.data;
+			changeOrgs = userRequest.data.orgs.filter((org) => org.org_id !== org_id);
+
+			const loadedData = storiesResponse.data;
+			stories = loadedData['stories'];
+			projectsTotal = new Set(stories.map((story) => story.project_id)).size;
+			storiesTotal = stories.length;
+
+			isLoading = false;
+
+		} catch (error) {
+			console.error('Unexpected error loading org page:', error);
+			showError('INTERNAL_ERROR');
 			isLoading = false;
 		}
-
-		const loadedData = storiesResponse.data;
-
-		stories = loadedData['stories'];
-		projectsTotal = new Set(stories.map((story) => story.project_id)).size;
-		storiesTotal = stories.length;
 	});
 
 	// Create a function to filter items based on search value
