@@ -3,8 +3,6 @@ import json
 import datetime
 from datetime import date
 import jwt
-import inspect
-import sys
 import pytest
 from django.utils import timezone
 from django.test import Client
@@ -22,7 +20,6 @@ from ct_application.models import (
 from commonthread.settings import JWT_SECRET_KEY
 from unittest.mock import patch, MagicMock
 from django.conf import settings
-from django.urls import reverse
 from ct_application import views
 
 pytestmark = pytest.mark.django_db
@@ -232,7 +229,8 @@ def test_get_ml_status_ok_independent(client):
         text_content="hello world",
         is_transcript=False,
     )
-    ml_task = MLProcessingQueue.objects.create(
+    
+    _ = MLProcessingQueue.objects.create(
         story=story, project=project, task_type="tag", status="processing"
     )
 
@@ -429,7 +427,6 @@ def test_create_story_queue_failure(
 
 
 def test_add_user_to_org(client, seed, auth_headers):
-    alice = seed["alice"]
     brenda = seed["brenda"]
     org1 = seed["org1"]
     payload = {"user_id": brenda.id, "access": "user"}
@@ -467,7 +464,6 @@ def test_create_user_ok(client):
 
 @pytest.mark.django_db
 def test_create_org_ok(client, seed, auth_headers):
-    alice = seed["alice"]
     payload = {
         "name": "New Org",
         "description": "This is a new org",
@@ -821,7 +817,7 @@ def test_edit_project(client, seed, auth_headers_user3):
 
 
 def test_edit_org(client, seed, auth_headers_user3):
-    org3, deleto = seed["org3"], seed["deleto"]
+    org3, _ = seed["org3"], seed["deleto"]
     payload = {
         "description": "Edited Org Description",
         "name": "Edited Organization Name",
@@ -843,19 +839,19 @@ def test_edit_user(client, seed, auth_headers):
 
 
 def test_delete_story(client, seed, auth_headers_user3):
-    s, deleto = seed["story2"], seed["deleto"]
+    s = seed["story2"]
     r = client.delete(f"/story/{s.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
 
 def test_delete_project(client, seed, auth_headers_user3):
-    p, deleto = seed["proj_edit_delete"], seed["deleto"]
+    p = seed["proj_edit_delete"]
     r = client.delete(f"/project/{p.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
 
 def test_delete_org(client, seed, auth_headers_user3):
-    o, deleto = seed["org3"], seed["deleto"]
+    o = seed["org3"]
     r = client.delete(f"/org/{o.id}/delete", **auth_headers_user3())
     assert r.status_code == 200
 
@@ -867,7 +863,7 @@ def test_delete_user(client, seed, auth_headers_user3):
 
 
 def test_delete_user_from_org(client, seed, auth_headers_user3):
-    deleto, alice, org = seed["deleto"], seed["alice"], seed["org3"]
+    _, alice, org = seed["deleto"], seed["alice"], seed["org3"]
     r = client.delete(f"/org/{org.id}/delete-user/{alice.id}", **auth_headers_user3())
     assert r.status_code == 200
 
