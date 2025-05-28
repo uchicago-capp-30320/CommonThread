@@ -166,7 +166,7 @@
 			</div>
 
 			{#if !orgLoaded}
-				<p class="has-text-centered">Loading organizations.</p>
+				<div class="skeleton-block mb-6"></div>
 			{:else}
 				{#each orgData as org, i}
 					<div class="card mb-4">
@@ -261,6 +261,18 @@
 	}
 
 	.breadcrumb a.is-active {
-		color: var(--dark_blue) !important;
+		color: #56bcb3 !important;
+	}
+
+	.breadcrumb a:hover {
+		color: #56bcb3 !important;
+	}
+
+	li a:hover {
+		color: #56bcb3;
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
 	}
 </style>
