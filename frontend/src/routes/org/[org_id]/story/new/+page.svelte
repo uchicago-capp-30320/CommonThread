@@ -21,23 +21,41 @@
 
 	// get all projects that a user is part of
 	onMount(async () => {
-		const orgResponse = await authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken);
+		try {
+			const orgResponse = await authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken);
 
-		const orgData = orgResponse.data;
+			// Check for org errors
+			if (orgResponse?.error) {
+				showError(orgResponse.error.code === 'ORG_NOT_FOUND' ? 'ORG_NOT_FOUND' : orgResponse.error);
+				return;
+			}
 
-		const project_ids = orgData.project_ids;
+			const orgData = orgResponse.data;
+			const project_ids = orgData.project_ids;
 
-		// get project info from all projects concurrently
-		const projectPromises = project_ids.map((project_id) =>
-			authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
-		);
+			// get project info from all projects concurrently
+			const projectPromises = project_ids.map((project_id) =>
+				authRequest(`/project/${project_id}`, 'GET', $accessToken, $refreshToken)
+			);
 
-		const projectResponses = await Promise.all(projectPromises);
+			const projectResponses = await Promise.all(projectPromises);
 
-		// Extract project data from the responses
-		projects = projectResponses.map((response) => {
-			return response.data;
-		});
+			// Check for project errors in responses
+			for (const response of projectResponses) {
+				if (response?.error) {
+					showError('PROJECT_NOT_FOUND');
+					return;
+				}
+			}
+
+			// Extract project data from the responses
+			projects = projectResponses.map((response) => {
+				return response.data;
+			});
+		} catch (error) {
+			console.error('Unexpected error loading new story page:', error);
+			showError('INTERNAL_ERROR');
+		}
 	});
 </script>
 

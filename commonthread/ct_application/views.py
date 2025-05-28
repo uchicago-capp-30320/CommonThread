@@ -50,7 +50,7 @@ from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Prefetch
-from botocore.exceptions import ClientError, ParamValidationError 
+from botocore.exceptions import ClientError, ParamValidationError
 
 # HANDLERES SET UP -------------------------------------------------------------
 import traceback
@@ -515,7 +515,7 @@ def get_stories(request):
         project_id = request.GET.get("project_id")
         story_id = request.GET.get("story_id")
         user_id = request.GET.get("user_id")
-    
+
     except KeyError as e:
         logger.error(f"Error in get_stories: {e}")
         return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
@@ -548,7 +548,7 @@ def get_stories(request):
     else:
         return create_error_response("INVALID_QUERY_PARAM", RESOURCE_ERRORS)
 
-    try: 
+    try:
         # Optimize tag fetching
         stories = stories.select_related("proj", "curator").prefetch_related(
             Prefetch(
@@ -607,7 +607,14 @@ def get_story(request, story_id):
         story = Story.objects.select_related("proj", "curator").get(id=story_id)
         story_tags = StoryTag.objects.filter(story=story).select_related("tag")
 
-        tags = [{"name": st.tag.name, "value": st.tag.value, "created_by": st.tag.created_by} for st in story_tags]
+        tags = [
+            {
+                "name": st.tag.name,
+                "value": st.tag.value,
+                "created_by": st.tag.created_by,
+            }
+            for st in story_tags
+        ]
 
         audio_url = ""
         if story.audio_content:
@@ -908,15 +915,12 @@ def add_user_to_org(request, org_id):
 
             try:
                 orguser = OrgUser.objects.create(
-                    user_id=user.id,
-                    org_id=org_id,
-                    access=org_user_data["access"]
+                    user_id=user.id, org_id=org_id, access=org_user_data["access"]
                 )
                 logger.debug("Created OrgUser relationship %s", orguser)
 
             except Exception as e:
                 return JsonResponse({"success": False, "error": str(e)}, status=400)
-
 
         except user.DoesNotExist:
             logger.error("User with email %s does not exist", org_user_data["email"])
@@ -938,10 +942,10 @@ def add_user_to_org(request, org_id):
 
         return JsonResponse({"success": True, "orguser_id": orguser.id}, status=200)
 
-
     except Exception as e:
         logger.exception("Unexpected error in add_user_to_org: %s", str(e))
         return create_error_response("UNEXPECTED_ERROR", SERVER_ERRORS)
+
 
 @csrf_exempt
 @require_http_methods(["DELETE"])
@@ -1091,7 +1095,7 @@ def create_project(request):
 
 @require_http_methods(["POST", "PATCH"])
 @verify_user("admin")
-def edit_project(request, org_id, project_id):
+def edit_project(request, project_id):
     """
     POST /project/<org_id>/<project_id>/edit
     Body: JSON { "name": str, "curator": int, "date": "YYYY-MM-DD" }
@@ -1105,6 +1109,7 @@ def edit_project(request, org_id, project_id):
     name = body.get("name")
     curator_id = body.get("curator")
     date_str = body.get("date")
+    org_id = body.get("org_id")
 
     if not all([name, curator_id, date_str]):
         return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)

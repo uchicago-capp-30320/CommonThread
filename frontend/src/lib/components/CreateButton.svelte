@@ -9,7 +9,7 @@
 
 	// To be consistent with the API, the type prop must have the values: "story", "project", "org", "user"
 	// Derive props and set initial state
-	let { type, data, redirectPath = null, isOpen = $bindable() } = $props();
+	let { type, data = $bindable(), redirectPath = null } = $props();
 	let showModal = $state(false);
 	let showModalWait = $state(false);
 
@@ -56,6 +56,7 @@
 
 		if (createResponse.data.success) {
 			showModalWait = false;
+			data.isOpen = false; // Close the modal after successful creation
 			closeModal('waitingAPIResponse');
 			if (redirectPath) {
 				// If a redirect path is provided, use it

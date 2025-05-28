@@ -1,7 +1,7 @@
 import { writable, readable } from 'svelte/store';
 import { browser } from '$app/environment';
 
-export const ipAddress = 'http://127.0.0.1:8000';
+export const ipAddress = import.meta.env.VITE_API_BASE;
 
 export const accessToken = writable((browser && localStorage.getItem('accessToken')) || '');
 accessToken.subscribe((val) => {

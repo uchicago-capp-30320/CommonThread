@@ -34,6 +34,23 @@
 		"vite": "^6.2.5"
 	},
 	"dependencies": {
-		"layercake": "^8.4.3"
+		"d3-array": "^3.2.4",
+		"d3-color": "^3.1.0",
+		"d3-format": "^3.1.0",
+		"d3-interpolate": "^3.0.1",
+		"d3-path": "^3.1.0",
+		"d3-scale": "^4.0.2",
+		"d3-shape": "^3.2.0",
+		"d3-time": "^3.1.0",
+		"d3-time-format": "^4.1.0",
+		"dotenv": "^16.5.0",
+		"fdir": "^6.4.4",
+		"internmap": "^2.0.3",
+		"is-number": "^7.0.0",
+		"isexe": "^3.1.1",
+		"layercake": "^8.4.3",
+		"picomatch": "^4.0.2",
+		"prelude-ls": "^1.2.1",
+		"punycode": "^2.3.1"
 	}
 }
