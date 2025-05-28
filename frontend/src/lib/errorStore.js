@@ -8,12 +8,12 @@ export const errorStore = writable(null);
 
 export const ERROR_ACTIONS = {
 	NO_TOKEN: {
-		message: 'No token provided',
+		message: 'Please log in to continue',
 		actions: [{ label: 'Login', handler: () => goto('/login') }]
 	},
 	INVALID_TOKEN: {
-		message: 'Invalid token',
-		actions: [{ label: 'Login', handler: () => goto('/login') }]
+		message: 'You do not have permission to view this page.',
+		actions: [{ label: 'Go Home', handler: () => goto('/') }]
 	},
 	ACCESS_TOKEN_EXPIRED: {
 		message: 'Access token has expired',

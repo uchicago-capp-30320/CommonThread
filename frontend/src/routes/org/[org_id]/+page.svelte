@@ -123,8 +123,8 @@
 			isLoading = false;
 		} catch (error) {
 			console.error('Unexpected error loading org page:', error);
-			// showError('INTERNAL_ERROR');
-			// isLoading = false;
+			//showError('INTERNAL_ERROR');
+			isLoading = false;
 		}
 	});
 

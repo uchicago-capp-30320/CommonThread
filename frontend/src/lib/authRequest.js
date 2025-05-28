@@ -74,7 +74,12 @@ export async function authRequest(url, method, accessToken, refreshToken, postDa
 			if (NOT_FOUND_NOT_AUTHORIZED_ERRORS.includes(errorResponseBody.error.code)) {
 				return errorResponseBody;
 			}
-			if (errorResponseBody.error.code === 'REFRESH_TOKEN_EXPIRED') {
+			if (
+				errorResponseBody.error.code === 'REFRESH_TOKEN_EXPIRED' ||
+				errorResponseBody.error.code === 'INVALID_TOKEN' ||
+				errorResponseBody.error.code === 'NO_TOKEN'
+			) {
+				console.log('Token expired or invalid, showing error');
 				showError(errorResponseBody.error);
 				return null;
 			}
