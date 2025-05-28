@@ -59,8 +59,8 @@
 			storiesTotalSearch = projectData.stories;
 		} catch (error) {
 			console.error('Error loading project:', error);
-			showError('INTERNAL_ERROR');
-			isLoading = false;
+			//showError('INTERNAL_ERROR');
+			//isLoading = false;
 		}
 	});
 
