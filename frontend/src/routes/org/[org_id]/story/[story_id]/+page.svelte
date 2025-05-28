@@ -1,4 +1,7 @@
 <script>
+	// assests
+	import thread from '$lib/assets/illustrations/thread1.png';
+
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
@@ -106,7 +109,26 @@
 {#if loading}
 	<div class="loading-container">
 		<div class="has-text-centered">
-			<p class="title is-4">Loading story...</p>
+			<img
+				src={thread}
+				alt="Loading thread illustration"
+				style="width: 50px; height: auto;"
+				class="spinning-thread"
+			/>
+			<style>
+				.spinning-thread {
+					animation: spinY 2s linear infinite;
+				}
+				@keyframes spinY {
+					0% {
+						transform: rotateY(0deg);
+					}
+					100% {
+						transform: rotateY(360deg);
+					}
+				}
+			</style>
+			<p><b>Loading...</b></p>
 		</div>
 	</div>
 {:else}
