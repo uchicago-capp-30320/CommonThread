@@ -9,7 +9,7 @@ Producer Service for Machine Learning Task Queue Management
 import boto3
 import json
 import logging
-from datetime import datetime, timezone, UTC
+from datetime import datetime, UTC
 from django.conf import settings
 from django.db import transaction
 from typing import Dict, List
