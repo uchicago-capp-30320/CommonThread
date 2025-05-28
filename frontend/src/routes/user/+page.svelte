@@ -222,7 +222,7 @@
 								</div>
 								<div class="field is-grouped mt-4">
 									<div class="control mr-2">
-										<CreateButton type="org" data={org} redirectPath="/user" />
+										<CreateButton type="org" bind:data={orgData[i]} redirectPath="/user" />
 									</div>
 									<div class="control mr-2">
 										<button
