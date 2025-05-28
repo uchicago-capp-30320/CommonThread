@@ -50,32 +50,41 @@ export async function authRequest(url, method, accessToken, refreshToken, postDa
 			} else {
 				console.log('Retry request failed');
 				const retryErrorData = await retryResponse.json().catch(() => ({}));
+				console.error('Retry error data:', retryErrorData);
 				showError(retryErrorData.error || { code: 'INTERNAL_ERROR', message: 'Retry failed' });
 				return null;
 			}
 		} else {
 			console.log('Original request failed');
-			
+
 			const errorResponseBody = await ogResponse.json().catch(() => ({}));
-			
-			const NOT_FOUND_ERRORS = [
+
+			console.error('Error response body:', errorResponseBody);
+
+			const NOT_FOUND_NOT_AUTHORIZED_ERRORS = [
 				'PROJECT_NOT_FOUND',
 				'STORY_NOT_FOUND',
 				'ORG_NOT_FOUND',
 				'USER_NOT_FOUND',
-				'INVALID_CREDENTIALS'
+				'INVALID_CREDENTIALS',
+				'INSUFFICIENT_PERMISSIONS',
+				'USER_NOT_IN_ORG'
 			];
-			
-			if (NOT_FOUND_ERRORS.includes(errorResponseBody.error.code)) {
+
+			if (NOT_FOUND_NOT_AUTHORIZED_ERRORS.includes(errorResponseBody.error.code)) {
 				return errorResponseBody;
 			}
-			if(errorResponseBody.error.code === 'REFRESH_TOKEN_EXPIRED'){
+			if (
+				errorResponseBody.error.code === 'REFRESH_TOKEN_EXPIRED' ||
+				errorResponseBody.error.code === 'INVALID_TOKEN' ||
+				errorResponseBody.error.code === 'NO_TOKEN'
+			) {
+				console.log('Token expired or invalid, showing error');
 				showError(errorResponseBody.error);
 				return null;
 			}
 			return null;
 		}
-
 	} catch (networkError) {
 		console.error('Network error:', networkError);
 		const retryFunction = () => authRequest(url, method, accessToken, refreshToken, postData);

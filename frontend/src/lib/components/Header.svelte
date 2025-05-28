@@ -12,18 +12,28 @@
 	import { page } from '$app/state';
 
 	// Initialize state
+	let loggedIn = $state(false);
 	let loading = $state(true);
-	let authorized = $state(false);
 	let dActive = $state(false);
 	let orgs = $state([]);
 	let org_id = $state(null);
-	let isHome = $state(page.url.pathname === '/');
+	let isHomeUser = $state(page.url.pathname === '/' || page.url.pathname === '/user');
 	let first_name = $state(null);
+	let start = $state(true);
 
 	// URL parameters
 	if (page.url.pathname.includes('org/')) {
 		org_id = page.params.org_id;
 	}
+
+	$inspect('start', start);
+	$inspect('loggedIn', loggedIn);
+
+	if ($accessToken !== '') {
+		loggedIn = true;
+	}
+
+	start = false;
 
 	// Define functions
 	const getOrgs = async () => {
@@ -35,14 +45,13 @@
 			orgs = userRequest.data.orgs;
 		}
 		first_name = userRequest.data.first_name;
-		authorized = true;
 	};
 
 	const logOut = () => {
 		console.log('Print log out');
 		accessToken.set('');
 		refreshToken.set('');
-		authorized = false;
+		loggedIn = false;
 		// redirect to login page
 		window.location.href = '/login';
 	};
@@ -71,74 +80,74 @@
 			<img src={logo} alt="Common Thread Logo" />
 		</a>
 	</div>
-	{#if !loading}
-		{#if !authorized}
-			<div class="right-section">
-				<nav class="navigation">
-					<ul>
-						<li><a href="/about">About</a></li>
-						<li><a href="/impact">Impact</a></li>
-						<li><a href="/careers">Careers</a></li>
-					</ul>
-				</nav>
-				<div class="auth">
-					<a href="/login">
-						<button class="login-btn">Log In</button>
-					</a>
-					<a href="/signup">
-						<button class="signup-btn">Sign Up</button>
-					</a>
-				</div>
+	{#if start}
+		<div class="box"></div>
+	{:else if loggedIn === false}
+		<div class="right-section">
+			<nav class="navigation">
+				<ul>
+					<li><a href="/about">About</a></li>
+					<li><a href="/impact">Impact</a></li>
+					<li><a href="/careers">Careers</a></li>
+				</ul>
+			</nav>
+			<div class="auth">
+				<a href="/login">
+					<button class="login-btn">Log In</button>
+				</a>
+				<a href="/signup">
+					<button class="signup-btn">Sign Up</button>
+				</a>
 			</div>
-		{:else}
-			<div class="right-section">
-				<div class="dropdown {dActive ? 'is-active' : ''}">
-					<div class="dropdown-trigger">
-						<button
-							class="login-btn"
-							aria-haspopup="true"
-							aria-controls="dropdown-menu"
-							onclick={() => {
-								dActive = !dActive;
-							}}
-						>
-							<span>{isHome ? 'Choose Organization' : 'Change Organization'}</span>
-							<span class="icon">
-								<i class="fa fa-angle-down" aria-hidden="true"></i>
-							</span>
-						</button>
-					</div>
-					<div class="dropdown-menu" id="dropdown-menu" role="menu" hidden>
-						<div class="dropdown-content">
-							{#each orgs as org}
-								<div class="m-2">
-									<a href="/org/{org.org_id}" target="_self" class="dropdown-item">
-										<div class="org-item">
-											<span class="org-name">{org.org_name}</span>
-											<span class="icon is-small">
-												<i class="fa fa-arrow-right" aria-hidden="true"></i>
-											</span>
-										</div>
-									</a>
-								</div>
-							{/each}
-						</div>
-					</div>
-				</div>
-
-				<div class="auth">
-					<button onclick={logOut} class="logout-btn">Log Out</button>
-				</div>
-				<div class="user-greeting">
-					<a href="/user" class="is-flex is-align-items-center">
-						<span class="icon mr-2">
-							<i class="fa fa-user-circle"></i>
+		</div>
+	{:else}
+		<div class="right-section">
+			<div class="dropdown {dActive ? 'is-active' : ''}">
+				<div class="dropdown-trigger">
+					<button
+						class="login-btn"
+						aria-haspopup="true"
+						aria-controls="dropdown-menu"
+						onclick={() => {
+							dActive = !dActive;
+						}}
+					>
+						<span>{isHomeUser ? 'Choose Organization' : 'Change Organization'}</span>
+						<span class="icon">
+							<i class="fa fa-angle-down" aria-hidden="true"></i>
 						</span>
-						<span>Hi, {first_name}</span>
-					</a>
+					</button>
+				</div>
+				<div class="dropdown-menu" id="dropdown-menu" role="menu" hidden>
+					<div class="dropdown-content">
+						{#each orgs as org}
+							<div class="m-2">
+								<a href="/org/{org.org_id}" target="_self" class="dropdown-item">
+									<div class="org-item">
+										<span class="org-name">{org.org_name}</span>
+										<span class="icon is-small">
+											<i class="fa fa-arrow-right" aria-hidden="true"></i>
+										</span>
+									</div>
+								</a>
+							</div>
+						{/each}
+					</div>
 				</div>
 			</div>
-		{/if}
+
+			<div class="auth">
+				<button onclick={logOut} class="button is-primary">Log Out</button>
+			</div>
+			<div class="user-greeting">
+				<a href="/user" class="is-flex is-align-items-center">
+					<span class="icon mr-2">
+						<i class="fa fa-user-circle"></i>
+					</span>
+					<span>{first_name ? `Hi, ${first_name}` : ''}</span>
+				</a>
+			</div>
+		</div>
 	{/if}
 </header>
 
@@ -214,16 +223,6 @@
 	}
 
 	.signup-btn {
-		background-color: #133335;
-		color: white;
-		font-weight: 700;
-		border: none;
-		border-radius: 4px;
-		padding: 0.5rem 1rem;
-		cursor: pointer;
-	}
-
-	.logout-btn {
 		background-color: #133335;
 		color: white;
 		font-weight: 700;
