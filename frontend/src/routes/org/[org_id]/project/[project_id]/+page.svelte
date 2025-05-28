@@ -250,4 +250,12 @@
 		background-color: #133335;
 		color: white;
 	}
+
+	li a:hover {
+		color: #56bcb3;
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
+	}
 </style>

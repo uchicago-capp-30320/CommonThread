@@ -261,6 +261,18 @@
 	}
 
 	.breadcrumb a.is-active {
-		color: var(--dark_blue) !important;
+		color: #56bcb3 !important;
+	}
+
+	.breadcrumb a:hover {
+		color: #56bcb3 !important;
+	}
+
+	li a:hover {
+		color: #56bcb3;
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
 	}
 </style>
