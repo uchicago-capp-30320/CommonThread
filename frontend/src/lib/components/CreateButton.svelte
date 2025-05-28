@@ -28,7 +28,7 @@
 		if (type === 'user-org') {
 			url = `/org/${data.org_id}/add-user`;
 		} else {
-			url = `/${type}/${id}/create`;
+			url = `/${type}/create`;
 		}
 		const createResponse = await authRequest(url, 'POST', $accessToken, $refreshToken, data);
 		console.log(createResponse);
