@@ -1,4 +1,7 @@
 <script>
+	// assests
+	import thread from '$lib/assets/illustrations/thread1.png';
+
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
@@ -45,7 +48,7 @@
 	onMount(async () => {
 		try {
 			console.log('Making requests for org:', org_id, 'story:', story_id);
-			
+
 			const [orgResponse, storyResponse] = await Promise.all([
 				authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
 				authRequest(`/story/${story_id}`, 'GET', $accessToken, $refreshToken)
@@ -65,7 +68,7 @@
 			if (storyResponse?.error) {
 				console.log('Story error detected:', storyResponse.error);
 				console.log('Calling showError with:', 'STORY_NOT_FOUND', { org_id });
-				
+
 				if (storyResponse.error.code === 'STORY_NOT_FOUND') {
 					showError('STORY_NOT_FOUND', null, { org_id });
 				} else {
@@ -94,7 +97,6 @@
 			if (includesAudio || includesImage) media = true;
 
 			loading = false;
-
 		} catch (error) {
 			console.error('Unexpected error loading story:', error);
 			showError('INTERNAL_ERROR');
@@ -107,7 +109,26 @@
 {#if loading}
 	<div class="loading-container">
 		<div class="has-text-centered">
-			<p class="title is-4">Loading story...</p>
+			<img
+				src={thread}
+				alt="Loading thread illustration"
+				style="width: 50px; height: auto;"
+				class="spinning-thread"
+			/>
+			<style>
+				.spinning-thread {
+					animation: spinY 2s linear infinite;
+				}
+				@keyframes spinY {
+					0% {
+						transform: rotateY(0deg);
+					}
+					100% {
+						transform: rotateY(360deg);
+					}
+				}
+			</style>
+			<p><b>Loading...</b></p>
 		</div>
 	</div>
 {:else}
@@ -119,7 +140,8 @@
 				<ul>
 					<li><a href="/">Home</a></li>
 					<li>
-						<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
+						<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a
+						>
 					</li>
 					<li class="">
 						<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
