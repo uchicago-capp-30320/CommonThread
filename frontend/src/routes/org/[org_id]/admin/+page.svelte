@@ -52,7 +52,7 @@
 
 	$inspect(projects);
 	$inspect(userData);
-	$inspect(orgData);
+	$inspect('orgData', orgData);
 	$inspect('newUser', newUser);
 
 	// get project data from the backend

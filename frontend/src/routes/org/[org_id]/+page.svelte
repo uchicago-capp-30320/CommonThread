@@ -200,8 +200,7 @@
 		<div class="p-5">
 			<OrgHeader
 				org_name={orgData.name}
-				description="This is a description of my organization"
-				,
+				description={orgData.description}
 				profile_pic_path={orgData.profile_pic_path}
 				numProjects={projectsTotal}
 				numStories={storiesTotal}
