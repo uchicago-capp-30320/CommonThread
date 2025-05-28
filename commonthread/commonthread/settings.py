@@ -52,6 +52,7 @@ CT_SQS_QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 ALLOWED_HOSTS = [
+    "turing.unnamed.computer"
     "localhost",
     "127.0.0.1",
     "0.0.0.0",
