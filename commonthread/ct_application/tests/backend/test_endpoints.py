@@ -911,7 +911,7 @@ def test_create_project_missing_org_400(client, auth_headers):
 
 def test_create_story_bad_json_400(client, auth_headers):
     try: 
-        r = client.post(
+        client.post(
             "/story/create", "not‑json", content_type="application/json", **auth_headers()
             )
         assert False
