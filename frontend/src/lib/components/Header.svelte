@@ -127,7 +127,7 @@
 				</div>
 
 				<div class="auth">
-					<button onclick={logOut} class="logout-btn">Log Out</button>
+					<button onclick={logOut} class="button is-primary">Log Out</button>
 				</div>
 				<div class="user-greeting">
 					<a href="/user" class="is-flex is-align-items-center">
@@ -214,16 +214,6 @@
 	}
 
 	.signup-btn {
-		background-color: #133335;
-		color: white;
-		font-weight: 700;
-		border: none;
-		border-radius: 4px;
-		padding: 0.5rem 1rem;
-		cursor: pointer;
-	}
-
-	.logout-btn {
 		background-color: #133335;
 		color: white;
 		font-weight: 700;
