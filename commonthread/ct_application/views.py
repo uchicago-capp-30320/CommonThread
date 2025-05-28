@@ -15,9 +15,6 @@ from django.http import (
     HttpResponse,
     HttpRequest,
     JsonResponse,
-    HttpResponseNotFound,
-    HttpResponseForbidden,
-    HttpResponseBadRequest,
 )
 from django.conf import settings
 from .utils import (
@@ -46,24 +43,25 @@ from .models import (
     CustomUser,
     MLProcessingQueue,
 )
-from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
 from django.utils import timezone
 from django.db import transaction
 from django.db.models import Prefetch
-from botocore.exceptions import ClientError, ParamValidationError
 
-# HANDLERES SET UP -------------------------------------------------------------
-import traceback
-from commonthread.settings import JWT_SECRET_KEY
-from functools import wraps
+# Customized exceptions 
+# Ref: https://docs.djangoproject.com/en/5.2/ref/exceptions/
+from django.core.exceptions import ObjectDoesNotExist, FieldDoesNotExist, ValidationError
+from django.db.utils import Error, InterfaceError, DataError, DatabaseError
 from jwt.exceptions import ExpiredSignatureError, InvalidTokenError
+from botocore.exceptions import ClientError, ParamValidationError
+from json.decoder import JSONDecodeError
+
+from functools import wraps
 from .cloud.producer_service import QueueProducer
 
+# HANDLERES SET UP -------------------------------------------------------------
+
 User = get_user_model()
-# the names of the models may change on a different branch.
-
 logger = logging.getLogger(__name__)
-
 
 # VIEWS ------------------------------------------------------------------------
 
@@ -131,9 +129,9 @@ def verify_user(required_access="user"):
                 logging.debug("Request used in Auth")
                 try:
                     body = json.loads((request.body or "{}"))
-                except:
+                except (TypeError, JSONDecodeError) as e:
                     logging.debug("Request failed to load")
-                    return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+                    return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
                 auth_level, search_success = id_searcher(
                     real_user_id, body, required_access
                 )
@@ -191,8 +189,8 @@ def id_searcher(real_user_id, id_set, required_access):
         else:
             return "user", True
 
-    except:
-        return create_error_response("INVALID_JSON", VALIDATION_ERRORS), False
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e), False
 
 
 def check_org_auth(user_id: str, org_id: str):
@@ -202,8 +200,8 @@ def check_org_auth(user_id: str, org_id: str):
         return row.access, True
     except OrgUser.DoesNotExist:
         try:
-            org = Organization.objects.get(id=org_id)
-        except:
+            Organization.objects.get(id=org_id)
+        except (KeyError, ObjectDoesNotExist, FieldDoesNotExist, ValidationError):
             return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS), False
         return create_error_response("USER_NOT_IN_ORG", AUTH_ERRORS), False
 
@@ -247,7 +245,7 @@ def auth_level_check(user_level: str, required_level: str):
             return True
         elif auth_dict[user_level] < auth_dict[required_level]:
             return create_error_response("INSUFFICIENT_PERMISSIONS", AUTH_ERRORS), False
-    except:
+    except Exception as e:
         logger.debug(
             "Improperly Listed Permission Level?" "Required Access Level: %r",
             auth_dict[required_level],
@@ -256,7 +254,7 @@ def auth_level_check(user_level: str, required_level: str):
             "Given Access Level: %r",
             auth_dict[user_level],
         )
-        return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS), False
+        return create_error_response("INVALID_CREDENTIALS", AUTH_ERRORS, e), False
 
 
 @require_GET
@@ -300,7 +298,7 @@ def login(request):  # need not pass username and password as query params
             # name of the JS object that holds such data as key. So it needs
             # an extra unpacking step.
             data = data.get("post_data")
-        except json.JSONDecodeError as e:
+        except (TypeError, JSONDecodeError) as e:
             logger.debug("LOGIN ➤ JSON parse failed: %r", e)
             return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
     else:
@@ -352,15 +350,14 @@ def login(request):  # need not pass username and password as query params
 @csrf_exempt
 @require_POST
 def get_new_access_token(request):
-    # TODO change this if they will send it in as a cookie
     logger.debug("REFRESH: content-type=%r body=%r", request.content_type, request.body)
 
     if request.content_type == "application/json":
         try:
             data = json.loads(request.body)
-        except json.JSONDecodeError:
+        except (TypeError, JSONDecodeError, Exception) as e:
             logger.debug("REFRESH: token JSON parse failed")
-            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
     else:
         data = request.POST
         logger.debug("REFRESH: form-data: %r", data)
@@ -482,9 +479,10 @@ def get_org(request, org_id):
                     expiration=3600,
                 )
                 profile_pic_url = presign["url"]
-            except ClientError as e:
+            except (ClientError, ParamValidationError) as e:
                 logger.error(f"Failed to generate S3 URL: {e}", exc_info=True)
                 return create_error_response("S3_ERROR", SERVER_ERRORS)
+            
 
         return JsonResponse(
             {
@@ -730,7 +728,7 @@ def create_story(request):
         try:
             story_data = json.loads(request.body)
             logger.debug("Parsed story data: %s", story_data)
-        except json.JSONDecodeError:
+        except (TypeError, JSONDecodeError):
             return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
 
         try:
@@ -848,16 +846,13 @@ def create_user(request):
     """
     Receives a request with user_id, username and password values in its body
     and registers new user in the login table of the db.
-    # TODO: Check that user is does not already exists
-    # TODO: Send email confirmation
-    # TODO: Update docstrings and specify exceptions
 
-    Ref: https://docs.djangoproject.com/en/5.2/topics/auth/default/
+        Ref: https://docs.djangoproject.com/en/5.2/topics/auth/default/
     """
     try:
         user_data = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
     username = user_data.get("username")
     password = user_data.get("password")
@@ -893,7 +888,6 @@ def add_user_to_org(request, org_id):
     """
     Receives a request with user_id and org_id its body and registers new user
     user-org relationship in the login table of the db.
-    # TODO: Update docstrings and specify exceptions
     """
 
     try:
@@ -903,8 +897,8 @@ def add_user_to_org(request, org_id):
             org_user_data = json.loads(request.body or "{}")
             logger.debug("Parsed org user data: %s", org_user_data)
 
-        except json.JSONDecodeError:
-            return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+        except (TypeError, JSONDecodeError) as e:
+            return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
         try:
             user = find_user_by_email(org_user_data["email"], CustomUser)
@@ -960,8 +954,11 @@ def delete_user_from_org(request, org_id, del_user_id):
         user_to_delete = OrgUser.objects.get(org_id=org_id, user_id=del_user_id)
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
+    except Exception as e:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
+
 
 
 ###############################################################################
@@ -973,15 +970,15 @@ def edit_story(request, story_id):
 
     try:
         story_updates = json.loads(request.body)
-    except json.JSONDecodeError:
-        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
     try:
         story = Story.objects.get(id=story_id)
         logging.debug("story id: %r", story.id)
         curator = CustomUser.objects.get(id=story_updates.get("curator"))
         logging.debug("curator id: %r", curator.id)
-    except:
+    except (KeyError, ObjectDoesNotExist):
         return create_error_response("STORY_NOT_FOUND", RESOURCE_ERRORS)
 
     try:
@@ -1002,8 +999,10 @@ def edit_story(request, story_id):
     try:
         story.save()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError, Error, InterfaceError, DatabaseError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
+    except Exception as e:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
 
 
 @csrf_exempt
@@ -1014,9 +1013,10 @@ def delete_story(request, story_id):
         org_to_delete = Story.objects.get(id=story_id)
         org_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
-
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError, Error, InterfaceError, DatabaseError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
+    except Exception as e:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
 
 ###############################################################################
 @csrf_exempt
@@ -1028,8 +1028,8 @@ def create_project(request):
         logger.debug("Received request body: %s", request.body)
         project_data = json.loads(request.body or "{}")
         logger.debug("Parsed project data: %s", project_data)
-    except json.JSONDecodeError:
-        return JsonResponse({"success": False, "error": "Invalid JSON"}, status=400)
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
     org_id = project_data.get("org_id")
     if not org_id:
@@ -1103,8 +1103,8 @@ def edit_project(request, project_id):
     # 1) parse JSON
     try:
         body = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
     name = body.get("name")
     curator_id = body.get("curator")
@@ -1139,8 +1139,10 @@ def edit_project(request, project_id):
     try:
         project.save()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError, Error, InterfaceError, DatabaseError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
+    except Exception as e:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
 
 
 @csrf_exempt
@@ -1149,12 +1151,12 @@ def edit_project(request, project_id):
 def delete_project(request, project_id):
     try:
         proj_to_delete = Project.objects.get(id=project_id)
-
         proj_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
-
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError, Error, InterfaceError, DatabaseError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
+    except Exception as e:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
 
 @csrf_exempt
 @require_POST
@@ -1217,8 +1219,10 @@ def create_org(request: HttpRequest) -> JsonResponse:
     except KeyError as e:
         logger.error("KeyError: %s", str(e))
         return create_error_response("MISSING_REQUIRED_FIELDS", VALIDATION_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError) as e: 
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
     except Exception as e:
-        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS)
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
 
     return JsonResponse(
         {
@@ -1235,21 +1239,23 @@ def edit_org(request, org_id):
 
     try:
         org_updates = json.loads(request.body)
-    except json.JSONDecodeError:
-        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
     try:
         org = Organization.objects.get(id=org_id)
-    except:
-        return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS)
+    except (KeyError, ObjectDoesNotExist, FieldDoesNotExist, ValidationError) as e:
+        return create_error_response("ORG_NOT_FOUND", RESOURCE_ERRORS, e)
 
     try:
         org.name = (org_updates["name"],)
         org.description = org_updates["description"]
         org.save()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError, Error, InterfaceError, DatabaseError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
+    except Exception as e:
+        return create_error_response("INTERNAL_ERROR", SERVER_ERRORS, e)
 
 
 @csrf_exempt
@@ -1260,8 +1266,8 @@ def delete_org(request, org_id):
         org_to_delete = Organization.objects.get(id=org_id)
         org_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError, DataError, DatabaseError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
 
 
 ## User methods ----------------------------------------------------------------
@@ -1353,8 +1359,8 @@ def edit_user(request, user_id, **kwargs):
 
     try:
         user_updates = json.loads(request.body or "{}")
-    except json.JSONDecodeError:
-        return create_error_response("INVALID_JSON", VALIDATION_ERRORS)
+    except (TypeError, JSONDecodeError) as e:
+        return create_error_response("INVALID_JSON", VALIDATION_ERRORS, e)
 
     username = user_updates.get("username")
     if User.objects.filter(username=username).exists():
@@ -1388,8 +1394,8 @@ def delete_user(request, user_id):
         )  # kwargs['real_user_id']
         user_to_delete.delete()
         return JsonResponse({"success": True}, status=200)
-    except:
-        return create_error_response("DATABASE_ERROR", SERVER_ERRORS)
+    except (ObjectDoesNotExist, FieldDoesNotExist, ValidationError) as e:
+        return create_error_response("DATABASE_ERROR", SERVER_ERRORS, e)
 
 
 ## Org methods -----------------------------------------------------------------
