@@ -17,7 +17,7 @@
 			</a>
 			part of
 			<a href="https://github.com/uchicago-capp-30320">
-				Software Engineering for Civic Tech (CAPP 30320)</a
+				Software Engineering for Civic Tech at UChicago</a
 			>
 		</p>
 	</div>
