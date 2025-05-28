@@ -166,7 +166,7 @@
 			</div>
 
 			{#if !orgLoaded}
-				<p class="has-text-centered">Loading organizations.</p>
+				<div class="skeleton-block mb-6"></div>
 			{:else}
 				{#each orgData as org, i}
 					<div class="card mb-4">

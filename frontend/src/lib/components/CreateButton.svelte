@@ -21,11 +21,20 @@
 	$inspect('redirectPath', redirectPath);
 
 	// Check input
-	const validType = ['user', 'org', 'project', 'story'].includes(type);
+	const validType = ['user', 'org', 'project', 'story', 'user-org'].includes(type);
 
 	if (!validType) {
 		console.error('Cannot create object of type ' + type);
 	}
+
+	// parse type to readable
+	const typeClean = {
+		user: 'User',
+		org: 'Organization',
+		project: 'Project',
+		story: 'Story',
+		'user-org': 'User'
+	}[type];
 
 	const closeModal = (id) => {
 		console.log('Try to close modal: ' + id);
@@ -68,7 +77,7 @@
 
 <!-- Create button -->
 <button class="button is-success" onclick={() => (showModal = true)}>
-	{data.isNew ? `Add New ${type}` : `Save Changes`}
+	{data.isNew ? `Add New ${typeClean}` : `Save Changes`}
 </button>
 
 <!-- Bulma's modal with Pop up message  -->
@@ -76,7 +85,7 @@
 	{#snippet header()}
 		<div class="content">
 			<h4>
-				Are you sure you want to create this {type}?
+				Are you sure you want to create this {typeClean}?
 			</h4>
 		</div>
 	{/snippet}
@@ -93,7 +102,7 @@
 </Modal>
 
 <WaitingModal bind:showModalWait modalId={'waitingAPIResponse'}>
-	<p>Waiting for your {type} to be created.</p>
+	<p>Waiting for your {typeClean} to be created.</p>
 </WaitingModal>
 
 <style>
