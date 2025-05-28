@@ -38,14 +38,6 @@
 			</div>
 
 			<div class="content">
-				<nav class="level-left">
-					<div class="level-item has-text-centered ml-5">
-						<div>
-							<p class="heading mb-1">Stories</p>
-							<p class="title is-4 mt-0">{stories}</p>
-						</div>
-					</div>
-				</nav>
 				<nav class="level-right">
 					<div class="level-item">
 						<a href="/org/{org_id}/admin" class="button is-secondary is-small mr-2">

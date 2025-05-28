@@ -1,15 +1,12 @@
-<!-- 
-    Modal component to display pop up messages
-    Ref: https://svelte.dev/playground/modal?version=5.33.2
--->
-
 <script>
-	let { showModal = $bindable(), header, children, modalId } = $props();
+	import logo from '$lib/assets/logos/CommonThreads_BrandBoard_Symbol Deep Green.png';
+
+	let { showModalWait = $bindable(), header, children, modalId } = $props();
 
 	let dialog = $state(); // HTMLDialogElement
 
 	$effect(() => {
-		if (showModal) {
+		if (showModalWait) {
 			dialog.showModal();
 		} else {
 			dialog.close();
@@ -17,11 +14,10 @@
 	});
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_noninteractive_element_interactions -->
 <dialog
 	id={modalId}
 	bind:this={dialog}
-	onclose={() => (showModal = false)}
+	onclose={() => (showModalWait = false)}
 	onclick={(e) => {
 		if (e.target === dialog) dialog.close();
 	}}
@@ -33,6 +29,11 @@
 			<div class="modal-background"></div>
 		</div>
 
+		<div class="level-left">
+			<div class="logo">
+				<img src={logo} alt="Common Thread Logo" />
+			</div>
+		</div>
 		<div class="level-right">
 			<button
 				class="button is-ghost level-right"
@@ -51,6 +52,7 @@
 		{@render header?.()}
 		<hr />
 		{@render children?.()}
+		<progress class="progress is-small is-primary" max="100">15%</progress>
 	</div>
 </dialog>
 
@@ -99,5 +101,13 @@
 
 	.icon:hover {
 		color: #ce6664 !important;
+	}
+
+	.logo {
+		width: 30px;
+		height: fit-content;
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 </style>

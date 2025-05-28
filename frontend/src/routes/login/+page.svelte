@@ -47,7 +47,7 @@
 
 			// Get user data and handle any errors
 			const userResponse = await authRequest(`/user`, 'GET', $accessToken, $refreshToken);
-			
+
 			if (userResponse?.error) {
 				showError('USER_NOT_FOUND');
 				return;
@@ -62,7 +62,6 @@
 
 			// Use window.location for client-side navigation
 			window.location.href = `/user`;
-
 		} catch (error) {
 			console.error('Unexpected error during login:', error);
 			showError('INTERNAL_ERROR');

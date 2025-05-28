@@ -1,6 +1,8 @@
 <!-- General component to call Delete endpoints -->
 <script>
 	import Modal from '$lib/components/Modal.svelte';
+	import WaitingModal from './WaitingModal.svelte';
+	import SuccessModal from './SuccessModal.svelte';
 	import { accessToken, refreshToken, ipAddress } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
 	import { goto } from '$app/navigation';
@@ -10,6 +12,9 @@
 	// Derive props and set initial state
 	let { type, id, redirectPath = null } = $props();
 	let showModal = $state(false);
+	let showModalWait = $state(false);
+	let showModalSuccess = $state(false);
+
 	let url = '';
 
 	const org_id = $page.params.org_id;
@@ -35,9 +40,9 @@
 		content = 'text, tags, and audivisual materials';
 	}
 
-	const closeModal = () => {
-		showModal = false;
-		const dialog = document.getElementById('modalDialog');
+	const closeModal = (id) => {
+		console.log('Try to close modal: ' + id);
+		const dialog = document.getElementById(id);
 		dialog.close();
 	};
 
@@ -49,6 +54,10 @@
 			url = `/${type}/${id}/delete`;
 		}
 
+		showModalWait = true;
+		showModal = false;
+		closeModal('confirmRequest');
+
 		const deleteResponse = await authRequest(url, 'DELETE', $accessToken, $refreshToken);
 
 		/* Wait till response is done to close dialog. */
@@ -58,13 +67,13 @@
 				$accessToken = '';
 				$refreshToken = '';
 			}
-  
-      closeModal();
-      
-      if (redirectPath) {
-			window.location.href = redirectPath;
-      }
 
+			showModalWait = true;
+			closeModal('waitingAPIResponse');
+
+			if (redirectPath) {
+				window.location.href = redirectPath;
+			}
 		}
 	};
 </script>
@@ -79,7 +88,7 @@
 </div>
 
 <!-- Bulma's modal with Pop up message  -->
-<Modal bind:showModal>
+<Modal bind:showModal modalId={'confirmRequest'}>
 	{#snippet header()}
 		<div class="content">
 			<h4>
@@ -107,6 +116,14 @@
 		>
 	</div>
 </Modal>
+
+<WaitingModal bind:showModalWait modalId={'waitingAPIResponse'}>
+	<p>Waiting for your {type} to be deleted.</p>
+</WaitingModal>
+
+<!-- <SuccessModal bind:showModalSuccess modalId={"successfulResponse"}>
+	<p>Your story has been succesfully deleted</p>
+</SuccessModal> -->
 
 <style>
 	button {

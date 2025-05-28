@@ -31,12 +31,12 @@
 
 <div class="columns">
 	<div class="card columns column is-half">
-		<div class="card-image column is-one-fifth">
-			<figure class="image is-4by3">
-				<img src={profile_pic_path} alt="Placeholder" />
+		<div class="column is-one-quarter">
+			<figure class="image is-128x128">
+				<img class="box" src={profile_pic_path} alt="org profile pic" />
 			</figure>
 		</div>
-		<div class="card-content column">
+		<div class="card-content column is-three-quarters pl-5">
 			<div class="media">
 				<div class="media-content">
 					<p class="title is-4">{org_name}</p>

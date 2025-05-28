@@ -23,7 +23,7 @@
 		<hr />
 
 		<div class="content">
-			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
+			<p class="is-size-6 has-text-grey mb-1">Project Insight Preview</p>
 			{#if project.insight}
 				{project.insight[Object.keys(project.insight)[0]]}
 			{:else}
