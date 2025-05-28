@@ -68,11 +68,15 @@
 				</span>
 				<span class="has-text-left">HUMAN GENERATED TAGS</span>
 				<br />
-				{#each story.tags as tag}
-					{#if tag.created_by != 'computer'}
-						<span class="tag is-medium m-1">{tag.value}</span>
-					{/if}
-				{/each}
+				{#if story.tags.filter((tag) => tag.created_by != 'computer').length > 0}
+					{#each story.tags as tag}
+						{#if tag.created_by != 'computer'}
+							<span class="tag is-medium m-1">{tag.value}</span>
+						{/if}
+					{/each}
+				{:else}
+					<div class="p-1 is-small">No tags added</div>
+				{/if}
 			</div>
 			<div class="column" id="ml-tags">
 				<span class="icon">
@@ -80,11 +84,15 @@
 				</span>
 				<span class="has-text-left">AI GENEARATED TAGS</span>
 				<br />
-				{#each story.tags as tag}
-					{#if tag.created_by == 'computer'}
-						<span class="tag is-medium m-1">{tag.value}</span>
-					{/if}
-				{/each}
+				{#if story.tags.filter((tag) => tag.created_by == 'computer').length > 0}
+					{#each story.tags as tag}
+						{#if tag.created_by == 'computer'}
+							<span class="tag is-medium m-1">{tag.value}</span>
+						{/if}
+					{/each}
+				{:else}
+					<div class="p-1 is-small">No AI generated tags added</div>
+				{/if}
 			</div>
 		</div>
 

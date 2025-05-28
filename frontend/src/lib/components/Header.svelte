@@ -17,7 +17,7 @@
 	let dActive = $state(false);
 	let orgs = $state([]);
 	let org_id = $state(null);
-	let isHome = $state(page.url.pathname === '/');
+	let isHomeUser = $state(page.url.pathname === '/' || page.url.pathname === '/user');
 	let first_name = $state(null);
 	let start = $state(true);
 
@@ -112,7 +112,7 @@
 							dActive = !dActive;
 						}}
 					>
-						<span>{isHome ? 'Choose Organization' : 'Change Organization'}</span>
+						<span>{isHomeUser ? 'Choose Organization' : 'Change Organization'}</span>
 						<span class="icon">
 							<i class="fa fa-angle-down" aria-hidden="true"></i>
 						</span>

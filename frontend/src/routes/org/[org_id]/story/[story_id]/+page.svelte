@@ -135,6 +135,14 @@
 	<!-- Show normal content -->
 	<div id="container" class="mb-6">
 		<!-- NAVIGATION BAR  -->
+		<div class="has-text-left mb-3">
+			<a href="/org/{orgData.org_id}" class="button is-light">
+				<span class="icon">
+					<i class="fa fa-arrow-left"></i>
+				</span>
+				<span>Back to Organization</span>
+			</a>
+		</div>
 		<div class="breadcrumb-nav mb-5 mt-3">
 			<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 				<ul>

@@ -122,6 +122,14 @@
 	</style>
 {:else}
 	<div class="container">
+		<div class="has-text-left mb-3">
+			<a href="/org/{projectData.org_id}" class="button is-light">
+				<span class="icon">
+					<i class="fa fa-arrow-left"></i>
+				</span>
+				<span>Back to Organization</span>
+			</a>
+		</div>
 		<div class="breadcrumb-nav mb-5">
 			<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
 				<ul>
