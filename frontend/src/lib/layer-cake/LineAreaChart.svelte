@@ -7,7 +7,7 @@
 	import AxisX from './AxisX.svelte';
 	import AxisY from './AxisY.svelte';
 
-	let { xKey, yKey, data, stroke } = $props();
+	let { xKey, yKey, data, stroke, fill } = $props();
 	const formatLabelX = timeFormat('%b %d');
 </script>
 
@@ -23,7 +23,7 @@
 			<AxisX format={formatLabelX} />
 			<AxisY ticks={4} />
 			<Line {stroke} />
-			<Area />
+			<Area {fill} />
 		</Svg>
 	</LayerCake>
 </div>
