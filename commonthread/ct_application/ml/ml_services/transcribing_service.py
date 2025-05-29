@@ -1,7 +1,6 @@
 from typing import BinaryIO
 import logging
 from ..ml_pipelines.transcribing_pipeline import (
-    HFTranscribingStrategy,
     TranscribingStrategy,
     DeepgramTranscribingStrategy,
     AudioInput,

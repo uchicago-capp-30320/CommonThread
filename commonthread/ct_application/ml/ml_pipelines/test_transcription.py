@@ -1,6 +1,5 @@
 # test_transcription.py
 from transcribing_pipeline import (
-    HFTranscribingStrategy,
     DeepgramTranscribingStrategy,
     AudioInput,
 )
