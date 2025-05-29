@@ -52,6 +52,7 @@ CT_SQS_QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 ALLOWED_HOSTS = [
+    "turing.unnamed.computer",
     "localhost",
     "127.0.0.1",
     "0.0.0.0",
@@ -118,6 +119,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8031",
     "http://127.0.0.1:8032",
     "http://127.0.0.1:9000",
+    "http://turing.unnamed.computer:8031",
+    "http://turing.unnamed.computer:8032",
 ]
 
 ROOT_URLCONF = "commonthread.urls"

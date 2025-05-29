@@ -81,6 +81,7 @@
 			<div class="column" id="ml-tags">
 				<span class="icon">
 					<i class="fa fa-lightbulb-o"></i>
+					<!-- <i class="fa fa-user-robot"></i> -->
 				</span>
 				<span class="has-text-left">AI GENEARATED TAGS</span>
 				<br />
