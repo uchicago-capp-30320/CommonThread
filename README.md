@@ -9,6 +9,8 @@
 
 **CommonThread** is an open-source collaborative tool that enables users to turn stories into insights. Community-based organizations, journalists, researchers, and community members alike can use the tool to efficiently gather stories, aggregate them, and understand common threads to draw insights for action.
 
+See documentation for the project at [https://uchicago-capp-30320.github.io/CommonThread/](https://uchicago-capp-30320.github.io/CommonThread/).
+
 
 ## Tech Stack :toolbox:
 ![GIT](https://img.shields.io/badge/GIT-E44C30?style=for-the-badge&logo=git&logoColor=white)
@@ -30,31 +32,19 @@
 
 ## Set Up 
 
-### Backend :hammer:
+CommonThread is built off of two primary components: A Svelte-kit frontend that communicates with a Django-based backend. This means that for setup, there are two main components that need to be done.
+
+### Environments
 
 To set up a local development environment, follow these steps:
 
-1. **Install UV**: If you haven't already, install UV
-2. **Sync the Environment**: After installing UV, you need to sync the environment. This will set up the necessary configurations and dependencies for your project. Run the following command:
-```bash
-$ uv sync
-```
-3. **To add a new package**: If you need to add a new package, you can do so by running:
-```bash
-$ uv add <package_name>
-``` 
+Refer to backend environment setup [here](https://github.com/uchicago-capp-30320/CommonThread/tree/main/commonthread/)
 
-### Frontend :art:
-You can find detailed directions to manage the frontend environment and launch the web server locally [here](https://github.com/uchicago-capp-30320/CommonThread/tree/main/frontend).
+Refer to frontend environment setup [here](https://github.com/uchicago-capp-30320/CommonThread/tree/main/frontend/README.md)
 
-### Secrets :key:
-To configure your `.env` and `SECRET_KEY`:
-1. **See the .env.example file**: The `.env.example` file contains a template for the environment variables you need to set up. 
-2. **Copy this file and rename it to `.env`**: This will be your actual environment file where you will set your variables. You can do this by running:
-```bash
-$ cp .env.example .env
-```
-3. **Set the SECRET_KEY**: Open the `.env` file and set the `SECRET_KEY` variable. This key is sent to you privately.
+### Environment Variables
+
+There will be 2 main relevant .env files- one in commonthread, one in frontend. If the product is being deployed with docker, an additional .env.production file is necessary under frontend in order to enable docker to use the correct hostnames. If you are looking to work with the developers of this project, reach out for the necessary files. If you are looking to fork this project for your own purposes, we can provide lists of the necessary things that will need to be set within environment variables for the project to function.
 
 
 ## Project Structure :card_index_dividers:

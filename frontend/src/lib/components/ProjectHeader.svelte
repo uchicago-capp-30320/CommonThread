@@ -24,7 +24,8 @@
 							<i class="fa fa-lightbulb-o"></i>
 							<!-- <i class="fa fa-user-robot"></i> -->
 						</span>
-						<i>AI Insight</i></p>
+						<i>AI Insight</i>
+					</p>
 					{#if typeof insight === 'object' && insight !== null}
 						<div class="content">
 							<ul class="fa-ul">
