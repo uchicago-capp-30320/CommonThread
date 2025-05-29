@@ -3,9 +3,9 @@
 
 	function handleNext() {
 		console.log('Before click - currentStep:', currentStep);
-		console.log('Data check:', storyData.author, storyData.storyteller);
+		console.log('Data check:', storyData.storyteller);
 
-		if (storyData.author && storyData.storyteller) {
+		if (storyData.storyteller) {
 			currentStep = 2;
 			console.log('After click - currentStep:', currentStep);
 		}
@@ -45,19 +45,6 @@
 		</div>
 
 		<h2 class="title is-4 mb-5 mt-5">Tell us about you and the storyteller</h2>
-
-		<div class="field">
-			<label class="label" for="title">Author's name</label>
-			<div class="control">
-				<input
-					class="input"
-					type="text"
-					id="title"
-					bind:value={storyData.author}
-					placeholder="Enter the author's name"
-				/>
-			</div>
-		</div>
 
 		<div class="field">
 			<label class="label" for="author">Storyteller Name</label>
