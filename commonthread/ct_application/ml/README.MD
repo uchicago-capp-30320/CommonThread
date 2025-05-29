@@ -37,17 +37,4 @@ ML services automatically process stories when uploaded:
 
 1. Audio upload triggers transcription
 2. Text content generates tags
-3. Summaries created for stories and projects
-
-## API
-
-```bash
-GET /api/ml/status/{story_id}  # Check processing status
-```
-
-## Testing
-
-```bash
-pytest ct_application/ml/
-```
-```
+3. Summaries created for stories and insights created for projects
