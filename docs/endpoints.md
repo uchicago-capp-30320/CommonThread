@@ -2,24 +2,24 @@
 
 ## Table of Contents
 
-- [Users](#users)
-  - POST /users/create
-  - POST /users/log_in
-  - GET /users/{user_id}
-- [Organizations](#organizations)
-  - POST /orgs/create
-  - POST /orgs/add_user
-  - GET /orgs/{org_id}
-  - GET /orgs/{org_id}/admin
-- [Projects](#projects)
-  - POST /projects/create
-  - GET /projects/{project_id}
-- [Tags](#tags)
-  - GET /tags
-- [Stories](#stories)
-  - POST /stories/create
-  - GET /stories
-  - GET /stories/{story_id}
+[Users](#users)
+- POST /users/create
+- POST /users/log_in
+- GET /users/{user_id}
+[Organizations](#organizations)
+- POST /orgs/create
+- POST /orgs/add_user
+- GET /orgs/{org_id}
+- GET /orgs/{org_id}/admin
+[Projects](#projects)
+- POST /projects/create
+- GET /projects/{project_id}
+[Tags](#tags)
+- GET /tags
+[Stories](#stories)
+- POST /stories/create
+- GET /stories
+- GET /stories/{story_id}
 
 ---
 

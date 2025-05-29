@@ -119,8 +119,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://127.0.0.1:8031",
     "http://127.0.0.1:8032",
     "http://127.0.0.1:9000",
-    "turing.unnamed.computer:8031",
-    "turing.unnamed.computer:8032",
+    "http://turing.unnamed.computer:8031",
+    "http://turing.unnamed.computer:8032",
 ]
 
 ROOT_URLCONF = "commonthread.urls"
