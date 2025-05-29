@@ -1,13 +1,12 @@
 # CommonThread Privacy Policy 
 
 ## What information does CommonThread have from me?
-To provide quality service and manage access, CommonThread stores data related to your user profile. . This includes the name, email, and password you provide when creating an account. In addition, CommonThread manages the data related to the organizations, projects and stories that you create, including all text, images, and audio materials that you upload. 
+To provide quality service and manage access, CommonThread stores data related to your user profile. This includes the name, email, and password you provide when creating an account. In addition, CommonThread manages the data related to the organizations, projects and stories that you create, including all text, images, and audio materials that you upload. 
 
 To secure your information and authenticate that only you can login and see the stories you have uploaded, CommonThread uses authentication cookies that are unique to you and are only used within the CommonThread  website. 
 
 ## What information does CommonThread not have from me?
-CommonThread does not track your activities in other websites or parts of the internet (tracking cookies) 
-CommonThread does not handle any financial information 
+CommonThread does not track your activities in other websites or parts of the internet (tracking cookies) nor it handles any financial information.
 
 
 ## How long will CommonThread have my information?
