@@ -1,5 +1,6 @@
 <script>
 	import { text } from '@sveltejs/kit';
+	import AudioRecorder from '../audio/AudioRecorder.svelte';
 
 	let { currentStep = $bindable(), storyData = $bindable(), projects } = $props();
 	let wordCount = $derived(storyData.text_content.trim().split(/\s+/).length);
@@ -34,13 +35,17 @@
 	let textActive = $state(true);
 	let audioActive = $state(false);
 
+	// Add these new state variables to track audio source
+	let hasUploadedAudio = $derived(storyData.audio && !storyData.audio.name?.startsWith('recording-'));
+	let hasRecordedAudio = $derived(storyData.audio && storyData.audio.name?.startsWith('recording-'));
+
 	$inspect(tagCategories, textActive, audioActive);
 
 	function getTagMap() {
 		return new Map((storyData.tags || []).map((tag) => [tag.category, tag]));
 	}
 
-	// Read a tag’s value
+	// Read a tag's value
 	function getTagValue(categoryId) {
 		return getTagMap().get(categoryId)?.value || '';
 	}
@@ -75,7 +80,7 @@
 		};
 	}
 
-	// Helpers for optional‑tag UI
+	// Helpers for optional-tag UI
 	function addOptionalTag() {
 		if (optionalTagValue.trim()) {
 			setTagValue(selectedOptionalCategory, optionalTagValue);
@@ -83,7 +88,7 @@
 		}
 	}
 
-	// Validation: ensure all required categories exist and have non‑empty values
+	// Validation: ensure all required categories exist and have non-empty values
 	function hasAllRequiredTags() {
 		const tagsMap = getTagMap();
 		return tagCategories.required.every((cat) => tagsMap.has(cat.id) && tagsMap.get(cat.id).value);
@@ -93,6 +98,21 @@
 		if ((storyData.text_content || storyData.audio) && hasAllRequiredTags()) {
 			currentStep = 3;
 		}
+	}
+
+	// Define callback functions
+	function handleAudioRecorded(data) {
+		storyData = {
+			...storyData,
+			audio: data.audioFile
+		};
+	}
+	
+	function handleAudioCleared() {
+		storyData = {
+			...storyData,
+			audio: null
+		};
 	}
 </script>
 
@@ -150,12 +170,16 @@
 			{:else}
 				<!-- Audio Tab Content -->
 				<div class="control">
-					<div class="file has-name is-fullwidth">
+					<div class="file has-name is-fullwidth" class:disabled={hasRecordedAudio}>
+						{#if hasRecordedAudio}
+							<p class="help has-text-grey mb-2">File upload disabled - audio recording exists</p>
+						{/if}
 						<label class="file-label">
 							<input
 								class="file-input"
 								type="file"
 								accept="audio/*"
+								disabled={hasRecordedAudio}
 								onchange={(e) => {
 									if (e.target.files.length > 0) {
 										storyData = {
@@ -165,7 +189,7 @@
 									}
 								}}
 							/>
-							<span class="file-cta">
+							<span class="file-cta" class:disabled={hasRecordedAudio}>
 								<span class="file-icon">
 									<i class="fa fa-upload"></i>
 								</span>
@@ -175,6 +199,31 @@
 								{storyData.audio?.name || 'No file selected'}
 							</span>
 						</label>
+						{#if hasUploadedAudio}
+							<button 
+								class="button is-warning is-small mt-2" 
+								onclick={() => {
+									storyData = { ...storyData, audio: null };
+								}}
+							>
+								<span class="icon is-small">
+									<i class="fa fa-trash"></i>
+								</span>
+								<span>Remove uploaded file</span>
+							</button>
+						{/if}
+					</div>
+					
+					<!-- Live Recording Component -->
+					<div class="mt-3">
+						<div class="has-text-centered mb-2">
+							<span class="tag is-light">OR</span>
+						</div>
+						<AudioRecorder 
+							disabled={hasUploadedAudio}
+							onAudioRecorded={handleAudioRecorded}
+							onAudioCleared={handleAudioCleared}
+						/>
 					</div>
 				</div>
 			{/if}
@@ -320,5 +369,15 @@
 		height: 1.8em;
 		min-width: 80px;
 		max-width: 140px;
+	}
+	.disabled {
+		opacity: 0.6;
+		pointer-events: none;
+	}
+	
+	.file-cta.disabled {
+		background-color: #f5f5f5 !important;
+		color: #999 !important;
+		cursor: not-allowed !important;
 	}
 </style>
