@@ -2,7 +2,7 @@
 	import { submitStory } from '$lib/components/story/StoryPoster.js';
 
 	import { authRequest } from '$lib/authRequest.js';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import { accessToken, refreshToken } from '$lib/store.js';
 
@@ -11,6 +11,10 @@
 	let submitted = $state(false);
 	let error = $state(null);
 	let isUploading = $state(false);
+	
+	// Camera stuff
+	let showCamera = $state(false);
+	let stream = $state(null);
 
 	let project = $derived(
 		projects.filter((project) => project.project_id === storyData.project_id)[0]
@@ -33,6 +37,64 @@
 	function removeImage() {
 		storyData = { ...storyData, image: null };
 		imagePreview = null;
+		stopCamera();
+	}
+
+	async function startCamera() {
+		try {
+			console.log('Requesting camera permission...');
+			stream = await navigator.mediaDevices.getUserMedia({ 
+				video: { facingMode: 'user' } 
+			});
+			console.log('Camera permission granted, showing video...');
+			showCamera = true;
+			error = null;
+			
+			// Wait for DOM update then connect stream
+			setTimeout(() => {
+				const video = document.getElementById('camera-video');
+				if (video) {
+					video.srcObject = stream;
+					console.log('Video connected successfully');
+				}
+			}, 50);
+			
+		} catch (err) {
+			console.error('Camera error details:', err.name, err.message);
+			if (err.name === 'NotAllowedError') {
+				error = 'Please allow camera access in your browser';
+			} else if (err.name === 'NotFoundError') {
+				error = 'No camera found on this device';
+			} else {
+				error = `Camera error: ${err.message}`;
+			}
+		}
+	}
+
+	function stopCamera() {
+		if (stream) {
+			stream.getTracks().forEach(track => track.stop());
+			stream = null;
+		}
+		showCamera = false;
+	}
+
+	function takePhoto() {
+		const video = document.getElementById('camera-video');
+		if (!video) return;
+		
+		const canvas = document.createElement('canvas');
+		canvas.width = video.videoWidth;
+		canvas.height = video.videoHeight;
+		const ctx = canvas.getContext('2d');
+		ctx.drawImage(video, 0, 0);
+		
+		canvas.toBlob((blob) => {
+			const file = new File([blob], 'photo.jpg', { type: 'image/jpeg' });
+			storyData = { ...storyData, image: file };
+			imagePreview = URL.createObjectURL(file);
+			stopCamera();
+		});
 	}
 
 	async function handleSubmit() {
@@ -161,26 +223,69 @@
 	<div class="box">
 		<h2 class="title is-4 mb-5">Add an Image</h2>
 
-		<div class="field">
-			<label class="label" for="story-image">Upload Image</label>
-			<div class="control">
-				<input
-					id="story-image"
-					class="input"
-					type="file"
-					accept="image/*"
-					onchange={handleFileChange}
-				/>
+		{#if !imagePreview}
+			<div class="field">
+				<label class="label">Upload Image</label>
+				<div class="control">
+					<input
+						class="input"
+						type="file"
+						accept="image/*"
+						onchange={handleFileChange}
+					/>
+				</div>
 			</div>
-		</div>
+
+			<div class="has-text-centered my-4">
+				<span class="has-text-grey">or</span>
+			</div>
+
+			<div class="field">
+				<label class="label">Take Photo</label>
+				<div class="control">
+					{#if !showCamera}
+						<button class="button is-primary is-fullwidth" onclick={startCamera}>
+							Use Camera
+						</button>
+					{/if}
+				</div>
+			</div>
+		{/if}
+
+		{#if showCamera}
+			<div class="field">
+				<label class="label">Camera</label>
+				<video 
+					id="camera-video"
+					autoplay 
+					playsinline 
+					muted
+					class="camera-preview"
+				></video>
+				<div class="field mt-3">
+					<div class="control">
+						<button class="button is-success is-fullwidth" onclick={takePhoto}>
+							Capture Photo
+						</button>
+					</div>
+					<div class="control mt-2">
+						<button class="button is-light is-fullwidth" onclick={stopCamera}>
+							Cancel
+						</button>
+					</div>
+				</div>
+			</div>
+		{/if}
 
 		{#if imagePreview}
-			<div class="field mt-4">
-				<div class="label">Preview</div>
+			<div class="field">
+				<label class="label">Preview</label>
 				<figure class="image is-128x128">
-					<img src={imagePreview} alt="Story preview" />
+					<img src={imagePreview} alt="Preview" />
 				</figure>
-				<button class="button is-danger is-small mt-2" onclick={removeImage}>Remove Image</button>
+				<button class="button is-danger is-small mt-2" onclick={removeImage}>
+					Remove Image
+				</button>
 			</div>
 		{/if}
 
@@ -193,7 +298,7 @@
 		{#if !isUploading}
 			<div class="field mt-5 is-flex is-justify-content-flex-end">
 				<div class="control">
-					<button class="button is-primary" onclick={handleSubmit}> Submit </button>
+					<button class="button is-primary" onclick={handleSubmit}>Submit</button>
 				</div>
 			</div>
 		{:else}
@@ -213,3 +318,12 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.camera-preview {
+		width: 100%;
+		max-width: 400px;
+		border-radius: 6px;
+		border: 1px solid #dbdbdb;
+	}
+</style>
