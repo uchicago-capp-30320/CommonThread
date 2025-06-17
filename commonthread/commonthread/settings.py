@@ -53,6 +53,9 @@ CT_SQS_QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
 DEBUG = False
 ALLOWED_HOSTS = [
     "commonthread.works",
+    "138.201.16.221",
+    "138.201.16.221:8030",
+    "138.201.16.221:8032",
     "commonthread.unnamed.computer",
     "turing.unnamed.computer",
     "localhost",
