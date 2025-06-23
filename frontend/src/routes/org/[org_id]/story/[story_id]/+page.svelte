@@ -6,6 +6,7 @@
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
 	import OrgHeader from '$lib/components/OrgHeader.svelte';
+	import Chatbox from '$lib/components/Chatbox.svelte'; // Added Chatbox import
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
 	import { showError } from '$lib/errorStore.js';
@@ -44,7 +45,13 @@
 	$inspect(orgData);
 	$inspect(storyData);
 
-	// API call with error handling
+feat/project-chat-perplexity
+	// Construct chat API endpoint
+	console.log('Story Page - $page.params.story_id:', $page.params.story_id);
+	const story_id_for_endpoint = $page.params.story_id; // Ensure story_id is explicitly defined for clarity
+	const chatApiEndpoint = `/story/${story_id_for_endpoint}/chat`;
+	console.log('Story Page - constructed chatApiEndpoint:', chatApiEndpoint);
+
 	onMount(async () => {
 		try {
 			console.log('Making requests for org:', org_id, 'story:', story_id);
@@ -217,6 +224,24 @@
 		justify-content: center;
 	}
 
+	.story-chat-container {
+		margin-top: 30px; /* Increased margin-top */
+		padding: 20px;    /* Increased padding */
+		border: 1px solid #ddd; /* Slightly darker border */
+		border-radius: 8px; /* Added border-radius for rounded corners */
+		background-color: #f9f9f9; /* Light background color for the container */
+		max-width: 700px; /* Max width for the chat container */
+		margin-left: auto; /* Center the chat container */
+		margin-right: auto; /* Center the chat container */
+	}
+
+	.story-chat-container h3 {
+		font-size: 1.5em;
+		color: #333;
+		margin-bottom: 15px;
+		text-align: center;
+	}
+
 	#images {
 		/* max-height: 300px; */
 		max-width: 100%;
@@ -259,3 +284,9 @@
 		padding: 2rem;
 	}
 </style>
+
+<!-- Chatbox Integration -->
+<div class="story-chat-container">
+	<h3>Chat about this Story</h3>
+	<Chatbox {chatApiEndpoint} />
+</div>

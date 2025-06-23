@@ -5,6 +5,7 @@
 	import ProjectHeader from '$lib/components/ProjectHeader.svelte';
 	import DataDashboard from '$lib/components/DataDashboard.svelte';
 	import StoryPreview from '$lib/components/StoryPreview.svelte';
+	import Chatbox from '$lib/components/Chatbox.svelte'; // Added Chatbox import
 
 	import { authRequest } from '$lib/authRequest.js';
 	import { onMount } from 'svelte';
@@ -24,10 +25,15 @@
 	let type = $state('dash');
 	let searchValue = $state('');
 	let storiesTotalSearch = $state(0);
+
+	console.log('Project Page - $page.params.project_id:', $page.params.project_id);
+	const projectId = $page.params.project_id; // Ensure projectId is explicitly defined if not already
+	const projectChatApiEndpoint = `/project/${projectId}/chat`; // Create the endpoint URL
+	console.log('Project Page - constructed projectChatApiEndpoint:', projectChatApiEndpoint);
 	let isLoading = $state(true);
 	let initialLoad = $state(true); // To handle initial loading state
-
 	const org_id = $page.params.org_id;
+
 
 	$inspect(projectData);
 	$inspect(stories);
@@ -241,6 +247,11 @@
 	</div>
 {/if}
 
+<!-- Chatbox Component -->
+<div class="chatbox-container">
+	<Chatbox apiEndpoint={projectChatApiEndpoint} />
+</div>
+
 <style>
 	.container {
 		margin: 30px;
@@ -259,11 +270,22 @@
 		color: white;
 	}
 
+feat/project-chat-perplexity
+	.chatbox-container {
+		position: fixed;
+		bottom: 20px;
+		right: 20px;
+		z-index: 1000;
+		width: 400px; /* Or your preferred width */
+		max-width: 90vw;
+		height: 500px; /* Or your preferred height */
+		max-height: 80vh;
 	li a:hover {
 		color: #56bcb3;
 	}
 
 	li.is-active a {
 		color: #56bcb3 !important;
+
 	}
 </style>

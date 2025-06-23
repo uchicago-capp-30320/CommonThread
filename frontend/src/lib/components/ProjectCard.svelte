@@ -4,6 +4,9 @@
 	import { page } from '$app/stores';
 
 	let { project } = $props();
+  feat/project-chat-perplexity
+	console.log('ProjectCard project prop:', project);
+
 </script>
 
 <div class="card">
