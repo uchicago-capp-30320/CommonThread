@@ -20,8 +20,8 @@
 
 		<div class="column">
 			<div class="row mb-2">
-				<span class="tag is-info is-small"> Storyteller: {story.storyteller} </span>
-				<span class="tag is-warning is-small"> Curator: {story.curator} </span>
+				<span class="tag is-secondary is-small"> Storyteller: {story.storyteller} </span>
+				<span class="tag is-thirdary is-small"> Curator: {story.curator} </span>
 				<span class="tag is-primary is-small" id="date"> {story.date} </span>
 			</div>
 
@@ -103,6 +103,11 @@
 
 	#storyContent {
 		margin-top: 15px;
+	}
+
+	.is-thirdary {
+		background-color: var(--gray); /* Example color for thirdary tag */
+		color: #333; /* Example text color */
 	}
 
 	/*

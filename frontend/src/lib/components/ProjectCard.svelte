@@ -4,7 +4,9 @@
 	import { page } from '$app/stores';
 
 	let { project } = $props();
+  feat/project-chat-perplexity
 	console.log('ProjectCard project prop:', project);
+
 </script>
 
 <div class="card">
@@ -24,9 +26,9 @@
 		<hr />
 
 		<div class="content">
-			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
+			<p class="is-size-6 has-text-grey mb-1">Project Insight Preview</p>
 			{#if project.insight}
-				{project.insight.slice(0, 100) + (project.insight.length > 100 ? '...' : '')}
+				{project.insight[Object.keys(project.insight)[0]]}
 			{:else}
 				<em>No insight available</em>
 			{/if}

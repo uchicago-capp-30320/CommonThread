@@ -4,7 +4,7 @@ from transformers import pipeline
 import requests
 import os
 import logging
-import re
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +67,7 @@ class LocalSummarizingStrategy(SummarizingStrategy):
         return [self.summarize_text(text) for text in texts]
 
 
+
 class CollectiveSummarizingStrategy(SummarizingStrategy):
     def __init__(self, api_key: str = PERPLEXITY_API_KEY, model: str = "sonar-pro"):
         """
@@ -96,7 +97,9 @@ class CollectiveSummarizingStrategy(SummarizingStrategy):
             prompt = (
                 "Below is a collection of story summaries. Analyze them and provide a concise overview "
                 "of common themes, patterns, and insights that emerge across the stories. "
-                "Limit your response to 3-5 bullet points, each under 20 words.\n\n"
+                "Limit your response to 3-5 bullet points, each under 20 words." 
+                "Limit your response to insights only, no introductory text. Do not cite specific stories."
+                "Return the output as a json where each the keys are called insight1 and the value is each bullet.\n\n"
                 f"{combined_input}"
             )
 
@@ -114,13 +117,16 @@ class CollectiveSummarizingStrategy(SummarizingStrategy):
             logger.debug(f"Making API request to {self.api_url}")
             response = requests.post(self.api_url, headers=headers, json=data)
             response.raise_for_status()
-            logger.debug("Successfully received API response")
+            logger.debug("Successfully received API response")        
+            response_json = response.json()
+            content_str = response_json['choices'][0]['message']['content']
+            parsed_json = json.loads(content_str)
+            return parsed_json
         
-            return response.json()
-
         except requests.exceptions.RequestException as e:
             logger.error(f"API request failed: {e}")
-            raise
+            return {}
         except Exception as e:
             logger.error(f"Error in collective summarization: {e}")
-            raise
+            return {}
+        

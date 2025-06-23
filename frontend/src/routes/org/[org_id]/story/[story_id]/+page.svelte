@@ -1,4 +1,7 @@
 <script>
+	// assests
+	import thread from '$lib/assets/illustrations/thread1.png';
+
 	// Imports
 	import StoryFullView from '$lib/components/StoryFullView.svelte';
 	import AudioPlayer from '$lib/components/audio/AudioPlayer.svelte';
@@ -6,11 +9,13 @@
 	import Chatbox from '$lib/components/Chatbox.svelte'; // Added Chatbox import
 	import { accessToken, refreshToken } from '$lib/store.js';
 	import { authRequest } from '$lib/authRequest.js';
+	import { showError } from '$lib/errorStore.js';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 
 	// Page state
 	let themeColor = $state('#133335');
+	let loading = $state(true);
 
 	// Fetch the data when the component mounts
 	const org_id = $page.params.org_id;
@@ -30,9 +35,9 @@
 
 	// Story page
 	let storyData = $state({
-		storyteller: 'Loading...',
-		project_name: 'Loading...',
-		curator: 'Loading...',
+		storyteller: '...',
+		project_name: '...',
+		curator: '...',
 		text_content: 'Loading...',
 		summary: 'Loading...'
 	});
@@ -40,94 +45,170 @@
 	$inspect(orgData);
 	$inspect(storyData);
 
+feat/project-chat-perplexity
 	// Construct chat API endpoint
 	console.log('Story Page - $page.params.story_id:', $page.params.story_id);
 	const story_id_for_endpoint = $page.params.story_id; // Ensure story_id is explicitly defined for clarity
 	const chatApiEndpoint = `/story/${story_id_for_endpoint}/chat`;
 	console.log('Story Page - constructed chatApiEndpoint:', chatApiEndpoint);
 
-	// API call
 	onMount(async () => {
-		// Make both requests concurrently using Promise.all
-		const [orgResponse, storyResponse] = await Promise.all([
-			authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
-			authRequest(`/story/${story_id}`, 'GET', $accessToken, $refreshToken)
-		]);
+		try {
+			console.log('Making requests for org:', org_id, 'story:', story_id);
 
-		if (orgResponse.newAccessToken) {
-			accessToken.set(orgResponse.newAccessToken);
+			const [orgResponse, storyResponse] = await Promise.all([
+				authRequest(`/org/${org_id}`, 'GET', $accessToken, $refreshToken),
+				authRequest(`/story/${story_id}`, 'GET', $accessToken, $refreshToken)
+			]);
+
+			console.log('orgResponse:', orgResponse);
+			console.log('storyResponse:', storyResponse);
+
+			// Check for org errors
+			if (orgResponse?.error) {
+				showError(orgResponse.error.code === 'ORG_NOT_FOUND' ? 'ORG_NOT_FOUND' : orgResponse.error);
+				loading = false;
+				return;
+			}
+
+			// Check for story errors
+			if (storyResponse?.error) {
+				console.log('Story error detected:', storyResponse.error);
+				console.log('Calling showError with:', 'STORY_NOT_FOUND', { org_id });
+
+				if (storyResponse.error.code === 'STORY_NOT_FOUND') {
+					showError('STORY_NOT_FOUND', null, { org_id });
+				} else {
+					showError(storyResponse.error.code);
+				}
+				loading = false;
+				return;
+			}
+
+			// Check if responses are null (handled by authRequest)
+			if (!orgResponse || !storyResponse) {
+				loading = false;
+				return;
+			}
+
+			// Success - update data
+			if (orgResponse.newAccessToken) {
+				accessToken.set(orgResponse.newAccessToken);
+			}
+
+			orgData = orgResponse.data;
+			storyData = storyResponse.data;
+
+			includesAudio = storyData.audio_path != '';
+			includesImage = storyData.image_path != '';
+			if (includesAudio || includesImage) media = true;
+
+			loading = false;
+		} catch (error) {
+			console.error('Unexpected error loading story:', error);
+			showError('INTERNAL_ERROR');
+			loading = false;
 		}
-
-		orgData = orgResponse.data;
-		storyData = storyResponse.data;
-
-		includesAudio = storyData.audio_path != '';
-		includesImage = storyData.image_path != '';
-		if (includesAudio || includesImage) media = true;
 	});
 </script>
 
-<div id="container" class="mb-6">
-	<div class="breadcrumb-nav mb-5 mt-3">
-		<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
-			<ul>
-				<li><a href="/">Home</a></li>
-				<li>
-					<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a>
-				</li>
-				<li class="">
-					<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
-						><b>Project</b>: {storyData.project_name}</a
-					>
-				</li>
-				<li class="is-active">
-					<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
-						><b>Story</b>: {story_id}</a
-					>
-				</li>
-			</ul>
-		</nav>
-	</div>
-	<div class="container-is-fullhd">
-		<div class="columns">
-			<div class="column is-1"></div>
-			{#if media}
-				<div class="column is-6">
-					<StoryFullView story={storyData}></StoryFullView>
-				</div>
-			{:else}
-				<div class="column is-10">
-					<StoryFullView story={storyData}></StoryFullView>
-				</div>
-			{/if}
-
-			{#if media}
-				<div class="column">
-					<!-- Are we displaying a single image or multiple? -->
-					<div class="row">
-						{#if includesAudio}
-							<div class="media">
-								<div class="media-right" id="audio">
-									<div class="audio">
-										<AudioPlayer src={storyData.audio_path}></AudioPlayer>
-									</div>
-								</div>
-							</div>
-						{/if}
-						{#if includesImage}
-							<div class="media">
-								<div class="media-right" id="images">
-									<img src={storyData.image_path} alt="Story image" />
-								</div>
-							</div>
-						{/if}
-					</div>
-				</div>
-			{/if}
-			<div class="column is-1"></div>
+<!-- Just show loading or content - modal handles errors -->
+{#if loading}
+	<div class="loading-container">
+		<div class="has-text-centered">
+			<img
+				src={thread}
+				alt="Loading thread illustration"
+				style="width: 50px; height: auto;"
+				class="spinning-thread"
+			/>
+			<style>
+				.spinning-thread {
+					animation: spinY 2s linear infinite;
+				}
+				@keyframes spinY {
+					0% {
+						transform: rotateY(0deg);
+					}
+					100% {
+						transform: rotateY(360deg);
+					}
+				}
+			</style>
+			<p><b>Loading...</b></p>
 		</div>
 	</div>
-</div>
+{:else}
+	<!-- Show normal content -->
+	<div id="container" class="mb-6">
+		<!-- NAVIGATION BAR  -->
+		<div class="has-text-left mb-3">
+			<a href="/org/{orgData.org_id}" class="button is-light">
+				<span class="icon">
+					<i class="fa fa-arrow-left"></i>
+				</span>
+				<span>Back to Organization</span>
+			</a>
+		</div>
+		<div class="breadcrumb-nav mb-5 mt-3">
+			<nav class="breadcrumb nav-color" aria-label="breadcrumbs">
+				<ul>
+					<li><a href="/">Home</a></li>
+					<li>
+						<a href="/org/{orgData.org_id}"><b>Organization</b>: {orgData.name || 'Organization'}</a
+						>
+					</li>
+					<li class="">
+						<a href="/org/{orgData.org_id}/project/{storyData.project_id}" aria-current="page"
+							><b>Project</b>: {storyData.project_name}</a
+						>
+					</li>
+					<li class="is-active">
+						<a href="/org/{orgData.org_id}/story/{story_id}" aria-current="page"
+							><b>Story</b>: {story_id}</a
+						>
+					</li>
+				</ul>
+			</nav>
+		</div>
+		<div class="container-is-fullhd">
+			<div class="columns">
+				<!-- STORY TEXT -->
+				{#if media}
+					<div class="column is-three-quarters" id="text">
+						<StoryFullView story={storyData}></StoryFullView>
+					</div>
+				{:else}
+					<div class="column is-full">
+						<StoryFullView story={storyData}></StoryFullView>
+					</div>
+				{/if}
+
+				<!-- AUDIOVISUAL MEDIA -->
+				{#if media}
+					<div class="column is-one-quarter" id="media">
+						<!-- Are we displaying a single image or multiple? -->
+						<div class="row">
+							{#if includesAudio}
+								<div class="media-right" id="audio">
+									<AudioPlayer src={storyData.audio_path} storyteller={storyData.storyteller}
+									></AudioPlayer>
+								</div>
+							{/if}
+							{#if includesImage}
+								<div class="media">
+									<div class="media-right" id="images">
+										<img src={storyData.image_path} alt="Story image" />
+									</div>
+								</div>
+							{/if}
+						</div>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
 
 <style>
 	p {
@@ -168,16 +249,39 @@
 		object-fit: contain;
 	}
 
-	.audio {
-		object-fit: contain;
+	/* #media {
+		display: flex; 
+		} */
+
+	.row {
+		width: 100%;
+		padding-bottom: 20%;
+	}
+
+	#audio {
+		/* display:flex; */
+		/* object-fit: contain; */
+		width: 100%;
 	}
 
 	li a {
 		color: black;
 	}
 
-	li.is-active {
-		color: #133335 !important;
+	li a:hover {
+		color: #56bcb3;
+	}
+
+	li.is-active a {
+		color: #56bcb3 !important;
+	}
+
+	.loading-container {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		min-height: 50vh;
+		padding: 2rem;
 	}
 </style>
 

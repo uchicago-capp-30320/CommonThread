@@ -13,29 +13,37 @@
 </script>
 
 <div class="columns">
-	<div class="card columns column is-half">
-		<div class="card-image column is-one-fifth">
-			<figure class="image is-4by3">
-				<img src={project_pic} alt="Placeholder" />
-			</figure>
-		</div>
+	<div class="card columns column">
 		<div class="card-content column">
 			<div class="media">
 				<div class="media-content">
 					<p class="title is-4">{project_name}</p>
-					<p class="subtitle is-6">{insight || 'No AI Insight'}</p>
+
+					<p class="subtitle is-5 mt-2 mb-0">
+						<span class="icon">
+							<i class="fa fa-lightbulb-o"></i>
+							<!-- <i class="fa fa-user-robot"></i> -->
+						</span>
+						<i>AI Insight</i>
+					</p>
+					{#if typeof insight === 'object' && insight !== null}
+						<div class="content">
+							<ul class="fa-ul">
+								{#each Object.entries(insight) as [key, value]}
+									<li>
+										<span class="fa-li"><i class="fas fa-circle-notch"></i></span>
+										{value}
+									</li>
+								{/each}
+							</ul>
+						</div>
+					{:else}
+						{insight || 'No AI Insight'}
+					{/if}
 				</div>
 			</div>
 
 			<div class="content">
-				<nav class="level-left">
-					<div class="level-item has-text-centered ml-5">
-						<div>
-							<p class="heading mb-1">Stories</p>
-							<p class="title is-4 mt-0">{stories}</p>
-						</div>
-					</div>
-				</nav>
 				<nav class="level-right">
 					<div class="level-item">
 						<a href="/org/{org_id}/admin" class="button is-secondary is-small mr-2">

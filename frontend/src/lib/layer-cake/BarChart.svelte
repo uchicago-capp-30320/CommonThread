@@ -24,7 +24,7 @@
 		<Svg>
 			<AxisX tickMarks baseline snapLabels />
 			<AxisY tickMarks gridlines={false} />
-			<Bar />
+			<Bar fill="#133335" />
 		</Svg>
 	</LayerCake>
 </div>

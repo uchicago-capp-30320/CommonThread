@@ -1,32 +1,34 @@
-## App Documentation
+## CommonThread Backend Documentation
 
-For now, the basics again:
+### The Important Notes
 
-### apps.py
-
-A bit counterintuitive but this is more of a configuration file than an actual function holding file to the best of my understanding.
-
-### models.py
-
-This should really be called databaseschemas.py and is where they get collected
-
-### admin.py
-
-Related to models, but potentially more relevant for front-end. You can customize how a form is displayed in terms of order, grouping, etc. Looks like it might be particularly relevant for how we allow admin level users to create projects / story input forms.
-
-## What is the Static Folder?
-
-This is where all of our curated images would be stored.
-
-For now, this might include:
-
-- Website Aesthetic images (logos, fun pictures, etc)
-- Data Visualization generated images (if static)
-
-## What is the templates Folder?
-
-It's where we store the webpage templates.
+Because the backend functions basically entirely as an API called upon by the Svelte frontend, we do not make use of templates or use views in the standard Django way. Instead, all of our endpoints only return data, with visuals dealt with entirely by the frontend. 
 
 ## views.py
 
-Where we call the templates with the input from users that dictates what is displayed.
+This is the bulk of the application, covering all endpoints that the frontend can hit. 
+
+## utils.py
+
+Contains functions used in multiple places or that are not purely API calls, such as JWT token functions and error handling
+
+### models.py
+
+Secretly DatabaseSchema.py. This is where the database schemas are specified, and other components of the backend can call these models as objects. The migrations folder tracks updates to these schemas over time.
+
+### cloud and ml folders
+
+Contains the components necessary for the machine learning functionalities.
+
+### tests folder
+
+Contains pytest tests used to ensure code is functioning properly.
+
+
+### Less Important Things
+
+### apps.py, admin.py, static folder
+apps.py has some basic configuration. admin.py and the static/templates folders are unused due to the nature of our project.
+
+
+

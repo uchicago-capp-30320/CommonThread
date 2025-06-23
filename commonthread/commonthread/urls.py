@@ -18,7 +18,7 @@ Refs:
 - https://learndjango.com/tutorials/django-login-and-logout-tutorial
 """
 
-#from django.contrib import admin
+# from django.contrib import admin
 from django.urls import path
 from ct_application.views import (
     home_test,
@@ -44,41 +44,42 @@ from ct_application.views import (
     delete_story,
     get_stories,
     get_story,
+    feat/project-chat-perplexity
     project_chat_api,
     story_chat_api # Added new story_chat_api view
 
-)
 
 urlpatterns = [
     path("", home_test, name="home"),  # GET /
     path("login", login, name="login"),
     path("create_access", get_new_access_token, name="access-create"),
     path("story/<int:story_id>/ml-status", check_ml_status, name="check-ml-status"),
-
-    #User Related Endpoints
+    # User Related Endpoints
     path("user/create", create_user, name="user-create"),
     path("user/<int:user_id>/edit", edit_user, name="user-edit"),
     path("user/<int:user_id>/delete", delete_user, name="user-delete"),
     path("user/", get_user, name="get_user"),
-
-    #Org Related Endpoints
+    # Org Related Endpoints
     path("org/create", create_org, name="org-create"),
     path("org/<int:org_id>", get_org, name="get-org"),
     path("org/<int:org_id>/edit", edit_org, name="org-edit"),
     path("org/<int:org_id>/delete", delete_org, name="org-delete"),
-    path("org/<int:org_id>/add-user/<int:add_user_id>", add_user_to_org, name="add-user-to-org"),
     path(
-        "org/<int:org_id>/delete-user/<int:del_user_id>", 
-         delete_user_from_org, 
-         name="delete-user-from-org"),
-
-    #Project Related Endpoints
+        "org/<int:org_id>/add-user",
+        add_user_to_org,
+        name="add-user-to-org",
+    ),
+    path(
+        "org/<int:org_id>/delete-user/<int:del_user_id>",
+        delete_user_from_org,
+        name="delete-user-from-org",
+    ),
+    # Project Related Endpoints
     path("project/create", create_project, name="project-create"),
     path("project/<int:project_id>", get_project, name="get-project"),
-    path("project/<int:org_id>/<int:project_id>/edit", edit_project, name="project-edit"),
-    path("project/<int:org_id>/<int:project_id>/delete", delete_project, name="project-delete"),
-    
-    #Story Related Endpoints
+    path("project/<int:project_id>/edit", edit_project, name="project-edit"),
+    path("project/<int:project_id>/delete", delete_project, name="project-delete"),
+    # Story Related Endpoints
     path("story/create", create_story, name="story-create"),
     path("story/<int:story_id>/edit", edit_story, name="story-edit"),
     path("story/<int:story_id>/delete", delete_story, name="story-delete"),
