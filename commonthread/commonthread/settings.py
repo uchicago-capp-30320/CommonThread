@@ -52,8 +52,15 @@ CT_SQS_QUEUE_URL = os.getenv("CT_SQS_QUEUE_URL")
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 ALLOWED_HOSTS = [
+    "commonthread.works",
+    "138.201.16.221",
+    "138.201.16.221:8030",
+    "138.201.16.221:8032",
+    "commonthread.unnamed.computer",
+    "turing.unnamed.computer",
     "localhost",
     "127.0.0.1",
+    "0.0.0.0",
     "[::1]",
 ]
 
@@ -81,10 +88,9 @@ LOGGING = {
 CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
 
-<<<<<<< Updated upstream
-=======
+PERPLEXITY_API_KEY = "YOUR_PERPLEXITY_API_KEY_HERE"  # TODO: Replace with your actual key and manage it securely (e.g., using environment variables or a secrets manager). Do not commit the actual key to the repository.
 
->>>>>>> Stashed changes
+
 INSTALLED_APPS = [
     "ct_application.apps.CtApplicationConfig",
     "django.contrib.admin",
@@ -115,7 +121,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "http://127.0.0.1:3000",
+    "http://turing.unnamed.computer:8031",
+    "http://turing.unnamed.computer:8032",
+    "http://commonthread.unnamed.computer",
+    "https://commonthread.works",
 ]
 
 ROOT_URLCONF = "commonthread.urls"

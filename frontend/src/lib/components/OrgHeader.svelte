@@ -25,16 +25,18 @@
 	} = $props();
 
 	let dActive = $state(false);
+
+	let notAdminPage = $state(!$page.url.pathname.includes('admin'));
 </script>
 
 <div class="columns">
 	<div class="card columns column is-half">
-		<div class="card-image column is-one-fifth">
-			<figure class="image is-4by3">
-				<img src={profile_pic_path} alt="Placeholder" />
+		<div class="column is-one-quarter">
+			<figure class="image is-128x128">
+				<img class="box" src={profile_pic_path} alt="org profile pic" />
 			</figure>
 		</div>
-		<div class="card-content column">
+		<div class="card-content column is-three-quarters pl-5">
 			<div class="media">
 				<div class="media-content">
 					<p class="title is-4">{org_name}</p>
@@ -57,41 +59,18 @@
 						</div>
 					</div>
 				</nav>
-				<nav class="level-right">
-					<div class="level-item">
-						<a href="{$page.url.pathname}/admin" class="button is-secondary is-small mr-2">
-							<span class="icon is-small">
-								<i class="fa fa-edit"></i>
-							</span>
-							<span>Edit Organization</span>
-						</a>
-					</div>
-					<div class="dropdown {dActive ? 'is-active' : ''}">
-						<div class="dropdown-trigger">
-							<button
-								class="button is-secondary is-small"
-								aria-haspopup="true"
-								aria-controls="dropdown-menu"
-								onclick={() => {
-									dActive = !dActive;
-								}}
-							>
-								<span>Change Organization</span>
+				{#if notAdminPage}
+					<nav class="level-right">
+						<div class="level-item">
+							<a href="{$page.url.pathname}/admin" class="button is-secondary is-small mr-2">
 								<span class="icon is-small">
-									<i class="fa fa-angle-down" aria-hidden="true"></i>
+									<i class="fa fa-edit"></i>
 								</span>
-							</button>
+								<span>Edit Organization</span>
+							</a>
 						</div>
-						<div class="dropdown-menu" id="dropdown-menu" role="menu" hidden>
-							<div class="dropdown-content">
-								{#each orgs as org}
-									<a target="_self" href="/org/{org.org_id}" class="dropdown-item">{org.org_name}</a
-									>
-								{/each}
-							</div>
-						</div>
-					</div>
-				</nav>
+					</nav>
+				{/if}
 			</div>
 		</div>
 	</div>

@@ -46,7 +46,11 @@
 
 <style>
 	.banner {
-		height: 600px;
+		/* height: 600px;
+		z-index: -1;
+		position: relative;
+		overflow: hidden; */
+		height: 85vh; /*vw 	Relative to 1% of the width of the viewport*/
 		z-index: -1;
 		position: relative;
 		overflow: hidden;

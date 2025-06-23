@@ -1,0 +1,36 @@
+services:
+  backend:
+    restart: on-failure
+    env_file: commonthread/.env
+    build: ./commonthread
+    command: gunicorn commonthread.wsgi -b 0.0.0.0:9000
+    ports:
+      - '8030:9000'
+    #healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      #interval: 600s
+      #timeout: 10s
+      #retries: 3
+  frontend:
+    restart: on-failure
+    build: ./frontend
+    env_file: frontend/.env.production
+    command: node --env-file=.env build/index.js
+    ports:
+      - '8031:9000'
+    #healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      #interval: 600s
+      #timeout: 10s
+      #retries: 3
+  machine:
+    build: ./commonthread
+    env_file: commonthread/.env
+    command: python -m ct_application.cloud.consumer_service
+    ports:
+    - '8032:9000'
+    #healthcheck:
+      #test: ["CMD", "curl", "-f", "http://localhost:9000/"]
+      #interval: 600s
+      #timeout: 10s
+      #retries: 3

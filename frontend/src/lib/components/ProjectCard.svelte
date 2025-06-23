@@ -4,6 +4,9 @@
 	import { page } from '$app/stores';
 
 	let { project } = $props();
+  feat/project-chat-perplexity
+	console.log('ProjectCard project prop:', project);
+
 </script>
 
 <div class="card">
@@ -11,24 +14,27 @@
 		<div class="media">
 			<div class="media-content">
 				<p class="is-size-6 has-text-grey mb-1">Project</p>
-				<p class="title is-4">{project.name}</p>
+				<p class="title is-4">{project.project_name}</p>
 			</div>
 			<div class="media-right">
 				<div class="has-text-right">
 					<p class="is-size-6 has-text-grey mb-0">Stories</p>
-					<p class="is-size-5 has-text-weight-bold mt-0">{project.total_stories}</p>
+					<p class="is-size-5 has-text-weight-bold mt-0">{project.stories}</p>
 				</div>
 			</div>
 		</div>
 		<hr />
 
 		<div class="content">
-			<p class="is-size-6 has-text-grey mb-1">Project Description</p>
-			This is a description placeholder of the project. It can be a bit longer to give more context about
-			the project and its goals.
+			<p class="is-size-6 has-text-grey mb-1">Project Insight Preview</p>
+			{#if project.insight}
+				{project.insight[Object.keys(project.insight)[0]]}
+			{:else}
+				<em>No insight available</em>
+			{/if}
 		</div>
 		<div class="has-text-right mt-4">
-			<a href="{$page.url.pathname}/project/{project.id}" class="button is-primary">
+			<a href="{$page.url.pathname}/project/{project.project_id}" class="button is-primary">
 				<span>Explore Project</span>
 				<span class="icon">
 					<i class="fa fa-arrow-right"></i>
