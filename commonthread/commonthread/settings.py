@@ -90,6 +90,7 @@ CORS_ORIGIN_ALLOW_ALL = True
 
 PERPLEXITY_API_KEY = "YOUR_PERPLEXITY_API_KEY_HERE"  # TODO: Replace with your actual key and manage it securely (e.g., using environment variables or a secrets manager). Do not commit the actual key to the repository.
 
+
 INSTALLED_APPS = [
     "ct_application.apps.CtApplicationConfig",
     "django.contrib.admin",
