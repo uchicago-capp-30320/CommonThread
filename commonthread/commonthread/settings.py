@@ -81,6 +81,10 @@ LOGGING = {
 CORS_ORIGIN_ALLOW_ALL = True
 # Application definition
 
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 INSTALLED_APPS = [
     "ct_application.apps.CtApplicationConfig",
     "django.contrib.admin",
